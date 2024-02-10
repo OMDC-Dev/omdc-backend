@@ -8,6 +8,7 @@ const ruser = require("../controllers/ruser.controller");
 const muser = require("../controllers/muser.controller");
 const reimbursement = require("../controllers/reimbursement.controller");
 const bank = require("../controllers/bank.controller");
+const superuser = require("../controllers/superuser.controller");
 const { authenticateToken } = require("../utils/jwt");
 
 // routes
@@ -28,6 +29,12 @@ router.get(
   authenticateToken,
   reimbursement.get_reimbursement
 );
+router.post(
+  "/reimbursement/status/:id",
+  authenticateToken,
+  reimbursement.acceptance
+);
+router.get("/reimbursement/status/:id", reimbursement.get_status);
 
 // Bank
 router.get("/bank", bank.getBank);
@@ -35,5 +42,11 @@ router.get("/bank/name", bank.getBankAccName);
 
 // M User
 router.get("/muser", muser.getUser);
+
+//  Super User
+router.post("/superuser", superuser.createUser);
+router.get("/superuser", superuser.getUser);
+router.get("/superuser/pengajuan", authenticateToken, superuser.get_pengajuan);
+router.get("/superuser/user", authenticateToken, superuser.getUserDetail);
 
 module.exports = { router };

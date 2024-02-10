@@ -3,10 +3,14 @@ const db_user = require("../db/user.db");
 const { encPassword } = require("../utils/encPass");
 const { generateAccessToken, decodeToken, getToken } = require("../utils/jwt");
 const { Responder } = require("../utils/responder");
+const { getFormattedDate } = require("../utils/utils");
 const R_User = db.ruser;
 
 // Main User
 const M_User = db_user.muser;
+
+// Admin
+const Admin = db.superuser;
 
 exports.login = async (req, res) => {
   const { iduser, password } = req.body;
@@ -18,6 +22,14 @@ exports.login = async (req, res) => {
       "UserId atau Password tidak boleh kosong",
       null
     );
+  }
+
+  // check is admin
+  const getAdmin = await Admin.findOne({ where: { iduser: iduser } });
+
+  if (getAdmin) {
+    console.log("ADMIN LOGIN");
+    return loginAsAdmin(req, res, getAdmin);
   }
 
   // get user
@@ -84,6 +96,7 @@ exports.login = async (req, res) => {
       nomorwa: "",
       departemen: "",
       fcmToken: "",
+      isAdmin: false,
     })
       .then((data) => {
         Responder(res, "OK", null, data, 200);
@@ -125,3 +138,74 @@ exports.completeUser = async (req, res) => {
       return;
     });
 };
+
+// login as admin
+async function loginAsAdmin(req, res, admin) {
+  const { iduser, password } = req.body;
+
+  const adminData = admin["dataValues"];
+
+  // hashing password
+  const hashPassword = encPassword(password);
+
+  if (hashPassword !== adminData.password) {
+    return Responder(
+      res,
+      "ERROR",
+      "Pengguna atau password tidak sesuai!",
+      null,
+      401
+    );
+  }
+
+  // generate token
+  const token = generateAccessToken(adminData);
+
+  // check if already on session
+  const getSession = await R_User.findOne({ where: { iduser: iduser } });
+
+  if (getSession) {
+    const existingUser = await getSession["dataValues"];
+
+    return await R_User.update(
+      { usertoken: token },
+      { where: { iduser: iduser } }
+    )
+      .then(() => {
+        const newSession = {
+          ...existingUser,
+          userToken: token,
+        };
+        Responder(res, "OK", null, newSession, 200);
+        return;
+      })
+      .catch((err) => {
+        console.log(err);
+        Responder(res, "ERROR", null, null, 400);
+        return;
+      });
+  } else {
+    // save user session
+    R_User.create({
+      ...adminData,
+      tgl_trans: getFormattedDate(new Date(), "-"),
+      user_add: "System",
+      status: "Aktif",
+      userToken: token,
+      isProfileComplete: false,
+      nomorwa: "",
+      departemen: "",
+      fcmToken: "",
+      isAdmin: true,
+    })
+      .then((data) => {
+        Responder(res, "OK", null, data, 200);
+        return;
+      })
+      .catch((err) => {
+        console.log(err);
+        Responder(res, "ERROR", null, null, 400);
+        return;
+      });
+  }
+}

@@ -3,7 +3,7 @@ function generateRandomNumber(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-function getFormattedDate(date = new Date()) {
+function getFormattedDate(date = new Date(), sep = "") {
   // Ambil tahun, bulan, dan tanggal dari objek Date
   const year = date.getFullYear();
   // Tambahkan 1 karena bulan dimulai dari 0 (0 = Januari, 1 = Februari, dst.)
@@ -11,10 +11,20 @@ function getFormattedDate(date = new Date()) {
   const day = String(date.getDate()).padStart(2, "0");
 
   // Gabungkan tahun, bulan, dan tanggal dengan tanda hubung
-  return `${year}${month}${day}`;
+  return `${year}${sep}${month}${sep}${day}`;
+}
+
+function ubahDataById(data, id, idKey, key, dataBaru) {
+  for (var i = 0; i < data.length; i++) {
+    if (data[i][idKey] === id) {
+      data[i][key] = dataBaru;
+      break;
+    }
+  }
 }
 
 module.exports = {
   generateRandomNumber,
   getFormattedDate,
+  ubahDataById,
 };

@@ -26,5 +26,6 @@ db.reimbursement = require("../models/reimbursement.model.js")(
   sequelize,
   Sequelize
 );
+db.superuser = require("../models/superuser.model.js")(sequelize, Sequelize);
 
 module.exports = db;

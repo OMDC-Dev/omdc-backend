@@ -13,10 +13,10 @@ module.exports = (sequelize, Sequelize) => {
       type: Sequelize.STRING,
     },
     requester_id: {
-      type: Sequelize.TEXT,
+      type: Sequelize.STRING,
     },
-    requester_dept: {
-      type: Sequelize.TEXT,
+    requester: {
+      type: Sequelize.JSON,
     },
     name: {
       type: Sequelize.TEXT,
@@ -25,12 +25,9 @@ module.exports = (sequelize, Sequelize) => {
       type: Sequelize.TEXT,
     },
     item: {
-      type: Sequelize.TEXT,
+      type: Sequelize.JSON,
     },
     description: {
-      type: Sequelize.TEXT,
-    },
-    nomor: {
       type: Sequelize.TEXT,
     },
     nominal: {
@@ -43,7 +40,10 @@ module.exports = (sequelize, Sequelize) => {
       type: Sequelize.TEXT("long"),
     },
     bank_detail: {
-      type: Sequelize.TEXT,
+      type: Sequelize.JSON,
+    },
+    file_info: {
+      type: Sequelize.JSON,
     },
     note: {
       type: Sequelize.TEXT,
@@ -54,7 +54,7 @@ module.exports = (sequelize, Sequelize) => {
       allowNull: true,
     },
     accepted_by: {
-      type: Sequelize.TEXT,
+      type: Sequelize.JSON,
       allowNull: true,
     },
   });

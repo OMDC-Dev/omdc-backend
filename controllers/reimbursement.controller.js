@@ -1,12 +1,19 @@
+const { Op } = require("sequelize");
 const db = require("../db");
 const db_user = require("../db/user.db");
 const { decodeToken, getToken } = require("../utils/jwt");
 const { Responder } = require("../utils/responder");
-const { generateRandomNumber, getFormattedDate } = require("../utils/utils");
+const {
+  generateRandomNumber,
+  getFormattedDate,
+  ubahDataById,
+} = require("../utils/utils");
+const moment = require("moment");
 
 const M_Cabang = db_user.cabang;
 const Reimbursement = db.reimbursement;
 const User = db.ruser;
+const Admin = db.superuser;
 
 // Get all cabang list
 exports.cabang = async (req, res) => {
@@ -37,6 +44,8 @@ exports.reimbursement = async (req, res) => {
     name,
     item,
     coa,
+    file,
+    approved_by,
   } = req.body;
   try {
     if (
@@ -48,7 +57,9 @@ exports.reimbursement = async (req, res) => {
       !bank_detail ||
       !nominal ||
       !item ||
-      !coa
+      !coa ||
+      !approved_by ||
+      !file
     ) {
       return Responder(res, "ERROR", "Data tidak lengkap!", null, 400);
     }
@@ -62,6 +73,12 @@ exports.reimbursement = async (req, res) => {
 
     const getUser = await User.findOne({ where: { iduser: userData.iduser } });
     const userDetail = await getUser["dataValues"];
+
+    delete userDetail.userToken;
+
+    // get cabang
+    const getCabang = await M_Cabang.findOne({ where: { kd_induk: cabang } });
+    const cabangData = getCabang["dataValues"];
 
     const getType = () => {
       switch (type) {
@@ -89,25 +106,37 @@ exports.reimbursement = async (req, res) => {
       }
     };
 
+    const getApprovalAdmin = await Admin.findOne({
+      where: { iduser: approved_by },
+    });
+
+    const admin = await getApprovalAdmin["dataValues"];
+
+    const adminData = {
+      iduser: admin.iduser,
+      nm_user: admin.nm_user,
+      status: "WAITING",
+    };
+
     await Reimbursement.create({
       no_doc: doc_no,
       jenis_reimbursement: getType() || "-",
       tanggal_reimbursement: date || "-",
-      kode_cabang: cabang || "-",
-      requester_id: userData?.iduser || "-",
-      requester_dept: userDetail?.departemen || "-",
+      kode_cabang: `${cabangData["kd_induk"]} - ${cabangData["nm_induk"]}`,
+      requester_id: userDetail.iduser || "-",
+      requester: userDetail || "-",
       description: description || "-",
       status: "WAITING",
       attachment: attachment || "-",
-      bank_detail: JSON.stringify(bank_detail) || "-",
+      bank_detail: bank_detail || "-",
       note: null,
       accepted_date: null,
-      accepted_by: null,
-      nomor: userDetail?.nomorwa || "-",
+      accepted_by: [adminData],
       nominal: nominal || "-",
       name: name || "-",
-      item: JSON.stringify(item) || "-",
+      item: item || "-",
       coa: coa,
+      file_info: file,
     })
       .then((data) => {
         Responder(res, "OK", null, data, 200);
@@ -126,16 +155,158 @@ exports.reimbursement = async (req, res) => {
 
 exports.get_reimbursement = async (req, res) => {
   const { authorization } = req.headers;
+  const { page = 1, limit = 10, monthyear, status } = req.query;
 
   try {
     const userData = decodeToken(getToken(authorization));
+
+    const whereClause = { requester_id: userData?.iduser };
+
+    if (monthyear) {
+      const my = monthyear.split("-");
+      const month = my[0];
+      const year = my[1];
+
+      const startDate = new Date(year, month - 1, 1);
+      const endDate = new Date(year, month, 0, 23, 59, 59, 999);
+      whereClause.createdAt = {
+        [Op.between]: [startDate, endDate],
+      };
+    }
+
+    // Menambahkan filter berdasarkan status jika diberikan
+    if (status === "00") {
+      whereClause.status = { [Op.ne]: "APPROVED" }; // Memilih status selain 'APPROVED'
+    } else if (status === "01") {
+      whereClause.status = "APPROVED";
+    }
+
+    // Menghitung offset berdasarkan halaman dan batasan
+    const offset = (page - 1) * limit;
+
     const requested = await Reimbursement.findAll({
-      where: { requester_id: userData?.iduser },
+      where: whereClause,
+      limit: parseInt(limit), // Mengubah batasan menjadi tipe numerik
+      offset: offset, // Menetapkan offset untuk penampilan halaman
+      order: [["createdAt", "DESC"]],
     });
 
-    Responder(res, "OK", null, requested, 200);
+    if (requested.length) {
+      Responder(res, "OK", null, requested, 200);
+      return;
+    } else {
+      Responder(res, "OK", null, [], 200);
+      return;
+    }
+  } catch (error) {
+    console.log(error);
+    Responder(res, "ERROR", null, null, 500);
+    return;
+  }
+};
+
+exports.acceptance = async (req, res) => {
+  const { id } = req.params;
+  const { fowarder_id, status, nominal, note } = req.body;
+  const { authorization } = req.headers;
+
+  try {
+    const datas = await Reimbursement.findOne({
+      where: {
+        id: id,
+      },
+    });
+
+    const userData = decodeToken(getToken(authorization));
+    const userId = userData.iduser;
+
+    // reimbursement data
+    const r_datas = await datas["dataValues"];
+    const acceptance_by = r_datas["accepted_by"];
+
+    if (status == "FOWARDED") {
+      ubahDataById(acceptance_by, userId, "iduser", "status", "APPROVED");
+
+      const getApprovalAdmin = await Admin.findOne({
+        where: { iduser: fowarder_id },
+      });
+
+      const admin = await getApprovalAdmin["dataValues"];
+
+      const adminData = {
+        iduser: admin.iduser,
+        nm_user: admin.nm_user,
+        status: "WAITING",
+      };
+
+      acceptance_by.push(adminData);
+    }
+
+    if (status == "APPROVED") {
+      ubahDataById(acceptance_by, userId, "iduser", "status", "APPROVED");
+    }
+
+    if (status == "REJECTED") {
+      ubahDataById(acceptance_by, userId, "iduser", "status", "REJECTED");
+    }
+
+    const current_date =
+      status == "APPROVED"
+        ? moment(new Date()).format("YYYY-MM-DD HH:mm:ss").toString()
+        : "";
+
+    const status_change = status == "FOWARDED" ? "WAITING" : status;
+
+    return await Reimbursement.update(
+      {
+        accepted_date: current_date,
+        accepted_by: acceptance_by,
+        status: status_change,
+        nominal: "Rp. " + nominal,
+        note: note,
+      },
+      {
+        where: {
+          id: id,
+        },
+      }
+    )
+      .then(() => {
+        Responder(
+          res,
+          "OK",
+          null,
+          { updated: true, message: "Pengajuan berhasil di update!" },
+          200
+        );
+        return;
+      })
+      .catch((err) => {
+        throw err;
+      });
+  } catch (error) {
+    console.log(error);
+    Responder(res, "ERROR", null, null, 500);
+    return;
+  }
+};
+
+exports.get_status = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const data = await Reimbursement.findOne({
+      where: {
+        id: id,
+      },
+      attributes: ["status", "accepted_by"],
+    });
+
+    const dataStatus = await data["dataValues"];
+
+    Responder(res, "OK", null, dataStatus, 200);
     return;
   } catch (error) {
+    console.log(error);
     Responder(res, "ERROR", null, null, 500);
     return;
   }
