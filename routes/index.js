@@ -9,6 +9,7 @@ const muser = require("../controllers/muser.controller");
 const reimbursement = require("../controllers/reimbursement.controller");
 const bank = require("../controllers/bank.controller");
 const superuser = require("../controllers/superuser.controller");
+const barang = require("../controllers/barang.controller");
 const { authenticateToken } = require("../utils/jwt");
 
 // routes
@@ -48,5 +49,20 @@ router.post("/superuser", superuser.createUser);
 router.get("/superuser", superuser.getUser);
 router.get("/superuser/pengajuan", authenticateToken, superuser.get_pengajuan);
 router.get("/superuser/user", authenticateToken, superuser.getUserDetail);
+router.get(
+  "/finance/pengajuan",
+  authenticateToken,
+  superuser.get_pengajuan_finance
+);
+router.post(
+  "/finance/acceptance/:id",
+  authenticateToken,
+  reimbursement.finance_acceptance
+);
+
+// Barang
+router.get("/anakcabang", barang.getAllAnakCabang);
+router.get("/anakcabang/detail", barang.getCabangDetail);
+router.get("/barang", barang.getBarang);
 
 module.exports = { router };

@@ -137,6 +137,8 @@ exports.reimbursement = async (req, res) => {
       item: item || "-",
       coa: coa,
       file_info: file,
+      status_finance: "IDLE",
+      finance_by: "",
     })
       .then((data) => {
         Responder(res, "OK", null, data, 200);
@@ -257,6 +259,8 @@ exports.acceptance = async (req, res) => {
 
     const status_change = status == "FOWARDED" ? "WAITING" : status;
 
+    const status_finance = status == "APPROVED" ? "WAITING" : "IDLE";
+
     return await Reimbursement.update(
       {
         accepted_date: current_date,
@@ -264,6 +268,7 @@ exports.acceptance = async (req, res) => {
         status: status_change,
         nominal: "Rp. " + nominal,
         note: note,
+        status_finance: status_finance,
       },
       {
         where: {
@@ -298,7 +303,7 @@ exports.get_status = async (req, res) => {
       where: {
         id: id,
       },
-      attributes: ["status", "accepted_by"],
+      attributes: ["status", "accepted_by", "status_finance", "finance_by"],
     });
 
     const dataStatus = await data["dataValues"];
@@ -309,5 +314,40 @@ exports.get_status = async (req, res) => {
     console.log(error);
     Responder(res, "ERROR", null, null, 500);
     return;
+  }
+};
+
+exports.finance_acceptance = async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.query;
+  const { authorization } = req.headers;
+  try {
+    const userData = decodeToken(getToken(authorization));
+
+    const financeData = {
+      nm_user: userData.nm_user,
+      iduser: userData?.iduser,
+      acceptDate: moment(new Date()).format("YYYY-MM-DD"),
+    };
+
+    return await Reimbursement.update(
+      {
+        status_finance: status,
+        finance_by: financeData,
+      },
+      {
+        where: {
+          id: id,
+        },
+      }
+    )
+      .then(() => {
+        return Responder(res, "OK", null, { updated: true }, 200);
+      })
+      .catch((err) => {
+        return Responder(res, "ERROR", null, { updated: true }, 400);
+      });
+  } catch (error) {
+    return Responder(res, "ERROR", null, null, 400);
   }
 };

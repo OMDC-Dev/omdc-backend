@@ -12,6 +12,9 @@ const M_User = db_user.muser;
 // Admin
 const Admin = db.superuser;
 
+// Akses
+const Akses = db_user.akses;
+
 exports.login = async (req, res) => {
   const { iduser, password } = req.body;
   // validate request
@@ -58,6 +61,20 @@ exports.login = async (req, res) => {
     );
   }
 
+  // get user access
+  const aksesUser = await Akses.findAll({
+    where: {
+      iduser: iduser,
+    },
+  });
+
+  let kodeAkses = [];
+
+  for (let i = 0; i < aksesUser.length; i++) {
+    const kode = aksesUser[i].kd_ver;
+    kodeAkses.push(kode);
+  }
+
   // generate token
   const token = generateAccessToken(user);
 
@@ -97,6 +114,8 @@ exports.login = async (req, res) => {
       departemen: "",
       fcmToken: "",
       isAdmin: false,
+      type: "USER",
+      kodeAkses: kodeAkses,
     })
       .then((data) => {
         Responder(res, "OK", null, data, 200);
@@ -158,6 +177,20 @@ async function loginAsAdmin(req, res, admin) {
     );
   }
 
+  // get user access
+  const aksesUser = await Akses.findAll({
+    where: {
+      iduser: iduser,
+    },
+  });
+
+  let kodeAkses = [];
+
+  for (let i = 0; i < aksesUser.length; i++) {
+    const kode = aksesUser[i].kd_ver;
+    kodeAkses.push(kode);
+  }
+
   // generate token
   const token = generateAccessToken(adminData);
 
@@ -197,6 +230,7 @@ async function loginAsAdmin(req, res, admin) {
       departemen: "",
       fcmToken: "",
       isAdmin: true,
+      kodeAkses: kodeAkses,
     })
       .then((data) => {
         Responder(res, "OK", null, data, 200);

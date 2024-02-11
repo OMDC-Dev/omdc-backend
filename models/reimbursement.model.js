@@ -36,6 +36,12 @@ module.exports = (sequelize, Sequelize) => {
     status: {
       type: Sequelize.STRING,
     },
+    status_finance: {
+      type: Sequelize.STRING,
+    },
+    finance_by: {
+      type: Sequelize.JSON,
+    },
     attachment: {
       type: Sequelize.TEXT("long"),
     },

@@ -22,5 +22,11 @@ db_user.sequelize = sequelize;
 // table
 db_user.muser = require("../models/muser.model")(sequelize, Sequelize);
 db_user.cabang = require("../models/cabang.model")(sequelize, Sequelize);
+db_user.anak_cabang = require("../models/anakcabang.model")(
+  sequelize,
+  Sequelize
+);
+db_user.barang = require("../models/barang.model")(sequelize, Sequelize);
+db_user.akses = require("../models/aksesuser.model")(sequelize, Sequelize);
 
 module.exports = db_user;

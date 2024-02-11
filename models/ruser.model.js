@@ -51,6 +51,14 @@ module.exports = (sequelize, Sequelize) => {
         type: Sequelize.TEXT,
         allowNull: false,
       },
+      type: {
+        type: Sequelize.TEXT,
+        allowNull: false,
+      },
+      kodeAkses: {
+        type: Sequelize.JSON,
+        allowNull: false,
+      },
     },
     {
       tableName: "r_users",

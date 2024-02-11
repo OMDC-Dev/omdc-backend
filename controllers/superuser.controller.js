@@ -11,9 +11,9 @@ const User = db.ruser;
 
 // Create and Save
 exports.createUser = (req, res) => {
-  const { iduser, nm_user, level_user, departemen, password } = req.body;
+  const { iduser, nm_user, level_user, departemen, password, type } = req.body;
 
-  if (!iduser || !nm_user || !level_user || !departemen || !password) {
+  if (!iduser || !nm_user || !level_user || !departemen || !password || !type) {
     return Responder(res, "ERROR", "Data tidak lengkap!", null);
   }
 
@@ -25,6 +25,7 @@ exports.createUser = (req, res) => {
     level_user,
     departemen,
     password: encPass,
+    type: type,
   })
     .then((data) => {
       Responder(res, "OK", null, data, 200);
@@ -38,7 +39,11 @@ exports.createUser = (req, res) => {
 
 exports.getUser = async (req, res) => {
   try {
-    const users = await SuperUser.findAll();
+    const users = await SuperUser.findAll({
+      where: {
+        type: "ADMIN",
+      },
+    });
     Responder(res, "OK", null, users, 200);
     return;
   } catch (error) {
@@ -104,6 +109,53 @@ exports.get_pengajuan = async (req, res) => {
       Responder(res, "OK", null, [], 200);
       return;
     }
+  } catch (error) {
+    console.log(error);
+    Responder(res, "ERROR", null, null, 500);
+    return;
+  }
+};
+
+exports.get_pengajuan_finance = async (req, res) => {
+  const { authorization } = req.headers;
+  const { page = 1, limit = 10, monthyear, status } = req.query;
+
+  try {
+    const userData = decodeToken(getToken(authorization));
+
+    const whereClause = {};
+
+    if (monthyear) {
+      const my = monthyear.split("-");
+      const month = my[0];
+      const year = my[1];
+
+      const startDate = new Date(year, month - 1, 1);
+      const endDate = new Date(year, month, 0, 23, 59, 59, 999);
+      whereClause.createdAt = {
+        [Op.between]: [startDate, endDate],
+      };
+    }
+
+    // Menambahkan filter berdasarkan status jika diberikan
+    if (status === "00") {
+      whereClause.status_finance = { [Op.ne]: "DONE" }; // Memilih status selain 'APPROVED'
+    } else if (status === "01") {
+      whereClause.status_finance = "DONE";
+    }
+
+    // Menghitung offset berdasarkan halaman dan batasan
+    const offset = (page - 1) * limit;
+
+    const requested = await Reimbursement.findAll({
+      where: whereClause,
+      limit: parseInt(limit), // Mengubah batasan menjadi tipe numerik
+      offset: offset, // Menetapkan offset untuk penampilan halaman
+      order: [["createdAt", "DESC"]],
+    });
+
+    Responder(res, "OK", null, requested, 200);
+    return;
   } catch (error) {
     console.log(error);
     Responder(res, "ERROR", null, null, 500);
