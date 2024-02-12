@@ -95,6 +95,7 @@ exports.login = async (req, res) => {
         const newSession = {
           ...existingUser,
           userToken: token,
+          kodeAkses: kodeAkses,
         };
         Responder(res, "OK", null, newSession, 200);
         return;
@@ -208,6 +209,7 @@ async function loginAsAdmin(req, res, admin) {
         const newSession = {
           ...existingUser,
           userToken: token,
+          kodeAkses: kodeAkses,
         };
         Responder(res, "OK", null, newSession, 200);
         return;

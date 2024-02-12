@@ -64,5 +64,7 @@ router.post(
 router.get("/anakcabang", barang.getAllAnakCabang);
 router.get("/anakcabang/detail", barang.getCabangDetail);
 router.get("/barang", barang.getBarang);
+router.post("/barang/create", authenticateToken, barang.createTrxPermintaan);
+router.get("/barang/requested", authenticateToken, barang.getAllRequestBarang);
 
 module.exports = { router };

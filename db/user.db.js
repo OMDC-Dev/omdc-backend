@@ -28,5 +28,13 @@ db_user.anak_cabang = require("../models/anakcabang.model")(
 );
 db_user.barang = require("../models/barang.model")(sequelize, Sequelize);
 db_user.akses = require("../models/aksesuser.model")(sequelize, Sequelize);
+db_user.trx_permintaan_barang = require("../models/trxpermintaan.model")(
+  sequelize,
+  Sequelize
+);
+db_user.permintaan_barang = require("../models/permintaanbarang.model")(
+  sequelize,
+  Sequelize
+);
 
 module.exports = db_user;
