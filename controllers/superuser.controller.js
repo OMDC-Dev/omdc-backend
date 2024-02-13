@@ -140,6 +140,7 @@ exports.get_pengajuan_finance = async (req, res) => {
     // Menambahkan filter berdasarkan status jika diberikan
     if (status === "00") {
       whereClause.status_finance = { [Op.ne]: "DONE" }; // Memilih status selain 'APPROVED'
+      whereClause.status = "APPROVED";
     } else if (status === "01") {
       whereClause.status_finance = "DONE";
     }

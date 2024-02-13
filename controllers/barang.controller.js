@@ -283,9 +283,45 @@ exports.getAllRequestBarang = async (req, res) => {
       },
       limit: parseInt(limit),
       offset: offset,
+      order: [["tgl_trans", "DESC"]],
     });
 
     Responder(res, "OK", null, requestList, 200);
+    return;
+  } catch (error) {
+    Responder(res, "ERROR", null, null, 400);
+    return;
+  }
+};
+
+exports.getDetailPermintaan = async (req, res) => {
+  const { id_pb } = req.query;
+  try {
+    const getPermintaan = await TrxPermintaanBarang.findAll({
+      where: {
+        id_pb: id_pb,
+      },
+      attributes: [
+        "kd_brg",
+        "nm_barang",
+        "grup_brg",
+        "kategory_brg",
+        "nm_kemasan",
+        "nm_satuan",
+        "qty_satuan",
+        "jml_satuan",
+        "nm_satuan1",
+        "jml_kemasan",
+        "nm_kemasan1",
+        "qty_stock",
+        "nm_kemasanstock",
+        "keterangan",
+        "status_approve",
+        "tgl_approve",
+      ],
+    });
+
+    Responder(res, "OK", null, getPermintaan, 200);
     return;
   } catch (error) {
     Responder(res, "ERROR", null, null, 400);

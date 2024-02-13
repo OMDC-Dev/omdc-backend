@@ -63,6 +63,18 @@ module.exports = (sequelize, Sequelize) => {
       type: Sequelize.JSON,
       allowNull: true,
     },
+    realisasi: {
+      type: Sequelize.STRING,
+    },
+    childId: {
+      type: Sequelize.STRING,
+    },
+    parentId: {
+      type: Sequelize.STRING,
+    },
+    parentDoc: {
+      type: Sequelize.STRING,
+    },
   });
 
   return Reimbursement;

@@ -46,6 +46,8 @@ exports.reimbursement = async (req, res) => {
     coa,
     file,
     approved_by,
+    childId,
+    parentId,
   } = req.body;
   try {
     if (
@@ -106,6 +108,21 @@ exports.reimbursement = async (req, res) => {
       }
     };
 
+    // Report Parent Doc
+    let parentDoc;
+
+    if (parentId) {
+      const getParent = await Reimbursement.findOne({
+        where: {
+          id: parentId,
+        },
+      });
+
+      const parentData = await getParent["dataValues"];
+
+      parentDoc = parentData.no_doc;
+    }
+
     const getApprovalAdmin = await Admin.findOne({
       where: { iduser: approved_by },
     });
@@ -139,8 +156,20 @@ exports.reimbursement = async (req, res) => {
       file_info: file,
       status_finance: "IDLE",
       finance_by: "",
+      realisasi: "",
+      childId: childId,
+      parentId: parentId,
+      parentDoc: parentDoc,
     })
-      .then((data) => {
+      .then(async (data) => {
+        if (parentId) {
+          await Reimbursement.update(
+            { childId: data?.id },
+            { where: { id: parentId } }
+          );
+          Responder(res, "OK", null, data, 200);
+          return;
+        }
         Responder(res, "OK", null, data, 200);
         return;
       })
@@ -303,7 +332,13 @@ exports.get_status = async (req, res) => {
       where: {
         id: id,
       },
-      attributes: ["status", "accepted_by", "status_finance", "finance_by"],
+      attributes: [
+        "status",
+        "accepted_by",
+        "status_finance",
+        "finance_by",
+        "realisasi",
+      ],
     });
 
     const dataStatus = await data["dataValues"];
@@ -321,6 +356,7 @@ exports.finance_acceptance = async (req, res) => {
   const { id } = req.params;
   const { status } = req.query;
   const { authorization } = req.headers;
+  const { nominal } = req.body;
   try {
     const userData = decodeToken(getToken(authorization));
 
@@ -329,6 +365,28 @@ exports.finance_acceptance = async (req, res) => {
       iduser: userData?.iduser,
       acceptDate: moment(new Date()).format("YYYY-MM-DD"),
     };
+
+    const getReimburse = await Reimbursement.findOne({
+      where: {
+        id: id,
+      },
+    });
+
+    const reimbursementData = await getReimburse["dataValues"];
+    const parentId = reimbursementData.parentId;
+
+    if (parentId) {
+      await Reimbursement.update(
+        {
+          realisasi: nominal,
+        },
+        {
+          where: {
+            id: parentId,
+          },
+        }
+      );
+    }
 
     return await Reimbursement.update(
       {
@@ -349,5 +407,24 @@ exports.finance_acceptance = async (req, res) => {
       });
   } catch (error) {
     return Responder(res, "ERROR", null, null, 400);
+  }
+};
+
+exports.get_detail = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const getReim = await Reimbursement.findOne({
+      where: {
+        id: id,
+      },
+    });
+
+    const reimData = await getReim["dataValues"];
+
+    Responder(res, "OK", null, reimData, 200);
+    return;
+  } catch (error) {
+    Responder(res, "ERROR", null, null, 400);
+    return;
   }
 };

@@ -36,6 +36,7 @@ router.post(
   reimbursement.acceptance
 );
 router.get("/reimbursement/status/:id", reimbursement.get_status);
+router.get("/reimbursement/:id", authenticateToken, reimbursement.get_detail);
 
 // Bank
 router.get("/bank", bank.getBank);
@@ -66,5 +67,6 @@ router.get("/anakcabang/detail", barang.getCabangDetail);
 router.get("/barang", barang.getBarang);
 router.post("/barang/create", authenticateToken, barang.createTrxPermintaan);
 router.get("/barang/requested", authenticateToken, barang.getAllRequestBarang);
+router.get("/barang/requested/detail", barang.getDetailPermintaan);
 
 module.exports = { router };
