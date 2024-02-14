@@ -1,6 +1,6 @@
 module.exports = (sequelize, Sequelize) => {
   const R_User = sequelize.define(
-    "r_users",
+    "omdc_user_session",
     {
       iduser: {
         type: Sequelize.STRING(10),
@@ -61,7 +61,7 @@ module.exports = (sequelize, Sequelize) => {
       },
     },
     {
-      tableName: "r_users",
+      tableName: "omdc_user_session",
       timestamps: false,
       underscore: true,
     }

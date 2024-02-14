@@ -1,5 +1,4 @@
 const { Op } = require("sequelize");
-const db = require("../db");
 const db_user = require("../db/user.db");
 const { decodeToken, getToken } = require("../utils/jwt");
 const { Responder } = require("../utils/responder");
@@ -11,9 +10,9 @@ const {
 const moment = require("moment");
 
 const M_Cabang = db_user.cabang;
-const Reimbursement = db.reimbursement;
-const User = db.ruser;
-const Admin = db.superuser;
+const Reimbursement = db_user.reimbursement;
+const User = db_user.ruser;
+const Admin = db_user.superuser;
 
 // Get all cabang list
 exports.cabang = async (req, res) => {

@@ -10,6 +10,7 @@ const reimbursement = require("../controllers/reimbursement.controller");
 const bank = require("../controllers/bank.controller");
 const superuser = require("../controllers/superuser.controller");
 const barang = require("../controllers/barang.controller");
+const pengumuman = require("../controllers/pengumuman.controller");
 const { authenticateToken } = require("../utils/jwt");
 
 // routes
@@ -21,6 +22,7 @@ router.get("/devs", dev.getDevs);
 // User
 router.post("/user/login", ruser.login);
 router.post("/user/complete", authenticateToken, ruser.completeUser);
+router.post("/user/update-password", authenticateToken, ruser.updatePw);
 
 // Reimbursement
 router.get("/cabang", reimbursement.cabang);
@@ -68,5 +70,24 @@ router.get("/barang", barang.getBarang);
 router.post("/barang/create", authenticateToken, barang.createTrxPermintaan);
 router.get("/barang/requested", authenticateToken, barang.getAllRequestBarang);
 router.get("/barang/requested/detail", barang.getDetailPermintaan);
+
+// Pengumuman
+router.post("/pengumuman", authenticateToken, pengumuman.createPengumuman);
+router.get("/pengumuman", authenticateToken, pengumuman.getPengumuman);
+router.delete(
+  "/pengumuman/:pid",
+  authenticateToken,
+  pengumuman.deletePengumuman
+);
+router.get(
+  "/pengumuman/count",
+  authenticateToken,
+  pengumuman.getPengumumanCount
+);
+router.post(
+  "/pengumuman/read/:id",
+  authenticateToken,
+  pengumuman.readPengumuman
+);
 
 module.exports = { router };

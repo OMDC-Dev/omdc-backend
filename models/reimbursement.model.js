@@ -1,5 +1,5 @@
 module.exports = (sequelize, Sequelize) => {
-  const Reimbursement = sequelize.define("reimbursement", {
+  const Reimbursement = sequelize.define("omdc_reimbursement", {
     no_doc: {
       type: Sequelize.TEXT,
     },

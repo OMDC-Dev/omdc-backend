@@ -36,5 +36,18 @@ db_user.permintaan_barang = require("../models/permintaanbarang.model")(
   sequelize,
   Sequelize
 );
+db_user.ruser = require("../models/ruser.model.js")(sequelize, Sequelize);
+db_user.reimbursement = require("../models/reimbursement.model.js")(
+  sequelize,
+  Sequelize
+);
+db_user.superuser = require("../models/superuser.model.js")(
+  sequelize,
+  Sequelize
+);
+db_user.pengumuman = require("../models/pengumuman.model.js")(
+  sequelize,
+  Sequelize
+);
 
 module.exports = db_user;

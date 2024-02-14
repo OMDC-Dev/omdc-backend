@@ -1,6 +1,6 @@
 module.exports = (sequelize, Sequelize) => {
   const Super_User = sequelize.define(
-    "super_users",
+    "omdc_super_users",
     {
       iduser: {
         type: Sequelize.STRING(10),
@@ -29,7 +29,7 @@ module.exports = (sequelize, Sequelize) => {
       },
     },
     {
-      tableName: "super_users",
+      tableName: "omdc_super_users",
       timestamps: false,
       underscore: true,
     }

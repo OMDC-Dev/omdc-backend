@@ -1,16 +1,15 @@
-const db = require("../db");
 const db_user = require("../db/user.db");
 const { encPassword } = require("../utils/encPass");
 const { generateAccessToken, decodeToken, getToken } = require("../utils/jwt");
 const { Responder } = require("../utils/responder");
 const { getFormattedDate } = require("../utils/utils");
-const R_User = db.ruser;
+const R_User = db_user.ruser;
 
 // Main User
 const M_User = db_user.muser;
 
 // Admin
-const Admin = db.superuser;
+const Admin = db_user.superuser;
 
 // Akses
 const Akses = db_user.akses;
@@ -245,3 +244,63 @@ async function loginAsAdmin(req, res, admin) {
       });
   }
 }
+
+exports.updatePw = async (req, res) => {
+  const { authorization } = req.headers;
+  const { lastPassword, newPassword } = req.body;
+  try {
+    const tokenData = decodeToken(getToken(authorization));
+
+    // get user data
+    const getUserData = await M_User.findOne({
+      where: {
+        iduser: tokenData.iduser,
+      },
+    });
+
+    const userData = await getUserData["dataValues"];
+    const userPassword = userData.password;
+
+    const encodedLastPw = encPassword(lastPassword);
+
+    if (userPassword !== encodedLastPw) {
+      Responder(
+        res,
+        "ERROR",
+        "Password lama tidak sesuai, mohon periksa kembali!",
+        null,
+        400
+      );
+      return;
+    }
+
+    // update password
+    const encodedNewPassword = encPassword(newPassword);
+
+    return await M_User.update(
+      { password: encodedNewPassword },
+      {
+        where: {
+          iduser: tokenData.iduser,
+        },
+      }
+    )
+      .then(() => {
+        Responder(
+          res,
+          "OK",
+          null,
+          { message: "Sukses mengganti password!" },
+          200
+        );
+        return;
+      })
+      .catch((err) => {
+        Responder(res, "ERROR", null, null, 400);
+        return;
+      });
+  } catch (error) {
+    Responder(res, "ERROR", null, null, 400);
+    return;
+  }
+};

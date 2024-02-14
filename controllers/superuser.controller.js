@@ -1,13 +1,13 @@
 const { Op } = require("sequelize");
-const db = require("../db");
 const { encPassword } = require("../utils/encPass");
 const { decodeToken, getToken } = require("../utils/jwt");
 const { Responder } = require("../utils/responder");
+const db_user = require("../db/user.db");
 
 // db
-const SuperUser = db.superuser;
-const Reimbursement = db.reimbursement;
-const User = db.ruser;
+const SuperUser = db_user.superuser;
+const Reimbursement = db_user.reimbursement;
+const User = db_user.ruser;
 
 // Create and Save
 exports.createUser = (req, res) => {
