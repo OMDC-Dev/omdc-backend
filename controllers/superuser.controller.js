@@ -38,13 +38,21 @@ exports.createUser = (req, res) => {
 };
 
 exports.getUser = async (req, res) => {
+  const { authorization } = req.headers;
   try {
+    const userData = decodeToken(getToken(authorization));
+
     const users = await SuperUser.findAll({
       where: {
         type: "ADMIN",
       },
     });
-    Responder(res, "OK", null, users, 200);
+
+    const filtered = users.filter((item) => {
+      return item.iduser !== userData?.iduser;
+    });
+
+    Responder(res, "OK", null, filtered, 200);
     return;
   } catch (error) {
     Responder(res, "ERROR", null, null, 400);
@@ -140,10 +148,11 @@ exports.get_pengajuan_finance = async (req, res) => {
     // Menambahkan filter berdasarkan status jika diberikan
     if (status === "00") {
       whereClause.status_finance = { [Op.ne]: "DONE" }; // Memilih status selain 'APPROVED'
-      whereClause.status = "APPROVED";
     } else if (status === "01") {
       whereClause.status_finance = "DONE";
     }
+
+    whereClause.status = "APPROVED";
 
     // Menghitung offset berdasarkan halaman dan batasan
     const offset = (page - 1) * limit;
