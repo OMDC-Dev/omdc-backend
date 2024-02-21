@@ -68,17 +68,33 @@ exports.getBarang = async (req, res) => {
 
     const barangCount = await Barang.count();
 
-    const data = await Barang.findAll({
+    const data = await Barang.findAndCountAll({
       where: whereClause,
       limit: parseInt(limit), // Mengubah batasan menjadi tipe numerik
       offset: offset, // Menetapkan offset untuk penampilan halaman
     });
 
+    // result count
+    const resultCount = data?.count;
+
+    const totalPage = resultCount / limit;
+    const totalPageFormatted =
+      Math.round(totalPage) == 0 ? 1 : Math.round(totalPage);
+
     Responder(
       res,
       "OK",
       null,
-      { data: data, endPage: Math.round(barangCount / limit) },
+      {
+        data: data?.rows,
+        endPage: Math.round(barangCount / limit),
+        pageInfo: {
+          pageNumber: page,
+          pageLimit: limit,
+          pageCount: totalPageFormatted,
+          pageSize: resultCount,
+        },
+      },
       200
     );
     return;
