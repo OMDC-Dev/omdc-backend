@@ -41,18 +41,50 @@ exports.createPengumuman = async (req, res) => {
 
 exports.getPengumuman = async (req, res) => {
   const { authorization } = req.headers;
+  const { page = 1, limit = 25, owner } = req.query;
 
   try {
     const userData = decodeToken(getToken(authorization));
 
-    const datas = await Pengumuman.findAll({
-      where: {
-        receiver: userData?.iduser,
-      },
+    const offset = (page - 1) * limit;
+
+    const whereClause = {};
+
+    if (owner) {
+      whereClause.createdBy = owner;
+    }
+
+    whereClause.receiver = userData?.iduser;
+
+    const datas = await Pengumuman.findAndCountAll({
+      where: whereClause,
       order: [["createdAt", "DESC"]],
+      limit: parseInt(limit),
+      offset: offset,
     });
 
-    Responder(res, "OK", null, datas, 200);
+    // result count
+    const resultCount = datas?.count;
+
+    const totalPage = resultCount / limit;
+    const totalPageFormatted =
+      Math.round(totalPage) == 0 ? 1 : Math.round(totalPage);
+
+    Responder(
+      res,
+      "OK",
+      null,
+      {
+        rows: datas.rows,
+        pageInfo: {
+          pageNumber: page,
+          pageLimit: limit,
+          pageCount: totalPageFormatted,
+          pageSize: resultCount,
+        },
+      },
+      200
+    );
     return;
   } catch (error) {
     Responder(res, "ERROR", null, null, 400);
