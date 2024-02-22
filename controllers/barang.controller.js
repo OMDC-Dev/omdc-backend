@@ -170,7 +170,7 @@ exports.createTrxPermintaan = async (req, res) => {
 
     // Request Data
 
-    const REQUEST_DATE = moment(new Date()).format("YYYY-MM-DD");
+    const REQUEST_DATE = moment(new Date()).format("YYYY-MM-DD").split(" ")[0];
     const REQUEST_TIME = moment(new Date()).format("HH:mm:ss");
 
     const PB_YY = moment(new Date()).format("YY");
@@ -293,7 +293,7 @@ exports.getAllRequestBarang = async (req, res) => {
     // Menghitung offset berdasarkan halaman dan batasan
     const offset = (page - 1) * limit;
 
-    const requestList = await PermintaanBarang.findAll({
+    const requestList = await PermintaanBarang.findAndCountAll({
       where: {
         iduser: userData.iduser,
       },
@@ -302,7 +302,28 @@ exports.getAllRequestBarang = async (req, res) => {
       order: [["tgl_trans", "DESC"]],
     });
 
-    Responder(res, "OK", null, requestList, 200);
+    // result count
+    const resultCount = requestList?.count;
+
+    const totalPage = resultCount / limit;
+    const totalPageFormatted =
+      Math.round(totalPage) == 0 ? 1 : Math.round(totalPage);
+
+    Responder(
+      res,
+      "OK",
+      null,
+      {
+        rows: requestList.rows,
+        pageInfo: {
+          pageNumber: page,
+          pageLimit: limit,
+          pageCount: totalPageFormatted,
+          pageSize: resultCount,
+        },
+      },
+      200
+    );
     return;
   } catch (error) {
     Responder(res, "ERROR", null, null, 400);
