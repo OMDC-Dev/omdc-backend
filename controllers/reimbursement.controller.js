@@ -214,15 +214,36 @@ exports.get_reimbursement = async (req, res) => {
     // Menghitung offset berdasarkan halaman dan batasan
     const offset = (page - 1) * limit;
 
-    const requested = await Reimbursement.findAll({
+    const requested = await Reimbursement.findAndCountAll({
       where: whereClause,
       limit: parseInt(limit), // Mengubah batasan menjadi tipe numerik
       offset: offset, // Menetapkan offset untuk penampilan halaman
       order: [["createdAt", "DESC"]],
     });
 
-    if (requested.length) {
-      Responder(res, "OK", null, requested, 200);
+    // result count
+    const resultCount = requested?.count;
+
+    const totalPage = resultCount / limit;
+    const totalPageFormatted =
+      Math.round(totalPage) == 0 ? 1 : Math.round(totalPage);
+
+    if (requested?.rows.length) {
+      Responder(
+        res,
+        "OK",
+        null,
+        {
+          rows: requested.rows,
+          pageInfo: {
+            pageNumber: page,
+            pageLimit: limit,
+            pageCount: totalPageFormatted,
+            pageSize: resultCount,
+          },
+        },
+        200
+      );
       return;
     } else {
       Responder(res, "OK", null, [], 200);

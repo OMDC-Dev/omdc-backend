@@ -121,25 +121,42 @@ exports.get_pengajuan = async (req, res) => {
     // Menghitung offset berdasarkan halaman dan batasan
     const offset = (page - 1) * limit;
 
-    const requested = await Reimbursement.findAll({
+    const requested = await Reimbursement.findAndCountAll({
       where: whereClause,
       limit: parseInt(limit), // Mengubah batasan menjadi tipe numerik
       offset: offset, // Menetapkan offset untuk penampilan halaman
       order: [["createdAt", "DESC"]],
     });
 
-    if (requested.length) {
+    if (requested?.rows.length) {
       // Filter data berdasarkan accepted_by yang mengandung userId
-      const requestedFilter = requested.filter((reimbursement) => {
+      const requestedFilter = requested?.rows.filter((reimbursement) => {
         const acceptedBy = reimbursement.accepted_by || []; // Mengatasi jika accepted_by null atau undefined
         return acceptedBy.some((item) => item.iduser === userData?.iduser);
       });
+
+      // result count
+      const resultCount = requestedFilter?.length;
+
+      const totalPage = resultCount / limit;
+      const totalPageFormatted =
+        Math.round(totalPage) == 0 ? 1 : Math.round(totalPage);
 
       Responder(
         res,
         "OK",
         null,
-        requestedFilter.length ? requestedFilter : [],
+        requestedFilter.length
+          ? {
+              rows: requestedFilter,
+              pageInfo: {
+                pageNumber: page,
+                pageLimit: limit,
+                pageCount: totalPageFormatted,
+                pageSize: resultCount,
+              },
+            }
+          : [],
         200
       );
       return;
@@ -187,14 +204,35 @@ exports.get_pengajuan_finance = async (req, res) => {
     // Menghitung offset berdasarkan halaman dan batasan
     const offset = (page - 1) * limit;
 
-    const requested = await Reimbursement.findAll({
+    const requested = await Reimbursement.findAndCountAll({
       where: whereClause,
       limit: parseInt(limit), // Mengubah batasan menjadi tipe numerik
       offset: offset, // Menetapkan offset untuk penampilan halaman
       order: [["createdAt", "DESC"]],
     });
 
-    Responder(res, "OK", null, requested, 200);
+    // result count
+    const resultCount = requested?.count;
+
+    const totalPage = resultCount / limit;
+    const totalPageFormatted =
+      Math.round(totalPage) == 0 ? 1 : Math.round(totalPage);
+
+    Responder(
+      res,
+      "OK",
+      null,
+      {
+        rows: requested?.rows,
+        pageInfo: {
+          pageNumber: page,
+          pageLimit: limit,
+          pageCount: totalPageFormatted,
+          pageSize: resultCount,
+        },
+      },
+      200
+    );
     return;
   } catch (error) {
     console.log(error);
