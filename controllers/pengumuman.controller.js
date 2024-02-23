@@ -1,4 +1,5 @@
 const db = require("../db/user.db");
+const { sendMessaging } = require("../utils/firebase");
 const { decodeToken, getToken } = require("../utils/jwt");
 const { Responder } = require("../utils/responder");
 const { generateRandomNumber } = require("../utils/utils");
@@ -18,8 +19,11 @@ exports.createPengumuman = async (req, res) => {
   try {
     const userSessionList = await User.findAll();
 
+    let fcmToken = [];
+
     for (let i = 0; i < userSessionList.length; i++) {
       const uid = userSessionList[i].iduser;
+      fcmToken.push(userSessionList[i].fcmToken);
 
       await Pengumuman.create({
         pid: PID,
@@ -31,9 +35,24 @@ exports.createPengumuman = async (req, res) => {
       });
     }
 
+    fcmToken = fcmToken.filter((item) => {
+      return item.length > 0;
+    });
+
+    await (
+      await sendMessaging()
+    ).sendEachForMulticast({
+      tokens: fcmToken,
+      notification: {
+        title: "Ada pengumuman baru!",
+        body: title,
+      },
+    });
+
     Responder(res, "OK", null, { message: "Pengumuman berhasil dibuat!" }, 200);
     return;
   } catch (error) {
+    console.log(error);
     Responder(res, "ERROR", null, null, 400);
     return;
   }

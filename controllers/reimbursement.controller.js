@@ -8,6 +8,7 @@ const {
   ubahDataById,
 } = require("../utils/utils");
 const moment = require("moment");
+const { sendMessaging } = require("../utils/firebase");
 
 const M_Cabang = db_user.cabang;
 const Reimbursement = db_user.reimbursement;
@@ -126,7 +127,18 @@ exports.reimbursement = async (req, res) => {
       where: { iduser: approved_by },
     });
 
+    const getAdminFcmData = await User.findOne({
+      where: { iduser: approved_by },
+    });
+
     const admin = await getApprovalAdmin["dataValues"];
+
+    let adminFCM = "";
+
+    if (getAdminFcmData) {
+      const adminSession = await getAdminFcmData["dataValues"];
+      adminFCM = adminSession.fcmToken;
+    }
 
     const adminData = {
       iduser: admin.iduser,
@@ -177,7 +189,19 @@ exports.reimbursement = async (req, res) => {
         Responder(res, "ERROR", null, null, 400);
         return;
       });
+
+    if (adminFCM) {
+      console.log("ADMIN HAS FCM");
+      (await sendMessaging()).send({
+        token: adminFCM,
+        notification: {
+          title: "Ada pengajuan reimbursement baru!",
+          body: `${userDetail?.nm_user} telah mengajukan permintaan reimbursement!`,
+        },
+      });
+    }
   } catch (error) {
+    console.log(error);
     Responder(res, "ERROR", null, null, 500);
     return;
   }
@@ -273,6 +297,7 @@ exports.acceptance = async (req, res) => {
 
     // reimbursement data
     const r_datas = await datas["dataValues"];
+    const user_fcm = r_datas["requester"]["fcmToken"];
     const acceptance_by = r_datas["accepted_by"];
 
     if (status == "FOWARDED") {
@@ -291,14 +316,91 @@ exports.acceptance = async (req, res) => {
       };
 
       acceptance_by.push(adminData);
+
+      // ===  SEND NOTIF TO NEXT ADMIN
+
+      let fowarderToken = "";
+
+      const getAdminSession = await User.findOne({
+        where: { iduser: fowarder_id },
+      });
+
+      if (getAdminSession) {
+        const adminSession = await getAdminSession["dataValues"];
+        fowarderToken = adminSession.fcmToken;
+      }
+
+      if (fowarderToken) {
+        await (
+          await sendMessaging()
+        ).send({
+          token: fowarderToken,
+          notification: {
+            title: "Ada pengajuan reimbursement baru!",
+            body: `Ada pengajuan reimbursement yang diteruskan dan menunggu persetujuan anda.`,
+          },
+        });
+      }
     }
 
     if (status == "APPROVED") {
       ubahDataById(acceptance_by, userId, "iduser", "status", "APPROVED");
+
+      if (user_fcm) {
+        await (
+          await sendMessaging()
+        ).send({
+          token: user_fcm,
+          notification: {
+            title: "Pengajuan anda telah setujui!",
+            body: `Pengajuan reimbursement anda telah disetujui oleh admin dan menunggu diproses.`,
+          },
+        });
+      }
+
+      // === HANDLE NOTIF TO FINANCE
+      const getFinanceSession = await User.findAll({
+        where: {
+          type: "FINANCE",
+        },
+        attributes: ["fcmToken"],
+      });
+
+      if (getFinanceSession) {
+        let tokens = [];
+
+        for (let i = 0; i < getFinanceSession.length; i++) {
+          if (getFinanceSession[i].fcmToken) {
+            tokens.push(getFinanceSession[i].fcmToken);
+          }
+        }
+
+        await (
+          await sendMessaging()
+        ).sendEachForMulticast({
+          tokens: tokens,
+          notification: {
+            title: "Ada pengajuan reimbursement baru!",
+            body: "Ada pengajuan reimbursement yang telah disetujui admin dan menunggu untuk diproses!",
+          },
+        });
+      }
     }
 
     if (status == "REJECTED") {
       ubahDataById(acceptance_by, userId, "iduser", "status", "REJECTED");
+
+      if (user_fcm) {
+        await (
+          await sendMessaging()
+        ).send({
+          token: user_fcm,
+          notification: {
+            title: "Pengajuan anda telah tolak!",
+            body: `Pengajuan reimbursement anda telah ditolak oleh admin.`,
+          },
+        });
+      }
     }
 
     const current_date =
@@ -393,7 +495,10 @@ exports.finance_acceptance = async (req, res) => {
     });
 
     const reimbursementData = await getReimburse["dataValues"];
+    const userRequested = reimbursementData.requester;
     const parentId = reimbursementData.parentId;
+
+    const userFcm = userRequested.fcmToken;
 
     if (parentId) {
       await Reimbursement.update(
@@ -419,7 +524,18 @@ exports.finance_acceptance = async (req, res) => {
         },
       }
     )
-      .then(() => {
+      .then(async () => {
+        if (userFcm) {
+          await (
+            await sendMessaging()
+          ).send({
+            token: userFcm,
+            notification: {
+              title: "Pengajuan reimbursement anda telah di proses finance!",
+              body: `Pengajuan reimbursement anda telah diproses dan di transfer oleh finance sebesar ${nominal}`,
+            },
+          });
+        }
         return Responder(res, "OK", null, { updated: true }, 200);
       })
       .catch((err) => {

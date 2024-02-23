@@ -4,11 +4,22 @@ const { router } = require("./routes");
 const db = require("./db");
 const db_user = require("./db/user.db");
 
+// import firebase-admin package
+const admin = require("firebase-admin");
+
+// import service account file (helps to know the firebase project details)
+const serviceAccount = require("./config/serviceAccountKey.json");
+
 const app = express();
 
 var corsOptions = {
   origin: "http://localhost:5173",
 };
+
+// Intialize the firebase-admin project/account
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+});
 
 app.use(cors(corsOptions));
 
