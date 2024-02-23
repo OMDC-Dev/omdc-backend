@@ -39,20 +39,50 @@ exports.createUser = (req, res) => {
 
 exports.getUser = async (req, res) => {
   const { authorization } = req.headers;
+  const { page = 1, limit = 25, get } = req.query;
   try {
     const userData = decodeToken(getToken(authorization));
 
-    const users = await SuperUser.findAll({
-      where: {
-        type: "ADMIN",
-      },
+    const offset = (page - 1) * limit;
+
+    const whereClause = {};
+
+    if (!get) {
+      whereClause.type = "ADMIN";
+    }
+
+    const users = await SuperUser.findAndCountAll({
+      where: whereClause,
+      limit: parseInt(limit),
+      offset: offset,
     });
 
-    const filtered = users.filter((item) => {
+    // result count
+    const resultCount = users?.count;
+
+    const totalPage = resultCount / limit;
+    const totalPageFormatted =
+      Math.round(totalPage) == 0 ? 1 : Math.round(totalPage);
+
+    const filtered = users?.rows?.filter((item) => {
       return item.iduser !== userData?.iduser;
     });
 
-    Responder(res, "OK", null, filtered, 200);
+    Responder(
+      res,
+      "OK",
+      null,
+      {
+        rows: filtered,
+        pageInfo: {
+          pageNumber: page,
+          pageLimit: limit,
+          pageCount: totalPageFormatted,
+          pageSize: resultCount,
+        },
+      },
+      200
+    );
     return;
   } catch (error) {
     Responder(res, "ERROR", null, null, 400);
@@ -183,6 +213,26 @@ exports.getUserDetail = async (req, res) => {
     delete userData.userToken;
 
     Responder(res, "OK", null, userData, 200);
+    return;
+  } catch (error) {
+    Responder(res, "ERROR", null, null, 400);
+    return;
+  }
+};
+
+exports.deleteAdmin = async (req, res) => {
+  const { iduser } = req.params;
+
+  console.log(`DELETING ${iduser}`);
+
+  try {
+    await SuperUser.destroy({
+      where: {
+        iduser: iduser,
+      },
+    });
+
+    Responder(res, "OK", null, { message: "Admin berhasil dihapus!" }, 200);
     return;
   } catch (error) {
     Responder(res, "ERROR", null, null, 400);

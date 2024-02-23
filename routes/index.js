@@ -62,6 +62,11 @@ router.post(
   authenticateToken,
   reimbursement.finance_acceptance
 );
+router.delete(
+  "/superuser/delete/:iduser",
+  authenticateToken,
+  superuser.deleteAdmin
+);
 
 // Barang
 router.get("/anakcabang", barang.getAllAnakCabang);
