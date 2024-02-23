@@ -11,6 +11,7 @@ const bank = require("../controllers/bank.controller");
 const superuser = require("../controllers/superuser.controller");
 const barang = require("../controllers/barang.controller");
 const pengumuman = require("../controllers/pengumuman.controller");
+const dept = require("../controllers/dept.controller");
 const { authenticateToken } = require("../utils/jwt");
 
 // routes
@@ -18,6 +19,11 @@ const { authenticateToken } = require("../utils/jwt");
 // Dev
 router.use("/dev", dev.create);
 router.get("/devs", dev.getDevs);
+
+// Dept
+router.post("/dept", dept.create);
+router.get("/dept", dept.get);
+router.delete("/dept/:id", dept.delete);
 
 // User
 router.post("/user/login", ruser.login);
