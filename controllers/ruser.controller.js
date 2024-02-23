@@ -15,7 +15,7 @@ const Admin = db_user.superuser;
 const Akses = db_user.akses;
 
 exports.login = async (req, res) => {
-  const { iduser, password } = req.body;
+  const { iduser, password, fcmToken } = req.body;
   // validate request
   if (!iduser || !password) {
     return Responder(
@@ -31,7 +31,7 @@ exports.login = async (req, res) => {
 
   if (getAdmin) {
     console.log("ADMIN LOGIN");
-    return loginAsAdmin(req, res, getAdmin);
+    return loginAsAdmin(req, res, getAdmin, fcmToken);
   }
 
   // get user
@@ -86,8 +86,18 @@ exports.login = async (req, res) => {
   if (getSession) {
     const existingUser = await getSession["dataValues"];
 
+    let newToken = "";
+
+    const exFcmToken = existingUser.fcmToken;
+
+    if (fcmToken) {
+      newToken = fcmToken;
+    } else {
+      newToken = exFcmToken;
+    }
+
     return await R_User.update(
-      { usertoken: token },
+      { userToken: token, fcmToken: newToken, kodeAkses: kodeAkses },
       { where: { iduser: iduser } }
     )
       .then(() => {
@@ -112,7 +122,7 @@ exports.login = async (req, res) => {
       isProfileComplete: false,
       nomorwa: "",
       departemen: "",
-      fcmToken: "",
+      fcmToken: fcmToken || "",
       isAdmin: false,
       type: "USER",
       kodeAkses: kodeAkses,
@@ -159,7 +169,7 @@ exports.completeUser = async (req, res) => {
 };
 
 // login as admin
-async function loginAsAdmin(req, res, admin) {
+async function loginAsAdmin(req, res, admin, fcmToken) {
   const { iduser, password } = req.body;
 
   const adminData = admin["dataValues"];
@@ -200,8 +210,18 @@ async function loginAsAdmin(req, res, admin) {
   if (getSession) {
     const existingUser = await getSession["dataValues"];
 
+    let newToken = "";
+
+    const exFcmToken = existingUser.fcmToken;
+
+    if (fcmToken) {
+      newToken = fcmToken;
+    } else {
+      newToken = exFcmToken;
+    }
+
     return await R_User.update(
-      { usertoken: token },
+      { userToken: token, fcmToken: newToken, kodeAkses: kodeAkses },
       { where: { iduser: iduser } }
     )
       .then(() => {
@@ -229,7 +249,7 @@ async function loginAsAdmin(req, res, admin) {
       isProfileComplete: false,
       nomorwa: "",
       departemen: "",
-      fcmToken: "",
+      fcmToken: fcmToken || "-",
       isAdmin: true,
       kodeAkses: kodeAkses,
     })
