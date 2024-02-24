@@ -56,6 +56,7 @@ router.get("/muser", muser.getUser);
 //  Super User
 router.post("/superuser", superuser.createUser);
 router.get("/superuser", superuser.getUser);
+router.get("/superuser/userlist", superuser.getAllUsers);
 router.get("/superuser/pengajuan", authenticateToken, superuser.get_pengajuan);
 router.get("/superuser/user", authenticateToken, superuser.getUserDetail);
 router.get(

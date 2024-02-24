@@ -47,6 +47,18 @@ exports.login = async (req, res) => {
     return Responder(res, "ERROR", "Pengguna tidak ditemukan!", null, 404);
   }
 
+  const userStatus = user.status.toLowerCase();
+
+  if (userStatus !== "aktif") {
+    return Responder(
+      res,
+      "ERROR",
+      "Pengguna tidak aktif, silahkan hubungi admin!",
+      null,
+      404
+    );
+  }
+
   // hashing password
   const hashPassword = encPassword(password);
 

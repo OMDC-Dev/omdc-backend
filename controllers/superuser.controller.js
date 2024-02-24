@@ -8,23 +8,31 @@ const db_user = require("../db/user.db");
 const SuperUser = db_user.superuser;
 const Reimbursement = db_user.reimbursement;
 const User = db_user.ruser;
+const MUser = db_user.muser;
 
 // Create and Save
-exports.createUser = (req, res) => {
-  const { iduser, nm_user, level_user, departemen, password, type } = req.body;
+exports.createUser = async (req, res) => {
+  const { iduser, departemen, type } = req.body;
 
-  if (!iduser || !nm_user || !level_user || !departemen || !password || !type) {
+  if (!iduser || !departemen || !type) {
     return Responder(res, "ERROR", "Data tidak lengkap!", null);
   }
 
-  const encPass = encPassword(password);
+  // GET USER DATA FROM M_USER
+  const getUser = await MUser.findOne({
+    where: {
+      iduser: iduser,
+    },
+  });
+
+  const userData = await getUser["dataValues"];
 
   SuperUser.create({
-    iduser,
-    nm_user,
-    level_user,
-    departemen,
-    password: encPass,
+    iduser: userData?.iduser,
+    nm_user: userData?.nm_user,
+    level_user: userData?.level_user,
+    departemen: departemen,
+    password: userData?.password,
     type: type,
   })
     .then((data) => {
@@ -64,9 +72,11 @@ exports.getUser = async (req, res) => {
     const totalPageFormatted =
       Math.round(totalPage) == 0 ? 1 : Math.round(totalPage);
 
-    const filtered = users?.rows?.filter((item) => {
-      return item.iduser !== userData?.iduser;
-    });
+    const filtered = get
+      ? users?.rows
+      : users?.rows?.filter((item) => {
+          return item.iduser !== userData?.iduser;
+        });
 
     Responder(
       res,
@@ -273,6 +283,59 @@ exports.deleteAdmin = async (req, res) => {
     Responder(res, "OK", null, { message: "Admin berhasil dihapus!" }, 200);
     return;
   } catch (error) {
+    Responder(res, "ERROR", null, null, 400);
+    return;
+  }
+};
+
+exports.getAllUsers = async (req, res) => {
+  const { page = 1, limit = 25, cari } = req.query;
+
+  try {
+    const offset = (page - 1) * limit;
+
+    const whereClause = {};
+
+    if (cari) {
+      const searchSplit = cari.split(" ");
+      whereClause[Op.and] = searchSplit.map((item) => ({
+        nm_user: {
+          [Op.like]: `%${item}%`,
+        },
+      }));
+    }
+
+    const datas = await MUser.findAndCountAll({
+      where: whereClause,
+      limit: parseInt(limit),
+      offset: offset,
+    });
+
+    // result count
+    const resultCount = datas?.count;
+
+    const totalPage = resultCount / limit;
+    const totalPageFormatted =
+      Math.round(totalPage) == 0 ? 1 : Math.round(totalPage);
+
+    Responder(
+      res,
+      "OK",
+      null,
+      {
+        rows: datas.rows,
+        pageInfo: {
+          pageNumber: page,
+          pageLimit: limit,
+          pageCount: totalPageFormatted,
+          pageSize: resultCount,
+        },
+      },
+      200
+    );
+    return;
+  } catch (error) {
+    console.log(error);
     Responder(res, "ERROR", null, null, 400);
     return;
   }
