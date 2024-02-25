@@ -12,16 +12,16 @@ const serviceAccount = require("./config/serviceAccountKey.json");
 
 const app = express();
 
-var corsOptions = {
-  origin: "http://localhost:5173",
-};
+// var corsOptions = {
+//   origin: "http://localhost:5173",
+// };
 
 // Intialize the firebase-admin project/account
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
 });
 
-app.use(cors(corsOptions));
+app.use(cors());
 
 // parse requests of content-type - application/json
 app.use(express.json({ limit: "1mb" }));
