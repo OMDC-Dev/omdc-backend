@@ -8,6 +8,8 @@ const {
   ubahDataById,
 } = require("../utils/utils");
 const moment = require("moment");
+require("moment/locale/id");
+moment.locale("id");
 const { sendMessaging } = require("../utils/firebase");
 
 const M_Cabang = db_user.cabang;
@@ -405,7 +407,7 @@ exports.acceptance = async (req, res) => {
 
     const current_date =
       status == "APPROVED"
-        ? moment(new Date()).format("YYYY-MM-DD HH:mm:ss").toString()
+        ? moment().format("YYYY-MM-DD HH:mm:ss").toString()
         : "";
 
     const status_change = status == "FOWARDED" ? "WAITING" : status;
@@ -485,7 +487,7 @@ exports.finance_acceptance = async (req, res) => {
     const financeData = {
       nm_user: userData.nm_user,
       iduser: userData?.iduser,
-      acceptDate: moment(new Date()).format("YYYY-MM-DD"),
+      acceptDate: moment().format("YYYY-MM-DD"),
     };
 
     const getReimburse = await Reimbursement.findOne({

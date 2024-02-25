@@ -5,6 +5,8 @@ const { decodeToken, getToken } = require("../utils/jwt");
 const { generateRandomNumber } = require("../utils/utils");
 
 const moment = require("moment");
+require("moment/locale/id");
+moment.locale("id");
 
 const AnakCabang = user_db.anak_cabang;
 const Barang = user_db.barang;
@@ -170,12 +172,12 @@ exports.createTrxPermintaan = async (req, res) => {
 
     // Request Data
 
-    const REQUEST_DATE = moment(new Date()).format("YYYY-MM-DD").split(" ")[0];
-    const REQUEST_TIME = moment(new Date()).format("HH:mm:ss");
+    const REQUEST_DATE = moment().format("YYYY-MM-DD").split(" ")[0];
+    const REQUEST_TIME = moment().format("HH:mm:ss");
 
-    const PB_YY = moment(new Date()).format("YY");
-    const PB_MM = moment(new Date()).format("MM");
-    const PB_DD = moment(new Date()).format("DD");
+    const PB_YY = moment().format("YY");
+    const PB_MM = moment().format("MM");
+    const PB_DD = moment().format("DD");
 
     const ID_PB = `PB-${
       indukCabang.kd_induk
