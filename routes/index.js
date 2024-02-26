@@ -12,6 +12,7 @@ const superuser = require("../controllers/superuser.controller");
 const barang = require("../controllers/barang.controller");
 const pengumuman = require("../controllers/pengumuman.controller");
 const dept = require("../controllers/dept.controller");
+const coa = require("../controllers/coa.controller");
 const { authenticateToken } = require("../utils/jwt");
 
 // routes
@@ -101,5 +102,8 @@ router.post(
   authenticateToken,
   pengumuman.readPengumuman
 );
+
+// COA
+router.get("/coa", coa.getCOA);
 
 module.exports = { router };

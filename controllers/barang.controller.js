@@ -54,7 +54,9 @@ exports.getBarang = async (req, res) => {
   const { cari, page = 1, limit = 25 } = req.query;
 
   try {
-    const whereClause = {};
+    const whereClause = {
+      sts_brg: "AKTIF",
+    };
 
     // Menghitung offset berdasarkan halaman dan batasan
     const offset = (page - 1) * limit;

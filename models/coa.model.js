@@ -12,6 +12,9 @@ module.exports = (sequelize, Sequelize) => {
       description: {
         type: Sequelize.TEXT,
       },
+      status: {
+        type: Sequelize.STRING(20),
+      },
     },
     {
       tableName: "omdc_coa",
