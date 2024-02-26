@@ -50,5 +50,6 @@ db_user.pengumuman = require("../models/pengumuman.model.js")(
   Sequelize
 );
 db_user.dept = require("../models/dept.model")(sequelize, Sequelize);
+db_user.coa = require("../models/coa.model")(sequelize, Sequelize);
 
 module.exports = db_user;

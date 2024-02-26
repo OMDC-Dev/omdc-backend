@@ -1,5 +1,5 @@
 const db = require("../db/user.db");
-const { sendMessaging } = require("../utils/firebase");
+const { sendMulticastMessage } = require("../utils/firebase");
 const { decodeToken, getToken } = require("../utils/jwt");
 const { Responder } = require("../utils/responder");
 const { generateRandomNumber } = require("../utils/utils");
@@ -39,15 +39,13 @@ exports.createPengumuman = async (req, res) => {
       return item.length > 0;
     });
 
-    await (
-      await sendMessaging()
-    ).sendEachForMulticast({
-      tokens: fcmToken,
-      notification: {
+    // send notification
+    if (fcmToken?.length) {
+      sendMulticastMessage(fcmToken, {
         title: "Ada pengumuman baru!",
         body: title,
-      },
-    });
+      });
+    }
 
     Responder(res, "OK", null, { message: "Pengumuman berhasil dibuat!" }, 200);
     return;

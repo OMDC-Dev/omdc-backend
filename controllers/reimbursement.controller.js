@@ -10,7 +10,10 @@ const {
 const moment = require("moment");
 require("moment/locale/id");
 moment.locale("id");
-const { sendMessaging } = require("../utils/firebase");
+const {
+  sendSingleMessage,
+  sendMulticastMessage,
+} = require("../utils/firebase");
 
 const M_Cabang = db_user.cabang;
 const Reimbursement = db_user.reimbursement;
@@ -194,16 +197,12 @@ exports.reimbursement = async (req, res) => {
 
     if (adminFCM) {
       console.log("ADMIN HAS FCM");
-      (await sendMessaging()).send({
-        token: adminFCM,
-        notification: {
-          title: "Ada pengajuan reimbursement baru!",
-          body: `${userDetail?.nm_user} telah mengajukan permintaan reimbursement!`,
-        },
+      sendSingleMessage(adminFCM, {
+        title: "Ada pengajuan reimbursement baru!",
+        body: `${userDetail?.nm_user} telah mengajukan permintaan reimbursement!`,
       });
     }
   } catch (error) {
-    console.log(error);
     Responder(res, "ERROR", null, null, 500);
     return;
   }
@@ -333,14 +332,9 @@ exports.acceptance = async (req, res) => {
       }
 
       if (fowarderToken) {
-        await (
-          await sendMessaging()
-        ).send({
-          token: fowarderToken,
-          notification: {
-            title: "Ada pengajuan reimbursement baru!",
-            body: `Ada pengajuan reimbursement yang diteruskan dan menunggu persetujuan anda.`,
-          },
+        sendSingleMessage(fowarderToken, {
+          title: "Ada pengajuan reimbursement baru!",
+          body: `Ada pengajuan reimbursement yang diteruskan dan menunggu persetujuan anda.`,
         });
       }
     }
@@ -348,15 +342,12 @@ exports.acceptance = async (req, res) => {
     if (status == "APPROVED") {
       ubahDataById(acceptance_by, userId, "iduser", "status", "APPROVED");
 
+      console.log("USER FCM", user_fcm);
+
       if (user_fcm) {
-        await (
-          await sendMessaging()
-        ).send({
-          token: user_fcm,
-          notification: {
-            title: "Pengajuan anda telah setujui!",
-            body: `Pengajuan reimbursement anda telah disetujui oleh admin dan menunggu diproses.`,
-          },
+        sendSingleMessage(user_fcm, {
+          title: "Pengajuan anda telah setujui!",
+          body: `Pengajuan reimbursement anda telah disetujui oleh admin dan menunggu diproses.`,
         });
       }
 
@@ -377,15 +368,12 @@ exports.acceptance = async (req, res) => {
           }
         }
 
-        await (
-          await sendMessaging()
-        ).sendEachForMulticast({
-          tokens: tokens,
-          notification: {
+        if (tokens.length) {
+          sendMulticastMessage(tokens, {
             title: "Ada pengajuan reimbursement baru!",
             body: "Ada pengajuan reimbursement yang telah disetujui admin dan menunggu untuk diproses!",
-          },
-        });
+          });
+        }
       }
     }
 
@@ -393,14 +381,9 @@ exports.acceptance = async (req, res) => {
       ubahDataById(acceptance_by, userId, "iduser", "status", "REJECTED");
 
       if (user_fcm) {
-        await (
-          await sendMessaging()
-        ).send({
-          token: user_fcm,
-          notification: {
-            title: "Pengajuan anda telah tolak!",
-            body: `Pengajuan reimbursement anda telah ditolak oleh admin.`,
-          },
+        sendSingleMessage(user_fcm, {
+          title: "Pengajuan anda telah tolak!",
+          body: `Pengajuan reimbursement anda telah ditolak oleh admin.`,
         });
       }
     }
@@ -528,14 +511,9 @@ exports.finance_acceptance = async (req, res) => {
     )
       .then(async () => {
         if (userFcm) {
-          await (
-            await sendMessaging()
-          ).send({
-            token: userFcm,
-            notification: {
-              title: "Pengajuan reimbursement anda telah di proses finance!",
-              body: `Pengajuan reimbursement anda telah diproses dan di transfer oleh finance sebesar ${nominal}`,
-            },
+          sendSingleMessage(userFcm, {
+            title: "Pengajuan reimbursement anda telah di proses finance!",
+            body: `Pengajuan reimbursement anda telah diproses dan di transfer oleh finance sebesar ${nominal}`,
           });
         }
         return Responder(res, "OK", null, { updated: true }, 200);
