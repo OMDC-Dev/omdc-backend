@@ -492,6 +492,9 @@ exports.finance_acceptance = async (req, res) => {
     const reimbursementData = await getReimburse["dataValues"];
     const userRequested = reimbursementData.requester;
     const parentId = reimbursementData.parentId;
+    const bankDetail = reimbursementData?.bankDetail;
+
+    const IS_CONFIRM_ONLY = !bankDetail?.accountname?.length;
 
     const userFcm = userRequested.fcmToken;
 
@@ -523,7 +526,9 @@ exports.finance_acceptance = async (req, res) => {
         if (userFcm) {
           sendSingleMessage(userFcm, {
             title: "Pengajuan reimbursement anda telah di proses finance!",
-            body: `Pengajuan reimbursement anda telah diproses dan di transfer oleh finance sebesar ${nominal}`,
+            body: IS_CONFIRM_ONLY
+              ? "Laporan anda telah diterima oleh tim finance"
+              : `Pengajuan reimbursement anda telah diproses dan di transfer oleh finance sebesar ${nominal}`,
           });
         }
         return Responder(res, "OK", null, { updated: true }, 200);
