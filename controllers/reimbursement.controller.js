@@ -51,7 +51,6 @@ exports.reimbursement = async (req, res) => {
     coa,
     file,
     approved_by,
-    childId,
     parentId,
   } = req.body;
   try {
@@ -113,9 +112,12 @@ exports.reimbursement = async (req, res) => {
       }
     };
 
+    // =================== Cash Advance Section
+
     // Report Parent Doc
     let parentDoc;
 
+    // === Handle report cash advance
     if (parentId) {
       const getParent = await Reimbursement.findOne({
         where: {
@@ -128,10 +130,14 @@ exports.reimbursement = async (req, res) => {
       parentDoc = parentData.no_doc;
     }
 
+    // =============== ADMIN SECTION
+
+    // Get Approval Admin List
     const getApprovalAdmin = await Admin.findOne({
       where: { iduser: approved_by },
     });
 
+    // Get Admin fcm list
     const getAdminFcmData = await User.findOne({
       where: { iduser: approved_by },
     });
@@ -150,6 +156,8 @@ exports.reimbursement = async (req, res) => {
       nm_user: admin.nm_user,
       status: "WAITING",
     };
+
+    // ============ POST DATA Section
 
     await Reimbursement.create({
       no_doc: doc_no,
@@ -173,14 +181,15 @@ exports.reimbursement = async (req, res) => {
       status_finance: "IDLE",
       finance_by: "",
       realisasi: "",
-      childId: childId,
+      childId: "",
       parentId: parentId,
       parentDoc: parentDoc,
+      childDoc: "",
     })
       .then(async (data) => {
         if (parentId) {
           await Reimbursement.update(
-            { childId: data?.id },
+            { childId: data?.id, childDoc: data?.no_doc },
             { where: { id: parentId } }
           );
           Responder(res, "OK", null, data, 200);
@@ -203,6 +212,7 @@ exports.reimbursement = async (req, res) => {
       });
     }
   } catch (error) {
+    console.log(error);
     Responder(res, "ERROR", null, null, 500);
     return;
   }

@@ -75,6 +75,9 @@ module.exports = (sequelize, Sequelize) => {
     parentDoc: {
       type: Sequelize.STRING,
     },
+    childDoc: {
+      type: Sequelize.STRING,
+    },
   });
 
   return Reimbursement;
