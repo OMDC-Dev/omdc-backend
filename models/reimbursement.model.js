@@ -55,6 +55,10 @@ module.exports = (sequelize, Sequelize) => {
       type: Sequelize.TEXT,
       allowNull: true,
     },
+    finance_note: {
+      type: Sequelize.TEXT,
+      allowNull: true,
+    },
     accepted_date: {
       type: Sequelize.TEXT,
       allowNull: true,
@@ -64,6 +68,9 @@ module.exports = (sequelize, Sequelize) => {
       allowNull: true,
     },
     realisasi: {
+      type: Sequelize.STRING,
+    },
+    pengajuan_ca: {
       type: Sequelize.STRING,
     },
     childId: {

@@ -13,6 +13,7 @@ const barang = require("../controllers/barang.controller");
 const pengumuman = require("../controllers/pengumuman.controller");
 const dept = require("../controllers/dept.controller");
 const coa = require("../controllers/coa.controller");
+const suplier = require("../controllers/suplier.controller");
 const { authenticateToken } = require("../utils/jwt");
 
 // routes
@@ -60,6 +61,8 @@ router.get("/superuser", superuser.getUser);
 router.get("/superuser/userlist", superuser.getAllUsers);
 router.get("/superuser/pengajuan", authenticateToken, superuser.get_pengajuan);
 router.get("/superuser/user", authenticateToken, superuser.getUserDetail);
+
+// finance
 router.get(
   "/finance/pengajuan",
   authenticateToken,
@@ -74,6 +77,11 @@ router.delete(
   "/superuser/delete/:iduser",
   authenticateToken,
   superuser.deleteAdmin
+);
+router.post(
+  "/finance/update-coa/:id",
+  authenticateToken,
+  reimbursement.finance_update_coa
 );
 
 // Barang
@@ -105,5 +113,9 @@ router.post(
 
 // COA
 router.get("/coa", coa.getCOA);
+
+// Suplier
+router.get("/suplier", suplier.getSuplier);
+router.get("/suplier/:kdsp", suplier.getSuplierDetail);
 
 module.exports = { router };
