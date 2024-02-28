@@ -193,7 +193,7 @@ exports.reimbursement = async (req, res) => {
       .then(async (data) => {
         if (parentId) {
           await Reimbursement.update(
-            { childId: data?.id, childDoc: data?.no_doc, realisasi: nominal },
+            { childId: data?.id, childDoc: data?.no_doc },
             { where: { id: parentId } }
           );
           Responder(res, "OK", null, data, 200);
@@ -617,6 +617,32 @@ exports.finance_update_coa = async (req, res) => {
 exports.cancel_upload = async (req, res) => {
   const { id } = req.params;
   try {
+    // Get selected reimburse
+    const DETAILS = await Reimbursement.findOne({
+      where: {
+        id: id,
+      },
+    });
+
+    const DETAILS_DATA = await DETAILS["dataValues"];
+
+    // Get selected parent ID
+    if (DETAILS_DATA?.parentId?.length > 1) {
+      await Reimbursement.update(
+        {
+          childId: "",
+          childDoc: "",
+          realisasi: "",
+        },
+        {
+          where: {
+            id: DETAILS_DATA?.parentId,
+          },
+        }
+      );
+    }
+
+    // Destroy reimburse
     await Reimbursement.destroy({
       where: {
         id: id,
