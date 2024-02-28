@@ -116,6 +116,7 @@ exports.reimbursement = async (req, res) => {
 
     // Report Parent Doc
     let parentDoc;
+    let parentNominal;
 
     // === Handle report cash advance
     if (parentId) {
@@ -128,6 +129,7 @@ exports.reimbursement = async (req, res) => {
       const parentData = await getParent["dataValues"];
 
       parentDoc = parentData.no_doc;
+      parentNominal = parentData?.nominal;
     }
 
     // =============== ADMIN SECTION
@@ -171,6 +173,7 @@ exports.reimbursement = async (req, res) => {
       attachment: attachment || "-",
       bank_detail: bank_detail || "-",
       note: null,
+      finance_note: null,
       accepted_date: null,
       accepted_by: [adminData],
       nominal: nominal || "-",
@@ -181,6 +184,7 @@ exports.reimbursement = async (req, res) => {
       status_finance: "IDLE",
       finance_by: "",
       realisasi: "",
+      pengajuan_ca: parentNominal || "",
       childId: "",
       parentId: parentId,
       parentDoc: parentDoc,
@@ -189,7 +193,7 @@ exports.reimbursement = async (req, res) => {
       .then(async (data) => {
         if (parentId) {
           await Reimbursement.update(
-            { childId: data?.id, childDoc: data?.no_doc },
+            { childId: data?.id, childDoc: data?.no_doc, realisasi: nominal },
             { where: { id: parentId } }
           );
           Responder(res, "OK", null, data, 200);
@@ -293,7 +297,7 @@ exports.get_reimbursement = async (req, res) => {
 
 exports.acceptance = async (req, res) => {
   const { id } = req.params;
-  const { fowarder_id, status, nominal, note } = req.body;
+  const { fowarder_id, status, nominal, note, coa } = req.body;
   const { authorization } = req.headers;
 
   try {
@@ -310,6 +314,7 @@ exports.acceptance = async (req, res) => {
     const r_datas = await datas["dataValues"];
     const user_fcm = r_datas["requester"]["fcmToken"];
     const acceptance_by = r_datas["accepted_by"];
+    const parentId = r_datas["parentId"];
 
     if (status == "FOWARDED") {
       ubahDataById(acceptance_by, userId, "iduser", "status", "APPROVED");
@@ -357,7 +362,9 @@ exports.acceptance = async (req, res) => {
       if (user_fcm) {
         sendSingleMessage(user_fcm, {
           title: "Pengajuan anda telah setujui!",
-          body: `Pengajuan reimbursement anda telah disetujui oleh admin dan menunggu diproses.`,
+          body: `Pengajuan reimbursement anda telah disetujui oleh ${
+            userData?.nm_user || "penyetuju"
+          } dan menunggu diproses.`,
         });
       }
 
@@ -381,7 +388,7 @@ exports.acceptance = async (req, res) => {
         if (tokens.length) {
           sendMulticastMessage(tokens, {
             title: "Ada pengajuan reimbursement baru!",
-            body: "Ada pengajuan reimbursement yang telah disetujui admin dan menunggu untuk diproses!",
+            body: "Ada pengajuan reimbursement yang telah disetujui oleh penyetuju dan menunggu untuk diproses!",
           });
         }
       }
@@ -393,7 +400,9 @@ exports.acceptance = async (req, res) => {
       if (user_fcm) {
         sendSingleMessage(user_fcm, {
           title: "Pengajuan anda telah tolak!",
-          body: `Pengajuan reimbursement anda telah ditolak oleh admin.`,
+          body: `Pengajuan reimbursement anda telah ditolak oleh ${
+            userData?.nm_user || "penyetuju"
+          }.`,
         });
       }
     }
@@ -413,8 +422,9 @@ exports.acceptance = async (req, res) => {
         accepted_by: acceptance_by,
         status: status_change,
         nominal: "Rp. " + nominal,
-        note: note,
+        note: note || "",
         status_finance: status_finance,
+        coa: coa,
       },
       {
         where: {
@@ -422,7 +432,19 @@ exports.acceptance = async (req, res) => {
         },
       }
     )
-      .then(() => {
+      .then(async () => {
+        if (parentId) {
+          await Reimbursement.update(
+            {
+              realisasi: "Rp. " + nominal,
+            },
+            {
+              where: {
+                id: parentId,
+              },
+            }
+          );
+        }
         Responder(
           res,
           "OK",
@@ -455,6 +477,7 @@ exports.get_status = async (req, res) => {
         "status_finance",
         "finance_by",
         "realisasi",
+        "coa",
       ],
     });
 
@@ -473,7 +496,7 @@ exports.finance_acceptance = async (req, res) => {
   const { id } = req.params;
   const { status } = req.query;
   const { authorization } = req.headers;
-  const { nominal } = req.body;
+  const { nominal, note, coa } = req.body;
   try {
     const userData = decodeToken(getToken(authorization));
 
@@ -515,6 +538,8 @@ exports.finance_acceptance = async (req, res) => {
       {
         status_finance: status,
         finance_by: financeData,
+        finance_note: note || "-",
+        coa: coa,
       },
       {
         where: {
@@ -527,8 +552,8 @@ exports.finance_acceptance = async (req, res) => {
           sendSingleMessage(userFcm, {
             title: "Pengajuan reimbursement anda telah di proses finance!",
             body: IS_CONFIRM_ONLY
-              ? "Laporan anda telah diterima oleh tim finance"
-              : `Pengajuan reimbursement anda telah diproses dan di transfer oleh finance sebesar ${nominal}`,
+              ? `Laporan anda telah diterima oleh ${financeData.nm_user} - tim finance`
+              : `Pengajuan reimbursement anda telah diproses dan di transfer oleh ${financeData?.nm_user} sebesar ${nominal}`,
           });
         }
         return Responder(res, "OK", null, { updated: true }, 200);
@@ -543,12 +568,19 @@ exports.finance_acceptance = async (req, res) => {
 
 exports.get_detail = async (req, res) => {
   const { id } = req.params;
+  const { type } = req.query;
   try {
-    const getReim = await Reimbursement.findOne({
+    const condition = {
       where: {
         id: id,
       },
-    });
+    };
+
+    if (type && type == "VALUE") {
+      condition.attributes = ["nominal", "realisasi"];
+    }
+
+    const getReim = await Reimbursement.findOne(condition);
 
     const reimData = await getReim["dataValues"];
 
@@ -556,6 +588,45 @@ exports.get_detail = async (req, res) => {
     return;
   } catch (error) {
     Responder(res, "ERROR", null, null, 400);
+    return;
+  }
+};
+
+exports.finance_update_coa = async (req, res) => {
+  const { id } = req.params;
+  const { coa } = req.body;
+  try {
+    console.log("RID: " + id);
+    await Reimbursement.update(
+      { coa: coa },
+      {
+        where: {
+          id: id,
+        },
+      }
+    );
+
+    Responder(res, "OK", null, { updated: true }, 200);
+    return;
+  } catch (error) {
+    console.log(error);
+    Responder(res, "ERROR", null, null, 500);
+  }
+};
+
+exports.cancel_upload = async (req, res) => {
+  const { id } = req.params;
+  try {
+    await Reimbursement.destroy({
+      where: {
+        id: id,
+      },
+    });
+
+    Responder(res, "OK", null, { deleted: true }, 200);
+    return;
+  } catch (error) {
+    Responder(res, "ERROR", null, null, 500);
     return;
   }
 };
