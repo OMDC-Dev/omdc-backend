@@ -47,6 +47,11 @@ router.post(
 );
 router.get("/reimbursement/status/:id", reimbursement.get_status);
 router.get("/reimbursement/:id", authenticateToken, reimbursement.get_detail);
+router.delete(
+  "/reimbursement/:id",
+  authenticateToken,
+  reimbursement.cancel_upload
+);
 
 // Bank
 router.get("/bank", bank.getBank);

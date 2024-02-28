@@ -477,6 +477,7 @@ exports.get_status = async (req, res) => {
         "status_finance",
         "finance_by",
         "realisasi",
+        "coa",
       ],
     });
 
@@ -610,5 +611,22 @@ exports.finance_update_coa = async (req, res) => {
   } catch (error) {
     console.log(error);
     Responder(res, "ERROR", null, null, 500);
+  }
+};
+
+exports.cancel_upload = async (req, res) => {
+  const { id } = req.params;
+  try {
+    await Reimbursement.destroy({
+      where: {
+        id: id,
+      },
+    });
+
+    Responder(res, "OK", null, { deleted: true }, 200);
+    return;
+  } catch (error) {
+    Responder(res, "ERROR", null, null, 500);
+    return;
   }
 };
