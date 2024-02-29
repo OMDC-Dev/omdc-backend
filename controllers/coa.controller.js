@@ -35,7 +35,7 @@ exports.getCOA = async (req, res) => {
 
     const totalPage = resultCount / limit;
     const totalPageFormatted =
-      Math.round(totalPage) == 0 ? 1 : Math.round(totalPage);
+      Math.round(totalPage) == 0 ? 1 : Math.ceil(totalPage);
 
     Responder(
       res,
@@ -44,8 +44,8 @@ exports.getCOA = async (req, res) => {
       {
         rows: datas.rows,
         pageInfo: {
-          pageNumber: page,
-          pageLimit: limit,
+          pageNumber: parseInt(page),
+          pageLimit: parseInt(limit),
           pageCount: totalPageFormatted,
           pageSize: resultCount,
         },
