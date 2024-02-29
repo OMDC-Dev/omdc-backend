@@ -52,6 +52,7 @@ exports.reimbursement = async (req, res) => {
     file,
     approved_by,
     parentId,
+    payment_type,
   } = req.body;
   try {
     if (
@@ -65,7 +66,8 @@ exports.reimbursement = async (req, res) => {
       !item ||
       !coa ||
       !approved_by ||
-      !file
+      !file ||
+      !payment_type
     ) {
       return Responder(res, "ERROR", "Data tidak lengkap!", null, 400);
     }
@@ -117,6 +119,7 @@ exports.reimbursement = async (req, res) => {
     // Report Parent Doc
     let parentDoc;
     let parentNominal;
+    let parentPaymentType;
 
     // === Handle report cash advance
     if (parentId) {
@@ -130,6 +133,7 @@ exports.reimbursement = async (req, res) => {
 
       parentDoc = parentData.no_doc;
       parentNominal = parentData?.nominal;
+      parentPaymentType = parentData?.payment_type;
     }
 
     // =============== ADMIN SECTION
@@ -182,6 +186,7 @@ exports.reimbursement = async (req, res) => {
       coa: coa,
       file_info: file,
       status_finance: "IDLE",
+      status_finance_child: "IDLE",
       finance_by: "",
       realisasi: "",
       pengajuan_ca: parentNominal || "",
@@ -189,6 +194,7 @@ exports.reimbursement = async (req, res) => {
       parentId: parentId,
       parentDoc: parentDoc,
       childDoc: "",
+      payment_type: payment_type || "TRANSFER",
     })
       .then(async (data) => {
         if (parentId) {
@@ -530,6 +536,7 @@ exports.finance_acceptance = async (req, res) => {
         {
           realisasi: nominal,
           coa: coa,
+          status_finance_child: "DONE",
         },
         {
           where: {
@@ -558,7 +565,7 @@ exports.finance_acceptance = async (req, res) => {
             title: "Pengajuan reimbursement anda telah di proses finance!",
             body: IS_CONFIRM_ONLY
               ? `Laporan anda telah diterima oleh ${financeData.nm_user} - tim finance`
-              : `Pengajuan reimbursement anda telah diproses dan di transfer oleh ${financeData?.nm_user} sebesar ${nominal}`,
+              : `Pengajuan reimbursement anda telah diproses oleh ${financeData?.nm_user} sebesar ${nominal}`,
           });
         }
         return Responder(res, "OK", null, { updated: true }, 200);
@@ -668,7 +675,7 @@ exports.cancel_upload = async (req, res) => {
     const DETAILS_DATA = await DETAILS["dataValues"];
 
     // Get selected parent ID
-    if (DETAILS_DATA?.parentId?.length > 1) {
+    if (DETAILS_DATA?.parentId) {
       await Reimbursement.update(
         {
           childId: "",
