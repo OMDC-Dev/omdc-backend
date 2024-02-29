@@ -47,7 +47,7 @@ exports.createUser = async (req, res) => {
 
 exports.getUser = async (req, res) => {
   const { authorization } = req.headers;
-  const { page = 1, limit = 25, get } = req.query;
+  const { page = 1, limit = 25, get, exceptId } = req.query;
   try {
     const userData = decodeToken(getToken(authorization));
 
@@ -57,6 +57,14 @@ exports.getUser = async (req, res) => {
 
     if (!get) {
       whereClause.type = "ADMIN";
+
+      // Menambahkan kondisi untuk exceptId jika diberikan
+      if (exceptId) {
+        whereClause.iduser = { [Op.not]: [userData?.iduser, exceptId] };
+      } else {
+        // Jika tidak ada exceptId, maka exclude hanya userData?.iduser
+        whereClause.iduser = { [Op.ne]: userData?.iduser };
+      }
     }
 
     const users = await SuperUser.findAndCountAll({
@@ -70,23 +78,23 @@ exports.getUser = async (req, res) => {
 
     const totalPage = resultCount / limit;
     const totalPageFormatted =
-      Math.round(totalPage) == 0 ? 1 : Math.round(totalPage);
+      Math.round(totalPage) == 0 ? 1 : Math.ceil(totalPage);
 
-    const filtered = get
-      ? users?.rows
-      : users?.rows?.filter((item) => {
-          return item.iduser !== userData?.iduser;
-        });
+    // const filtered = get
+    //   ? users?.rows
+    //   : users?.rows?.filter((item) => {
+    //       return item.iduser !== userData?.iduser;
+    //     });
 
     Responder(
       res,
       "OK",
       null,
       {
-        rows: filtered,
+        rows: users?.rows,
         pageInfo: {
-          pageNumber: page,
-          pageLimit: limit,
+          pageNumber: parseInt(page),
+          pageLimit: parseInt(limit),
           pageCount: totalPageFormatted,
           pageSize: resultCount,
         },
@@ -95,6 +103,7 @@ exports.getUser = async (req, res) => {
     );
     return;
   } catch (error) {
+    console.log(error);
     Responder(res, "ERROR", null, null, 400);
     return;
   }
@@ -122,10 +131,12 @@ exports.get_pengajuan = async (req, res) => {
     }
 
     // Menambahkan filter berdasarkan status jika diberikan
-    if (status === "00") {
-      whereClause.status = { [Op.ne]: "APPROVED" }; // Memilih status selain 'APPROVED'
-    } else if (status === "01") {
-      whereClause.status = "APPROVED";
+    if (status) {
+      if (status === "01") {
+        whereClause.status = { [Op.ne]: "WAITING" }; // Memilih status selain 'APPROVED'
+      } else if (status === "00") {
+        whereClause.status = "WAITING";
+      }
     }
 
     // Menghitung offset berdasarkan halaman dan batasan
@@ -150,7 +161,7 @@ exports.get_pengajuan = async (req, res) => {
 
       const totalPage = resultCount / limit;
       const totalPageFormatted =
-        Math.round(totalPage) == 0 ? 1 : Math.round(totalPage);
+        Math.round(totalPage) == 0 ? 1 : Math.ceil(totalPage);
 
       Responder(
         res,
@@ -160,8 +171,8 @@ exports.get_pengajuan = async (req, res) => {
           ? {
               rows: requestedFilter,
               pageInfo: {
-                pageNumber: page,
-                pageLimit: limit,
+                pageNumber: parseInt(page),
+                pageLimit: parseInt(limit),
                 pageCount: totalPageFormatted,
                 pageSize: resultCount,
               },
@@ -226,7 +237,7 @@ exports.get_pengajuan_finance = async (req, res) => {
 
     const totalPage = resultCount / limit;
     const totalPageFormatted =
-      Math.round(totalPage) == 0 ? 1 : Math.round(totalPage);
+      Math.round(totalPage) == 0 ? 1 : Math.ceil(totalPage);
 
     Responder(
       res,
@@ -235,8 +246,8 @@ exports.get_pengajuan_finance = async (req, res) => {
       {
         rows: requested?.rows,
         pageInfo: {
-          pageNumber: page,
-          pageLimit: limit,
+          pageNumber: parseInt(page),
+          pageLimit: parseInt(limit),
           pageCount: totalPageFormatted,
           pageSize: resultCount,
         },
@@ -316,7 +327,7 @@ exports.getAllUsers = async (req, res) => {
 
     const totalPage = resultCount / limit;
     const totalPageFormatted =
-      Math.round(totalPage) == 0 ? 1 : Math.round(totalPage);
+      Math.round(totalPage) == 0 ? 1 : Math.ceil(totalPage);
 
     Responder(
       res,
@@ -325,8 +336,8 @@ exports.getAllUsers = async (req, res) => {
       {
         rows: datas.rows,
         pageInfo: {
-          pageNumber: page,
-          pageLimit: limit,
+          pageNumber: parseInt(page),
+          pageLimit: parseInt(limit),
           pageCount: totalPageFormatted,
           pageSize: resultCount,
         },

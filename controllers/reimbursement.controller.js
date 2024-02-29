@@ -250,10 +250,10 @@ exports.get_reimbursement = async (req, res) => {
     }
 
     // Menambahkan filter berdasarkan status jika diberikan
-    if (status === "00") {
-      whereClause.status = { [Op.ne]: "APPROVED" }; // Memilih status selain 'APPROVED'
-    } else if (status === "01") {
-      whereClause.status = "APPROVED";
+    if (status === "01") {
+      whereClause.status = { [Op.ne]: "WAITING" }; // Memilih status selain 'APPROVED'
+    } else if (status === "00") {
+      whereClause.status = "WAITING";
     }
 
     // Menghitung offset berdasarkan halaman dan batasan
@@ -271,7 +271,7 @@ exports.get_reimbursement = async (req, res) => {
 
     const totalPage = resultCount / limit;
     const totalPageFormatted =
-      Math.round(totalPage) == 0 ? 1 : Math.round(totalPage);
+      Math.round(totalPage) == 0 ? 1 : Math.ceil(totalPage);
 
     if (requested?.rows.length) {
       Responder(
@@ -281,8 +281,8 @@ exports.get_reimbursement = async (req, res) => {
         {
           rows: requested.rows,
           pageInfo: {
-            pageNumber: page,
-            pageLimit: limit,
+            pageNumber: parseInt(page),
+            pageLimit: parseInt(limit),
             pageCount: totalPageFormatted,
             pageSize: resultCount,
           },
@@ -412,6 +412,22 @@ exports.acceptance = async (req, res) => {
           }.`,
         });
       }
+
+      // Remove from parent if rejected
+      if (parentId) {
+        await Reimbursement.update(
+          {
+            childId: "",
+            childDoc: "",
+            realisasi: "",
+          },
+          {
+            where: {
+              id: parentId,
+            },
+          }
+        );
+      }
     }
 
     const current_date =
@@ -441,7 +457,7 @@ exports.acceptance = async (req, res) => {
     )
       .then(async () => {
         // Update if has parent ID ( Cash Advance Report )
-        if (parentId) {
+        if (parentId && status !== "REJECTED") {
           await Reimbursement.update(
             {
               realisasi: "Rp. " + nominal,
