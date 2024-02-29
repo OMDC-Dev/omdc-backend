@@ -315,6 +315,7 @@ exports.acceptance = async (req, res) => {
     const user_fcm = r_datas["requester"]["fcmToken"];
     const acceptance_by = r_datas["accepted_by"];
     const parentId = r_datas["parentId"];
+    const childId = r_datas["childId"];
 
     if (status == "FOWARDED") {
       ubahDataById(acceptance_by, userId, "iduser", "status", "APPROVED");
@@ -433,10 +434,12 @@ exports.acceptance = async (req, res) => {
       }
     )
       .then(async () => {
+        // Update if has parent ID ( Cash Advance Report )
         if (parentId) {
           await Reimbursement.update(
             {
               realisasi: "Rp. " + nominal,
+              coa: coa,
             },
             {
               where: {
@@ -521,10 +524,12 @@ exports.finance_acceptance = async (req, res) => {
 
     const userFcm = userRequested.fcmToken;
 
+    // Handle if has parent id ( Cash Advance Report )
     if (parentId) {
       await Reimbursement.update(
         {
           realisasi: nominal,
+          coa: coa,
         },
         {
           where: {
@@ -596,7 +601,17 @@ exports.finance_update_coa = async (req, res) => {
   const { id } = req.params;
   const { coa } = req.body;
   try {
-    console.log("RID: " + id);
+    const R_DATA = await Reimbursement.findOne({
+      where: {
+        id: id,
+      },
+    });
+
+    const r_datas = await R_DATA["dataValues"];
+    const parentId = r_datas["parentId"];
+    const childId = r_datas["childId"];
+
+    // Main function
     await Reimbursement.update(
       { coa: coa },
       {
@@ -605,6 +620,32 @@ exports.finance_update_coa = async (req, res) => {
         },
       }
     );
+
+    // Handle if has parent id ( Cash Advance Report )
+    if (parentId) {
+      await Reimbursement.update(
+        { coa: coa },
+        {
+          where: {
+            id: parentId,
+          },
+        }
+      );
+    }
+
+    // Handle if has child id ( Cash Advance )
+    if (childId) {
+      await Reimbursement.update(
+        {
+          coa: coa,
+        },
+        {
+          where: {
+            id: childId,
+          },
+        }
+      );
+    }
 
     Responder(res, "OK", null, { updated: true }, 200);
     return;
