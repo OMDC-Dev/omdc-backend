@@ -39,6 +39,9 @@ module.exports = (sequelize, Sequelize) => {
     status_finance: {
       type: Sequelize.STRING,
     },
+    status_finance_child: {
+      type: Sequelize.STRING,
+    },
     finance_by: {
       type: Sequelize.JSON,
     },
@@ -47,6 +50,9 @@ module.exports = (sequelize, Sequelize) => {
     },
     bank_detail: {
       type: Sequelize.JSON,
+    },
+    payment_type: {
+      type: Sequelize.STRING,
     },
     file_info: {
       type: Sequelize.JSON,
