@@ -1,4 +1,4 @@
-const { Op } = require("sequelize");
+const { Op, Sequelize } = require("sequelize");
 const { encPassword } = require("../utils/encPass");
 const { decodeToken, getToken } = require("../utils/jwt");
 const { Responder } = require("../utils/responder");
@@ -116,7 +116,15 @@ exports.get_pengajuan = async (req, res) => {
   try {
     const userData = decodeToken(getToken(authorization));
 
-    const whereClause = {};
+    const whereClause = {
+      [Op.or]: [
+        Sequelize.fn(
+          "JSON_CONTAINS",
+          Sequelize.col("accepted_by"),
+          `[{"iduser": "${userData?.iduser}"}]`
+        ),
+      ],
+    };
 
     if (monthyear) {
       const my = monthyear.split("-");
@@ -149,42 +157,26 @@ exports.get_pengajuan = async (req, res) => {
       order: [["createdAt", "DESC"]],
     });
 
-    if (requested?.rows.length) {
-      // Filter data berdasarkan accepted_by yang mengandung userId
-      const requestedFilter = requested?.rows.filter((reimbursement) => {
-        const acceptedBy = reimbursement.accepted_by || []; // Mengatasi jika accepted_by null atau undefined
-        return acceptedBy.some((item) => item.iduser === userData?.iduser);
-      });
+    // result count
+    const resultCount = requested?.count;
+    const totalPageFormatted = Math.ceil(resultCount / limit);
 
-      // result count
-      const resultCount = requestedFilter?.length;
-
-      const totalPage = resultCount / limit;
-      const totalPageFormatted =
-        Math.round(totalPage) == 0 ? 1 : Math.ceil(totalPage);
-
-      Responder(
-        res,
-        "OK",
-        null,
-        requestedFilter.length
-          ? {
-              rows: requestedFilter,
-              pageInfo: {
-                pageNumber: parseInt(page),
-                pageLimit: parseInt(limit),
-                pageCount: totalPageFormatted,
-                pageSize: resultCount,
-              },
-            }
-          : [],
-        200
-      );
-      return;
-    } else {
-      Responder(res, "OK", null, [], 200);
-      return;
-    }
+    Responder(
+      res,
+      "OK",
+      null,
+      {
+        rows: requested?.rows,
+        pageInfo: {
+          pageNumber: parseInt(page),
+          pageLimit: parseInt(limit),
+          pageCount: totalPageFormatted,
+          pageSize: resultCount,
+        },
+      },
+      200
+    );
+    return;
   } catch (error) {
     console.log(error);
     Responder(res, "ERROR", null, null, 500);

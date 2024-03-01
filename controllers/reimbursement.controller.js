@@ -194,7 +194,8 @@ exports.reimbursement = async (req, res) => {
       parentId: parentId,
       parentDoc: parentDoc,
       childDoc: "",
-      payment_type: payment_type || "TRANSFER",
+      payment_type:
+        payment_type || bank_detail?.accountname?.length ? "TRANSFER" : "CASH",
     })
       .then(async (data) => {
         if (parentId) {
@@ -252,9 +253,16 @@ exports.get_reimbursement = async (req, res) => {
     // Menambahkan filter berdasarkan status jika diberikan
     if (status === "01") {
       // whereClause.status = { [Op.ne]: "WAITING" }; // Memilih status selain 'APPROVED'
-      whereClause.status = "APPROVED";
-      whereClause.status_finance = "DONE";
-      whereClause.status_finance_child = "DONE";
+      whereClause[Op.or] = [
+        {
+          status: "APPROVED",
+          status_finance: "DONE",
+          status_finance_child: "DONE",
+        },
+        {
+          status: "REJECTED",
+        },
+      ];
     } else if (status === "00") {
       whereClause[Op.or] = [
         { status: "WAITING" },
