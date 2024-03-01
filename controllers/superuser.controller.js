@@ -215,9 +215,20 @@ exports.get_pengajuan_finance = async (req, res) => {
 
     // Menambahkan filter berdasarkan status jika diberikan
     if (status === "00") {
-      whereClause.status_finance = { [Op.ne]: "DONE" }; // Memilih status selain 'APPROVED'
+      //whereClause.status_finance = { [Op.ne]: "DONE" }; // Memilih status selain 'APPROVED'
+      whereClause[Op.or] = [
+        {
+          status_finance: { [Op.ne]: "DONE" },
+        },
+        {
+          status_finance: "DONE",
+          jenis_reimbursement: "Cash Advance",
+          status_finance_child: "IDLE",
+        },
+      ];
     } else if (status === "01") {
       whereClause.status_finance = "DONE";
+      whereClause.status_finance_child = "DONE";
     }
 
     whereClause.status = "APPROVED";

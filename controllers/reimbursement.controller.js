@@ -251,9 +251,24 @@ exports.get_reimbursement = async (req, res) => {
 
     // Menambahkan filter berdasarkan status jika diberikan
     if (status === "01") {
-      whereClause.status = { [Op.ne]: "WAITING" }; // Memilih status selain 'APPROVED'
+      // whereClause.status = { [Op.ne]: "WAITING" }; // Memilih status selain 'APPROVED'
+      whereClause.status = "APPROVED";
+      whereClause.status_finance = "DONE";
+      whereClause.status_finance_child = "DONE";
     } else if (status === "00") {
-      whereClause.status = "WAITING";
+      whereClause[Op.or] = [
+        { status: "WAITING" },
+        {
+          status: "APPROVED",
+          status_finance: { [Op.ne]: "DONE" },
+        },
+        {
+          status: "APPROVED",
+          status_finance: "DONE",
+          jenis_reimbursement: "Cash Advance",
+          status_finance_child: "IDLE",
+        },
+      ];
     }
 
     // Menghitung offset berdasarkan halaman dan batasan
@@ -540,6 +555,7 @@ exports.finance_acceptance = async (req, res) => {
     const reimbursementData = await getReimburse["dataValues"];
     const userRequested = reimbursementData.requester;
     const parentId = reimbursementData.parentId;
+    const jenis = reimbursementData?.jenis_reimbursement;
     const bankDetail = reimbursementData?.bankDetail;
 
     const IS_CONFIRM_ONLY = !bankDetail?.accountname?.length;
@@ -565,6 +581,7 @@ exports.finance_acceptance = async (req, res) => {
     return await Reimbursement.update(
       {
         status_finance: status,
+        status_finance_child: jenis == "Cash Advance" ? "IDLE" : status,
         finance_by: financeData,
         finance_note: note || "-",
         coa: coa,
