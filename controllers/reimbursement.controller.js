@@ -194,8 +194,7 @@ exports.reimbursement = async (req, res) => {
       parentId: parentId,
       parentDoc: parentDoc,
       childDoc: "",
-      payment_type:
-        payment_type || bank_detail?.accountname?.length ? "TRANSFER" : "CASH",
+      payment_type: payment_type,
     })
       .then(async (data) => {
         if (parentId) {
