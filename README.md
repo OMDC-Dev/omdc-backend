@@ -1,3 +1,5 @@
+added some readme
+
 server {
 listen 80;
 server_name subdomain.example.com;
