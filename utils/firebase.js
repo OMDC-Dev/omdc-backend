@@ -15,6 +15,19 @@ const sendSingleMessage = (token, notification) => {
     .send({
       token: token,
       notification: notification,
+      apns: {
+        payload: {
+          aps: {
+            // Required for background/quit data-only messages on iOS
+            // Note: iOS frequently will receive the message but decline to deliver it to your app.
+            //           This is an Apple design choice to favor user battery life over data-only delivery
+            //           reliability. It is not under app control, though you may see the behavior in device logs.
+            "content-available": true,
+            // Required for background/quit data-only messages on Android
+            priority: "high",
+          },
+        },
+      },
     })
     .then((data) => {
       console.log("Send notification success with ", data);
@@ -27,7 +40,23 @@ const sendSingleMessage = (token, notification) => {
 const sendMulticastMessage = (tokens, notification) => {
   return admin
     .messaging()
-    .sendEachForMulticast({ tokens: tokens, notification: notification })
+    .sendEachForMulticast({
+      tokens: tokens,
+      notification: notification,
+      apns: {
+        payload: {
+          aps: {
+            // Required for background/quit data-only messages on iOS
+            // Note: iOS frequently will receive the message but decline to deliver it to your app.
+            //           This is an Apple design choice to favor user battery life over data-only delivery
+            //           reliability. It is not under app control, though you may see the behavior in device logs.
+            "content-available": true,
+            // Required for background/quit data-only messages on Android
+            priority: "high",
+          },
+        },
+      },
+    })
     .then((data) => {
       console.log("Send notification success with ", data);
     })
