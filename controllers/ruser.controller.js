@@ -98,6 +98,16 @@ exports.login = async (req, res) => {
   if (getSession) {
     const existingUser = await getSession["dataValues"];
 
+    if (existingUser.userToken) {
+      return Responder(
+        res,
+        "ERROR",
+        "Pengguna sudah login ditempat lain.",
+        null,
+        404
+      );
+    }
+
     let newToken = "";
 
     const exFcmToken = existingUser.fcmToken;
@@ -222,6 +232,16 @@ async function loginAsAdmin(req, res, admin, fcmToken) {
   if (getSession) {
     const existingUser = await getSession["dataValues"];
 
+    if (existingUser.userToken) {
+      return Responder(
+        res,
+        "ERROR",
+        "Pengguna sudah login ditempat lain.",
+        null,
+        404
+      );
+    }
+
     let newToken = "";
 
     const exFcmToken = existingUser.fcmToken;
@@ -325,6 +345,32 @@ exports.updatePw = async (req, res) => {
           { message: "Sukses mengganti password!" },
           200
         );
+        return;
+      })
+      .catch((err) => {
+        Responder(res, "ERROR", null, null, 400);
+        return;
+      });
+  } catch (error) {
+    Responder(res, "ERROR", null, null, 400);
+    return;
+  }
+};
+
+exports.logout = async (req, res) => {
+  const { authorization } = req.headers;
+  try {
+    const tokenData = decodeToken(getToken(authorization));
+    return await R_User.update(
+      { userToken: "" },
+      {
+        where: {
+          iduser: tokenData.iduser,
+        },
+      }
+    )
+      .then(() => {
+        Responder(res, "OK", null, { message: "Sukses logout!" }, 200);
         return;
       })
       .catch((err) => {

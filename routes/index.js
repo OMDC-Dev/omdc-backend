@@ -31,6 +31,7 @@ router.delete("/dept/:id", dept.delete);
 router.post("/user/login", ruser.login);
 router.post("/user/complete", authenticateToken, ruser.completeUser);
 router.post("/user/update-password", authenticateToken, ruser.updatePw);
+router.post("/user/logout", authenticateToken, ruser.logout);
 
 // Reimbursement
 router.get("/cabang", reimbursement.cabang);
