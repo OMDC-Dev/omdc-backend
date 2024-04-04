@@ -91,6 +91,12 @@ module.exports = (sequelize, Sequelize) => {
     childDoc: {
       type: Sequelize.STRING,
     },
+    tipePembayaran: {
+      type: Sequelize.STRING,
+    },
+    finance_bank: {
+      type: Sequelize.STRING,
+    },
   });
 
   return Reimbursement;

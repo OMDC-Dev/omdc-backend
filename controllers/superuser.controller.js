@@ -111,7 +111,7 @@ exports.getUser = async (req, res) => {
 
 exports.get_pengajuan = async (req, res) => {
   const { authorization } = req.headers;
-  const { page = 1, limit = 10, monthyear, status } = req.query;
+  const { page = 1, limit = 10, monthyear, status, cari } = req.query;
 
   try {
     const userData = decodeToken(getToken(authorization));
@@ -147,6 +147,47 @@ exports.get_pengajuan = async (req, res) => {
       }
     }
 
+    if (cari && cari.length > 0) {
+      const searchSplit = cari.split(" ");
+      const searchConditions = searchSplit.map((item) => ({
+        [Op.or]: [
+          {
+            jenis_reimbursement: {
+              [Op.like]: `%${item}%`,
+            },
+          },
+          {
+            kode_cabang: {
+              [Op.like]: `%${item}%`,
+            },
+          },
+          {
+            coa: {
+              [Op.like]: `%${item}%`,
+            },
+          },
+          {
+            nominal: {
+              [Op.like]: `%${item}%`,
+            },
+          },
+          {
+            no_doc: {
+              [Op.like]: `%${item}%`,
+            },
+          },
+        ],
+      }));
+
+      whereClause[Op.and] = searchConditions;
+    }
+
+    // Menambahkan pengurutan berdasarkan tipePembayaran
+    const orderClause = [
+      ["tipePembayaran", "DESC"], // Mengurutkan dari Urgent ke Regular
+      ["createdAt", "DESC"], // Mengurutkan berdasarkan createdAt secara descending
+    ];
+
     // Menghitung offset berdasarkan halaman dan batasan
     const offset = (page - 1) * limit;
 
@@ -154,7 +195,7 @@ exports.get_pengajuan = async (req, res) => {
       where: whereClause,
       limit: parseInt(limit), // Mengubah batasan menjadi tipe numerik
       offset: offset, // Menetapkan offset untuk penampilan halaman
-      order: [["createdAt", "DESC"]],
+      order: orderClause,
     });
 
     // result count
@@ -186,7 +227,7 @@ exports.get_pengajuan = async (req, res) => {
 
 exports.get_pengajuan_finance = async (req, res) => {
   const { authorization } = req.headers;
-  const { page = 1, limit = 10, monthyear, status } = req.query;
+  const { page = 1, limit = 10, monthyear, status, cari } = req.query;
 
   try {
     const userData = decodeToken(getToken(authorization));
@@ -225,6 +266,47 @@ exports.get_pengajuan_finance = async (req, res) => {
 
     whereClause.status = "APPROVED";
 
+    if (cari && cari.length > 0) {
+      const searchSplit = cari.split(" ");
+      const searchConditions = searchSplit.map((item) => ({
+        [Op.or]: [
+          {
+            jenis_reimbursement: {
+              [Op.like]: `%${item}%`,
+            },
+          },
+          {
+            kode_cabang: {
+              [Op.like]: `%${item}%`,
+            },
+          },
+          {
+            coa: {
+              [Op.like]: `%${item}%`,
+            },
+          },
+          {
+            nominal: {
+              [Op.like]: `%${item}%`,
+            },
+          },
+          {
+            no_doc: {
+              [Op.like]: `%${item}%`,
+            },
+          },
+        ],
+      }));
+
+      whereClause[Op.and] = searchConditions;
+    }
+
+    // Menambahkan pengurutan berdasarkan tipePembayaran
+    const orderClause = [
+      ["tipePembayaran", "DESC"], // Mengurutkan dari Urgent ke Regular
+      ["createdAt", "DESC"], // Mengurutkan berdasarkan createdAt secara descending
+    ];
+
     // Menghitung offset berdasarkan halaman dan batasan
     const offset = (page - 1) * limit;
 
@@ -232,7 +314,7 @@ exports.get_pengajuan_finance = async (req, res) => {
       where: whereClause,
       limit: parseInt(limit), // Mengubah batasan menjadi tipe numerik
       offset: offset, // Menetapkan offset untuk penampilan halaman
-      order: [["createdAt", "DESC"]],
+      order: orderClause,
     });
 
     // result count
