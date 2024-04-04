@@ -1,4 +1,5 @@
 added some readme
+/etc/nginx/conf.d/users/
 
 server {
 listen 80;
@@ -19,3 +20,5 @@ server_name subdomain.example.com;
     }
 
 }
+
+systemctl reload nginx.service
