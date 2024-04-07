@@ -172,6 +172,7 @@ exports.reimbursement = async (req, res) => {
       tanggal_reimbursement: date || "-",
       kode_cabang: `${cabangData["kd_induk"]} - ${cabangData["nm_induk"]}`,
       requester_id: userDetail.iduser || "-",
+      requester_name: userDetail.nm_user || "-",
       requester: userDetail || "-",
       description: description || "-",
       status: "WAITING",
@@ -300,7 +301,12 @@ exports.get_reimbursement = async (req, res) => {
             },
           },
           {
-            nominal: {
+            requester_name: {
+              [Op.like]: `%${item}%`,
+            },
+          },
+          {
+            tipePembayaran: {
               [Op.like]: `%${item}%`,
             },
           },

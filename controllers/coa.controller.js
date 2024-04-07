@@ -58,3 +58,58 @@ exports.getCOA = async (req, res) => {
     return;
   }
 };
+
+exports.deleteCOA = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    await COA.destroy({
+      where: {
+        id_coa: id,
+      },
+    });
+
+    Responder(res, "OK", null, { message: "COA berhasil dihapus!" }, 200);
+    return;
+  } catch (error) {
+    Responder(res, "ERROR", null, null, 400);
+    return;
+  }
+};
+
+exports.updatecreateCOA = async (req, res) => {
+  const { id } = req.params;
+  const { accountname, description, status } = req.body;
+
+  try {
+    const getCOA = await COA.findOne({
+      where: {
+        id_coa: id,
+      },
+    });
+
+    if (getCOA) {
+      await COA.update(
+        { accountname, description, status },
+        {
+          where: {
+            id_coa: id,
+          },
+        }
+      );
+    } else {
+      await COA.create({
+        id_coa: id,
+        accountname: accountname,
+        description: description,
+        status: status,
+      });
+    }
+
+    Responder(res, "OK", null, { message: "COA berhasil disimpan" }, 200);
+    return;
+  } catch (error) {
+    Responder(res, "ERROR", null, null, 400);
+    return;
+  }
+};

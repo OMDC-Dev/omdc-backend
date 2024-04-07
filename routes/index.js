@@ -68,6 +68,7 @@ router.get("/superuser/userlist", superuser.getAllUsers);
 router.get("/superuser/pengajuan", authenticateToken, superuser.get_pengajuan);
 router.get("/superuser/user", authenticateToken, superuser.getUserDetail);
 router.get("/superuser/reimbursement", reimbursement.get_super_reimbursement);
+router.get("/superuser/barang", barang.getAllRequestBarangAdmin);
 
 // finance
 router.get(
@@ -80,11 +81,7 @@ router.post(
   authenticateToken,
   reimbursement.finance_acceptance
 );
-router.delete(
-  "/superuser/delete/:iduser",
-  authenticateToken,
-  superuser.deleteAdmin
-);
+router.delete("/superuser/delete/:iduser", superuser.deleteAdmin);
 router.post(
   "/finance/update-coa/:id",
   authenticateToken,
@@ -120,6 +117,8 @@ router.post(
 
 // COA
 router.get("/coa", coa.getCOA);
+router.delete("/coa/:id", coa.deleteCOA);
+router.post("/coa/:id", coa.updatecreateCOA);
 
 // Suplier
 router.get("/suplier", suplier.getSuplier);

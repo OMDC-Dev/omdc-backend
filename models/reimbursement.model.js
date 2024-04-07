@@ -15,6 +15,9 @@ module.exports = (sequelize, Sequelize) => {
     requester_id: {
       type: Sequelize.STRING,
     },
+    requester_name: {
+      type: Sequelize.STRING,
+    },
     requester: {
       type: Sequelize.JSON,
     },

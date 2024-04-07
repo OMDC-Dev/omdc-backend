@@ -167,7 +167,12 @@ exports.get_pengajuan = async (req, res) => {
             },
           },
           {
-            nominal: {
+            requester_name: {
+              [Op.like]: `%${item}%`,
+            },
+          },
+          {
+            tipePembayaran: {
               [Op.like]: `%${item}%`,
             },
           },
@@ -286,7 +291,12 @@ exports.get_pengajuan_finance = async (req, res) => {
             },
           },
           {
-            nominal: {
+            requester_name: {
+              [Op.like]: `%${item}%`,
+            },
+          },
+          {
+            tipePembayaran: {
               [Op.like]: `%${item}%`,
             },
           },
