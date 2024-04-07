@@ -335,6 +335,47 @@ exports.getAllRequestBarang = async (req, res) => {
   }
 };
 
+exports.getAllRequestBarangAdmin = async (req, res) => {
+  const { page = 1, limit = 25 } = req.query;
+  try {
+    // Menghitung offset berdasarkan halaman dan batasan
+    const offset = (page - 1) * limit;
+
+    const requestList = await PermintaanBarang.findAndCountAll({
+      limit: parseInt(limit),
+      offset: offset,
+      order: [["tgl_trans", "DESC"]],
+    });
+
+    // result count
+    const resultCount = requestList?.count;
+
+    const totalPage = resultCount / limit;
+    const totalPageFormatted =
+      Math.round(totalPage) == 0 ? 1 : Math.ceil(totalPage);
+
+    Responder(
+      res,
+      "OK",
+      null,
+      {
+        rows: requestList.rows,
+        pageInfo: {
+          pageNumber: parseInt(page),
+          pageLimit: parseInt(limit),
+          pageCount: totalPageFormatted,
+          pageSize: resultCount,
+        },
+      },
+      200
+    );
+    return;
+  } catch (error) {
+    Responder(res, "ERROR", null, null, 400);
+    return;
+  }
+};
+
 exports.getDetailPermintaan = async (req, res) => {
   const { id_pb } = req.query;
   try {
