@@ -68,6 +68,10 @@ router.get("/superuser/userlist", superuser.getAllUsers);
 router.get("/superuser/pengajuan", authenticateToken, superuser.get_pengajuan);
 router.get("/superuser/user", authenticateToken, superuser.getUserDetail);
 router.get("/superuser/reimbursement", reimbursement.get_super_reimbursement);
+router.get(
+  "/superuser/reimbursement/report",
+  reimbursement.get_super_reimbursement_report
+);
 router.get("/superuser/barang", barang.getAllRequestBarangAdmin);
 
 // finance
