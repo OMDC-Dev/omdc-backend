@@ -14,6 +14,7 @@ const pengumuman = require("../controllers/pengumuman.controller");
 const dept = require("../controllers/dept.controller");
 const coa = require("../controllers/coa.controller");
 const suplier = require("../controllers/suplier.controller");
+const icon = require("../controllers/icon.controller");
 const { authenticateToken } = require("../utils/jwt");
 
 // routes
@@ -127,5 +128,9 @@ router.post("/coa/:id", coa.updatecreateCOA);
 // Suplier
 router.get("/suplier", suplier.getSuplier);
 router.get("/suplier/:kdsp", suplier.getSuplierDetail);
+
+// Icon
+router.get("/icon", icon.getIcon);
+router.post("/updateIcon", icon.updateIcon);
 
 module.exports = { router };

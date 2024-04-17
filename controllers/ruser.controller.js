@@ -329,6 +329,26 @@ exports.updatePw = async (req, res) => {
     // update password
     const encodedNewPassword = encPassword(newPassword);
 
+    const getAdmin = await Admin.findOne({
+      where: {
+        iduser: tokenData.iduser,
+      },
+    });
+
+    if (getAdmin) {
+      console.log("Update SuperUser PW");
+      // update for admin
+      await Admin.update(
+        { password: encodedNewPassword },
+        {
+          where: {
+            iduser: tokenData.iduser,
+          },
+        }
+      );
+    }
+
+    // update for user
     return await M_User.update(
       { password: encodedNewPassword },
       {
@@ -348,10 +368,12 @@ exports.updatePw = async (req, res) => {
         return;
       })
       .catch((err) => {
+        console.log(err);
         Responder(res, "ERROR", null, null, 400);
         return;
       });
   } catch (error) {
+    console.log(error);
     Responder(res, "ERROR", null, null, 400);
     return;
   }
