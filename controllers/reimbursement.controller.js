@@ -898,3 +898,115 @@ exports.get_super_reimbursement = async (req, res) => {
     return;
   }
 };
+
+exports.get_super_reimbursement_report = async (req, res) => {
+  const {
+    page = 1,
+    limit = 1000,
+    startDate,
+    endDate,
+    cabang,
+    bank,
+  } = req.query;
+
+  try {
+    const startDateObj = moment(startDate, "YYYY-MM-DD", true)
+      .startOf("day")
+      .toDate();
+    const endDateObj = moment(endDate, "YYYY-MM-DD", true)
+      .endOf("day")
+      .toDate();
+
+    console.log(endDate, startDate);
+
+    const whereClause = {
+      createdAt: {
+        [Op.between]: [startDateObj, endDateObj],
+      },
+    };
+
+    if (cabang) {
+      whereClause.kode_cabang = {
+        [Op.startsWith]: cabang,
+      };
+    }
+
+    if (bank) {
+      whereClause.finance_bank = bank;
+    }
+
+    // Menambahkan pengurutan berdasarkan tipePembayaran
+    const orderClause = [
+      ["tipePembayaran", "DESC"], // Mengurutkan dari Urgent ke Regular
+      ["createdAt", "DESC"], // Mengurutkan berdasarkan createdAt secara descending
+    ];
+
+    // Menghitung offset berdasarkan halaman dan batasan
+    const offset = (page - 1) * limit;
+
+    const requested = await Reimbursement.findAndCountAll({
+      where: whereClause,
+      limit: parseInt(limit), // Mengubah batasan menjadi tipe numerik
+      offset: offset, // Menetapkan offset untuk penampilan halaman
+      order: orderClause,
+      attributes: [
+        "id",
+        "no_doc",
+        "jenis_reimbursement",
+        "tanggal_reimbursement",
+        "kode_cabang",
+        "requester_id",
+        "requester_name",
+        "name",
+        "coa",
+        "item",
+        "description",
+        "nominal",
+        "status",
+        "status_finance",
+        "finance_by",
+        "bank_detail",
+        "payment_type",
+        "accepted_date",
+        "accepted_by",
+        "realisasi",
+        "tipePembayaran",
+        "finance_bank",
+        "createdAt",
+      ],
+    });
+
+    // result count
+    const resultCount = requested?.count;
+
+    const totalPage = resultCount / limit;
+    const totalPageFormatted =
+      Math.round(totalPage) == 0 ? 1 : Math.ceil(totalPage);
+
+    if (requested?.rows.length) {
+      Responder(
+        res,
+        "OK",
+        null,
+        {
+          rows: requested.rows,
+          pageInfo: {
+            pageNumber: parseInt(page),
+            pageLimit: parseInt(limit),
+            pageCount: totalPageFormatted,
+            pageSize: resultCount,
+          },
+        },
+        200
+      );
+      return;
+    } else {
+      Responder(res, "OK", null, [], 200);
+      return;
+    }
+  } catch (error) {
+    console.log(error);
+    Responder(res, "ERROR", null, null, 500);
+    return;
+  }
+};
