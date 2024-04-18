@@ -796,10 +796,42 @@ exports.cancel_upload = async (req, res) => {
 };
 
 exports.get_super_reimbursement = async (req, res) => {
-  const { page = 1, limit = 10, monthyear, status, cari } = req.query;
+  const {
+    page = 1,
+    limit = 10,
+    monthyear,
+    cari,
+    startDate,
+    endDate,
+    cabang,
+    bank,
+  } = req.query;
 
   try {
     const whereClause = {};
+
+    const startDateObj = moment(startDate, "YYYY-MM-DD", true)
+      .startOf("day")
+      .toDate();
+    const endDateObj = moment(endDate, "YYYY-MM-DD", true)
+      .endOf("day")
+      .toDate();
+
+    if (startDate && endDate) {
+      whereClause.createdAt = {
+        [Op.between]: [startDateObj, endDateObj],
+      };
+    }
+
+    if (cabang) {
+      whereClause.kode_cabang = {
+        [Op.startsWith]: cabang,
+      };
+    }
+
+    if (bank) {
+      whereClause.finance_bank = bank;
+    }
 
     if (monthyear) {
       const my = monthyear.split("-");
