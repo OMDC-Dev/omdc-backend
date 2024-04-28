@@ -220,8 +220,8 @@ exports.reimbursement = async (req, res) => {
     if (adminFCM) {
       console.log("ADMIN HAS FCM");
       sendSingleMessage(adminFCM, {
-        title: "Ada pengajuan reimbursement baru!",
-        body: `${userDetail?.nm_user} telah mengajukan permintaan reimbursement!`,
+        title: "Ada pengajuan request of payment baru!",
+        body: `${userDetail?.nm_user} telah mengajukan permintaan request of payment!`,
       });
     }
   } catch (error) {
@@ -426,8 +426,8 @@ exports.acceptance = async (req, res) => {
 
       if (fowarderToken) {
         sendSingleMessage(fowarderToken, {
-          title: "Ada pengajuan reimbursement baru!",
-          body: `Ada pengajuan reimbursement yang diteruskan dan menunggu persetujuan anda.`,
+          title: "Ada pengajuan request of payment baru!",
+          body: `Ada pengajuan request of payment yang diteruskan dan menunggu persetujuan anda.`,
         });
       }
     }
@@ -440,7 +440,7 @@ exports.acceptance = async (req, res) => {
       if (user_fcm) {
         sendSingleMessage(user_fcm, {
           title: "Pengajuan anda telah setujui!",
-          body: `Pengajuan reimbursement anda telah disetujui oleh ${
+          body: `Pengajuan request of payment anda telah disetujui oleh ${
             userData?.nm_user || "penyetuju"
           } dan menunggu diproses.`,
         });
@@ -465,8 +465,8 @@ exports.acceptance = async (req, res) => {
 
         if (tokens.length) {
           sendMulticastMessage(tokens, {
-            title: "Ada pengajuan reimbursement baru!",
-            body: "Ada pengajuan reimbursement yang telah disetujui oleh penyetuju dan menunggu untuk diproses!",
+            title: "Ada pengajuan request of payment baru!",
+            body: "Ada pengajuan request of payment yang telah disetujui oleh penyetuju dan menunggu untuk diproses!",
           });
         }
       }
@@ -478,7 +478,7 @@ exports.acceptance = async (req, res) => {
       if (user_fcm) {
         sendSingleMessage(user_fcm, {
           title: "Pengajuan anda telah tolak!",
-          body: `Pengajuan reimbursement anda telah ditolak oleh ${
+          body: `Pengajuan request of payment anda telah ditolak oleh ${
             userData?.nm_user || "penyetuju"
           }.`,
         });
@@ -652,10 +652,10 @@ exports.finance_acceptance = async (req, res) => {
       .then(async () => {
         if (userFcm) {
           sendSingleMessage(userFcm, {
-            title: "Pengajuan reimbursement anda telah di proses finance!",
+            title: "Pengajuan request of payment anda telah di proses finance!",
             body: IS_CONFIRM_ONLY
               ? `Laporan anda telah diterima oleh ${financeData.nm_user} - tim finance`
-              : `Pengajuan reimbursement anda telah diproses oleh ${financeData?.nm_user} sebesar ${nominal}`,
+              : `Pengajuan request of payment anda telah diproses oleh ${financeData?.nm_user} sebesar ${nominal}`,
           });
         }
         return Responder(res, "OK", null, { updated: true }, 200);
