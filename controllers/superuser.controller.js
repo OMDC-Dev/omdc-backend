@@ -187,6 +187,9 @@ exports.get_pengajuan = async (req, res) => {
       whereClause[Op.and] = searchConditions;
     }
 
+    // Cek apakah sudah direview oleh reviewer
+    whereClause.reviewStatus = "ACCEPTED";
+
     // Menambahkan pengurutan berdasarkan tipePembayaran
     const orderClause = [
       ["tipePembayaran", "DESC"], // Mengurutkan dari Urgent ke Regular

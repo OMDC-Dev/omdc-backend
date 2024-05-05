@@ -6,6 +6,22 @@ const ICON = db.icon;
 exports.updateIcon = async (req, res) => {
   const { icon, iconMobile } = req.body;
   try {
+    const getIcon = await ICON.findOne({
+      where: {
+        id: 1,
+      },
+    });
+
+    if (!getIcon) {
+      await ICON.create({
+        icon: icon,
+        iconMobile: iconMobile,
+      });
+
+      Responder(res, "OK", null, "Berhasil mengubah icon", 200);
+      return;
+    }
+
     await ICON.update(
       {
         icon: icon,

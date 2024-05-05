@@ -6,7 +6,7 @@ const Responder = (res, type, msg, data, code) => {
       error: msg ? msg : "Something went wrong, please try again!",
     });
   } else {
-    res.send({
+    res.json({
       status: 200,
       data: data,
       error: [],

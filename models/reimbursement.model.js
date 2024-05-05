@@ -100,6 +100,12 @@ module.exports = (sequelize, Sequelize) => {
     finance_bank: {
       type: Sequelize.STRING,
     },
+    reviewStatus: {
+      type: Sequelize.STRING,
+    },
+    review_note: {
+      type: Sequelize.STRING,
+    },
   });
 
   return Reimbursement;
