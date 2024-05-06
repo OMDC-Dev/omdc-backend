@@ -395,6 +395,7 @@ exports.acceptance = async (req, res) => {
     const acceptance_by = r_datas["accepted_by"];
     const parentId = r_datas["parentId"];
     const childId = r_datas["childId"];
+    const extNote = r_datas.note;
 
     if (status == "FOWARDED") {
       ubahDataById(acceptance_by, userId, "iduser", "status", "APPROVED");
@@ -512,13 +513,17 @@ exports.acceptance = async (req, res) => {
 
     const status_finance = status == "APPROVED" ? "WAITING" : "IDLE";
 
+    const formNote = `${extNote && extNote.length > 0 ? extNote + "||" : ""}${
+      userData.nm_user
+    }:${note}`;
+
     return await Reimbursement.update(
       {
         accepted_date: current_date,
         accepted_by: acceptance_by,
         status: status_change,
         nominal: "Rp. " + nominal,
-        note: note || "",
+        note: formNote,
         status_finance: status_finance,
         coa: coa,
       },
@@ -583,9 +588,49 @@ exports.get_status = async (req, res) => {
       ],
     });
 
+    // handle note
+    let adminNote = [];
+
+    if (data.note && data.note.length > 0) {
+      const split = data.note.split("||");
+      for (let i = 0; i < split.length; i++) {
+        const spl = split[i].split(":");
+        const base = {
+          title: `Catatan ${spl[0]}`,
+          msg: spl[1] || "-",
+        };
+        adminNote.push(base);
+      }
+    }
+
+    const reviewerNote = data.review_note
+      ? [
+          {
+            title: "Reviewer Note",
+            msg: data.review_note,
+          },
+        ]
+      : [];
+
+    const financeNote = data.finance_note
+      ? [
+          {
+            title: "Finance Note",
+            msg: data.finance_note,
+          },
+        ]
+      : [];
+
+    const allNote = [...adminNote, ...reviewerNote, ...financeNote];
+
     const dataStatus = await data["dataValues"];
 
-    Responder(res, "OK", null, dataStatus, 200);
+    const response = {
+      ...dataStatus,
+      notes: allNote,
+    };
+
+    Responder(res, "OK", null, response, 200);
     return;
   } catch (error) {
     console.log(error);
@@ -623,6 +668,40 @@ exports.finance_acceptance = async (req, res) => {
     const IS_CONFIRM_ONLY = !bankDetail?.accountname?.length;
 
     const userFcm = userRequested.fcmToken;
+
+    if (status == "REJECTED") {
+      return await Reimbursement.update(
+        {
+          status_finance: status,
+          finance_by: financeData,
+          finance_note: note || "-",
+          status: "REJECTED",
+          childId: "",
+          childDoc: "",
+          realisasi: "",
+        },
+        {
+          where: {
+            id: id,
+          },
+        }
+      )
+        .then(async () => {
+          if (userFcm) {
+            sendSingleMessage(userFcm, {
+              title:
+                "Pengajuan request of payment anda telah di proses finance!",
+              body: IS_CONFIRM_ONLY
+                ? `Laporan anda telah diterima oleh ${financeData.nm_user} - tim finance`
+                : `Pengajuan request of payment anda telah ditolak oleh ${financeData?.nm_user}`,
+            });
+          }
+          return Responder(res, "OK", null, { updated: true }, 200);
+        })
+        .catch((err) => {
+          return Responder(res, "ERROR", null, { updated: true }, 400);
+        });
+    }
 
     // Handle if has parent id ( Cash Advance Report )
     if (parentId) {
