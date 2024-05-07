@@ -928,7 +928,9 @@ exports.get_super_reimbursement = async (req, res) => {
     }
 
     if (coa) {
-      whereClause.coa = coa;
+      whereClause.coa = {
+        [Op.startsWith]: coa,
+      };
     }
 
     if (bank) {
