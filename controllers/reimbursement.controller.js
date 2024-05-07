@@ -1132,10 +1132,12 @@ exports.get_review_reimbursement = async (req, res) => {
   const { page = 1, limit = 10, monthyear, cari, type } = req.query;
 
   try {
-    const whereClause = {
-      reviewStatus:
-        type === "WAITING" ? "IDLE" : { [Op.or]: ["APPROVED", "REJECTED"] },
-    };
+    const whereClause = {};
+
+    if (type) {
+      whereClause.reviewStatus =
+        type === "WAITING" ? "IDLE" : { [Op.or]: ["APPROVED", "REJECTED"] };
+    }
 
     if (monthyear) {
       const my = monthyear.split("-");
