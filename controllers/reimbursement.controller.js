@@ -670,15 +670,27 @@ exports.finance_acceptance = async (req, res) => {
     const userFcm = userRequested.fcmToken;
 
     if (status == "REJECTED") {
+      if (parentId) {
+        await Reimbursement.update(
+          {
+            childId: "",
+            childDoc: "",
+            realisasi: "",
+          },
+          {
+            where: {
+              id: parentId,
+            },
+          }
+        );
+      }
+
       return await Reimbursement.update(
         {
           status_finance: status,
           finance_by: financeData,
           finance_note: note || "-",
           status: "REJECTED",
-          childId: "",
-          childDoc: "",
-          realisasi: "",
         },
         {
           where: {
@@ -890,6 +902,7 @@ exports.get_super_reimbursement = async (req, res) => {
     endDate,
     cabang,
     bank,
+    coa,
   } = req.query;
 
   try {
@@ -912,6 +925,10 @@ exports.get_super_reimbursement = async (req, res) => {
       whereClause.kode_cabang = {
         [Op.startsWith]: cabang,
       };
+    }
+
+    if (coa) {
+      whereClause.coa = coa;
     }
 
     if (bank) {
@@ -1241,14 +1258,37 @@ exports.acceptReviewReimbursementData = async (req, res) => {
   const { id } = req.params;
   const { coa, adminId, note, status } = req.body;
 
-  console.log(adminId);
-
   try {
+    const getReimburse = await Reimbursement.findOne({
+      where: {
+        id: id,
+      },
+    });
+
+    const getReimburseData = await getReimburse["dataValues"];
+    const parentId = getReimburseData.parentId;
+
     if (status == "REJECTED") {
+      if (parentId) {
+        await Reimbursement.update(
+          {
+            childId: "",
+            childDoc: "",
+            realisasi: "",
+          },
+          {
+            where: {
+              id: parentId,
+            },
+          }
+        );
+      }
+
       await Reimbursement.update(
         {
           reviewStatus: status,
           review_note: note,
+          status: "REJECTED",
         },
         {
           where: {
