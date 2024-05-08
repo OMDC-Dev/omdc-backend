@@ -1,39 +1,24 @@
-const db = require("../db");
-const Dev = db.devs;
-const Op = db.Sequelize.Op;
+const db_user = require("../db/user.db");
+const { sendMulticastMessage } = require("../utils/firebase");
+const User = db_user.ruser;
 
 // Create and Save
-exports.create = (req, res) => {
-  // Validate request
-  if (!req.body.title) {
-    res.status(400).send({
-      message: "Content can not be empty!",
-    });
-    return;
-  }
-
-  // Create a Tutorial
-  const dev = {
-    title: req.body.title,
-    description: req.body.description,
-    published: req.body.published ? req.body.published : false,
-  };
-
-  // Save Tutorial in the database
-  Dev.create(dev)
-    .then((data) => {
-      res.send(data);
-    })
-    .catch((err) => {
-      res.status(500).send({
-        message:
-          err.message || "Some error occurred while creating the Tutorial.",
-      });
-    });
-};
+exports.create = (req, res) => {};
 
 exports.getDevs = async (req, res) => {
-  const dev = await Dev.findAll();
+  let reviewerTokens = [];
 
-  console.log("All users:", JSON.stringify(dev, null, 2));
+  const reviewer = await User.findAll({
+    where: {
+      type: "REVIEWER",
+    },
+    attributes: ["fcmToken"],
+  });
+
+  reviewer.every((res) => reviewerTokens.push(res.fcmToken));
+
+  sendMulticastMessage(reviewerTokens, {
+    title: "Ada pengajuan request of payment baru!",
+    body: `telah mengajukan request of payment dan perlu direview!`,
+  });
 };
