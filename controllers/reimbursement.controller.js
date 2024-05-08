@@ -779,11 +779,51 @@ exports.get_detail = async (req, res) => {
       condition.attributes = ["nominal", "realisasi"];
     }
 
-    const getReim = await Reimbursement.findOne(condition);
+    const data = await Reimbursement.findOne(condition);
 
-    const reimData = await getReim["dataValues"];
+    // handle note
+    let adminNote = [];
 
-    Responder(res, "OK", null, reimData, 200);
+    if (data.note && data.note.length > 0) {
+      const split = data.note.split("||");
+      for (let i = 0; i < split.length; i++) {
+        const spl = split[i].split(":");
+        const base = {
+          title: `Catatan ${spl[0]}`,
+          msg: spl[1] || "-",
+        };
+        adminNote.push(base);
+      }
+    }
+
+    const reviewerNote = data.review_note
+      ? [
+          {
+            title: "Reviewer Note",
+            msg: data.review_note,
+          },
+        ]
+      : [];
+
+    const financeNote = data.finance_note
+      ? [
+          {
+            title: "Finance Note",
+            msg: data.finance_note,
+          },
+        ]
+      : [];
+
+    const allNote = [...adminNote, ...reviewerNote, ...financeNote];
+
+    const reimData = await data["dataValues"];
+
+    const response = {
+      ...reimData,
+      notes: allNote,
+    };
+
+    Responder(res, "OK", null, response, 200);
     return;
   } catch (error) {
     Responder(res, "ERROR", null, null, 400);
