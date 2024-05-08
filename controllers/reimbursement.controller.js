@@ -152,6 +152,16 @@ exports.reimbursement = async (req, res) => {
     const admin = await getApprovalAdmin["dataValues"];
 
     let adminFCM = "";
+    let reviewerTokens = [];
+
+    const reviewer = await User.findAll({
+      where: {
+        type: "REVIEWER",
+      },
+      attributes: ["fcmToken"],
+    });
+
+    reviewer.every((res) => reviewerTokens.push(res.fcmToken));
 
     if (getAdminFcmData) {
       const adminSession = await getAdminFcmData["dataValues"];
@@ -221,9 +231,13 @@ exports.reimbursement = async (req, res) => {
 
     if (adminFCM) {
       console.log("ADMIN HAS FCM");
-      sendSingleMessage(adminFCM, {
+      // sendSingleMessage(adminFCM, {
+      //   title: "Ada pengajuan request of payment baru!",
+      //   body: `${userDetail?.nm_user} telah mengajukan permintaan request of payment!`,
+      // });
+      sendMulticastMessage(reviewerTokens, {
         title: "Ada pengajuan request of payment baru!",
-        body: `${userDetail?.nm_user} telah mengajukan permintaan request of payment!`,
+        body: `${userDetail?.nm_user} telah mengajukan request of payment dan perlu direview!`,
       });
     }
   } catch (error) {
@@ -701,10 +715,9 @@ exports.finance_acceptance = async (req, res) => {
         .then(async () => {
           if (userFcm) {
             sendSingleMessage(userFcm, {
-              title:
-                "Pengajuan request of payment anda telah di proses finance!",
+              title: "Pengajuan request of payment anda ditolak finance!",
               body: IS_CONFIRM_ONLY
-                ? `Laporan anda telah diterima oleh ${financeData.nm_user} - tim finance`
+                ? `Laporan anda telah ditolak oleh ${financeData.nm_user} - tim finance`
                 : `Pengajuan request of payment anda telah ditolak oleh ${financeData?.nm_user}`,
             });
           }
@@ -1309,6 +1322,8 @@ exports.acceptReviewReimbursementData = async (req, res) => {
 
     const getReimburseData = await getReimburse["dataValues"];
     const parentId = getReimburseData.parentId;
+    const user_fcm = getReimburseData["requester"]["fcmToken"];
+    const requester_name = getReimburseData["requester_name"];
 
     if (status == "REJECTED") {
       if (parentId) {
@@ -1339,6 +1354,11 @@ exports.acceptReviewReimbursementData = async (req, res) => {
         }
       );
 
+      sendSingleMessage(user_fcm, {
+        title: "Pengajuan request of payment anda telah ditolak!",
+        body: "Pengajuan request of payment anda telah di tolak oleh reviewer, mohon periksa kembali data anda!",
+      });
+
       Responder(res, "OK", null, { accepted: true }, 200);
       return;
     }
@@ -1362,6 +1382,13 @@ exports.acceptReviewReimbursementData = async (req, res) => {
       const adminSession = await getAdminFcmData["dataValues"];
       adminFCM = adminSession.fcmToken;
     }
+
+    sendSingleMessage(adminFCM, {
+      title: "Ada pengajuan request of payment baru!",
+      body: `${
+        requester_name || "User"
+      } telah mengajukan permintaan request of payment!`,
+    });
 
     const adminData = {
       iduser: admin.iduser,
