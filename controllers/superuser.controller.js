@@ -187,6 +187,9 @@ exports.get_pengajuan = async (req, res) => {
       whereClause[Op.and] = searchConditions;
     }
 
+    // Cek apakah sudah direview oleh reviewer
+    whereClause.reviewStatus = "APPROVED";
+
     // Menambahkan pengurutan berdasarkan tipePembayaran
     const orderClause = [
       ["tipePembayaran", "DESC"], // Mengurutkan dari Urgent ke Regular
@@ -254,22 +257,41 @@ exports.get_pengajuan_finance = async (req, res) => {
     // Menambahkan filter berdasarkan status jika diberikan
     if (status === "00") {
       //whereClause.status_finance = { [Op.ne]: "DONE" }; // Memilih status selain 'APPROVED'
-      whereClause[Op.or] = [
+      whereClause[Op.and] = [
+        { status: "APPROVED" },
         {
-          status_finance: { [Op.ne]: "DONE" },
-        },
-        {
-          status_finance: "DONE",
-          jenis_reimbursement: "Cash Advance",
-          status_finance_child: "IDLE",
+          [Op.or]: [
+            {
+              status_finance: "WAITING",
+            },
+            {
+              [Op.and]: [
+                { status_finance: "DONE" },
+                { jenis_reimbursement: "Cash Advance" },
+                { status_finance_child: "IDLE" },
+              ],
+            },
+            // Tambahkan kondisi lain jika diperlukan di sini
+          ],
         },
       ];
     } else if (status === "01") {
-      whereClause.status_finance = "DONE";
-      whereClause.status_finance_child = "DONE";
+      whereClause[Op.or] = [
+        {
+          [Op.and]: [
+            { status_finance: "DONE" },
+            { status_finance_child: "DONE" },
+          ],
+        },
+        {
+          [Op.and]: [{ status: "REJECTED" }, { status_finance: "REJECTED" }],
+        },
+      ];
+      // whereClause.status_finance = "DONE";
+      // whereClause.status_finance_child = "DONE";
     }
 
-    whereClause.status = "APPROVED";
+    //whereClause.status = "APPROVED";
 
     if (cari && cari.length > 0) {
       const searchSplit = cari.split(" ");

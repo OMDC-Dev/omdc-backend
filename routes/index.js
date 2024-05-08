@@ -30,30 +30,18 @@ router.delete("/dept/:id", dept.delete);
 
 // User
 router.post("/user/login", ruser.login);
-router.post("/user/complete", ruser.completeUser);
+router.post("/user/complete/:id", ruser.completeUser);
 router.post("/user/update-password", ruser.updatePw);
 router.post("/user/logout", ruser.logout);
 
 // Reimbursement
 router.get("/cabang", reimbursement.cabang);
 router.post("/reimbursement", reimbursement.reimbursement);
-router.get(
-  "/reimbursement",
-
-  reimbursement.get_reimbursement
-);
-router.post(
-  "/reimbursement/status/:id",
-
-  reimbursement.acceptance
-);
+router.get("/reimbursement", reimbursement.get_reimbursement);
+router.post("/reimbursement/status/:id", reimbursement.acceptance);
 router.get("/reimbursement/status/:id", reimbursement.get_status);
 router.get("/reimbursement/:id", reimbursement.get_detail);
-router.delete(
-  "/reimbursement/:id",
-
-  reimbursement.cancel_upload
-);
+router.delete("/reimbursement/:id", reimbursement.cancel_upload);
 
 // Bank
 router.get("/bank", bank.getBank);
@@ -75,23 +63,18 @@ router.get(
 );
 router.get("/superuser/barang", barang.getAllRequestBarangAdmin);
 
+// Reviewer
+router.get("/reviewer/reimbursement", reimbursement.get_review_reimbursement);
+router.post(
+  "/reviewer/accept/:id",
+  reimbursement.acceptReviewReimbursementData
+);
+
 // finance
-router.get(
-  "/finance/pengajuan",
-
-  superuser.get_pengajuan_finance
-);
-router.post(
-  "/finance/acceptance/:id",
-
-  reimbursement.finance_acceptance
-);
+router.get("/finance/pengajuan", superuser.get_pengajuan_finance);
+router.post("/finance/acceptance/:id", reimbursement.finance_acceptance);
 router.delete("/superuser/delete/:iduser", superuser.deleteAdmin);
-router.post(
-  "/finance/update-coa/:id",
-
-  reimbursement.finance_update_coa
-);
+router.post("/finance/update-coa/:id", reimbursement.finance_update_coa);
 
 // Barang
 router.get("/anakcabang", barang.getAllAnakCabang);

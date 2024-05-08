@@ -140,7 +140,7 @@ exports.login = async (req, res) => {
     // save user session
     R_User.create({
       ...user,
-      userToken: token,
+      userToken: "",
       isProfileComplete: false,
       nomorwa: "",
       departemen: "",
@@ -161,11 +161,10 @@ exports.login = async (req, res) => {
 };
 
 exports.completeUser = async (req, res) => {
-  const { authorization } = req.headers;
   const { nomorwa, departemen } = req.body;
+  const { id } = req.params;
 
-  const userData = decodeToken(getToken(authorization));
-  const userId = userData?.iduser;
+  const userId = id;
 
   if (!nomorwa || !departemen) {
     return Responder(
@@ -181,13 +180,33 @@ exports.completeUser = async (req, res) => {
     { where: { iduser: userId } }
   )
     .then(() => {
-      Responder(res, "OK", null, { message: "Sukses melengkapi data!" }, 200);
-      return;
+      getUserToken();
     })
     .catch((err) => {
       Responder(res, "ERROR", null, null, 400);
       return;
     });
+
+  async function getUserToken() {
+    // get user
+    const getUser = await M_User.findOne({ where: { iduser: userId } });
+    const user = await getUser["dataValues"];
+
+    // generate token
+    const token = generateAccessToken(user);
+    delete user["password"];
+    delete user["flag"];
+
+    await R_User.update(
+      { userToken: token },
+      {
+        where: { iduser: userId },
+      }
+    );
+
+    Responder(res, "OK", null, { ...user, userToken: token }, 200);
+    return;
+  }
 };
 
 // login as admin
@@ -277,7 +296,7 @@ async function loginAsAdmin(req, res, admin, fcmToken) {
       tgl_trans: getFormattedDate(new Date(), "-"),
       user_add: "System",
       status: "Aktif",
-      userToken: token,
+      userToken: "",
       isProfileComplete: false,
       nomorwa: "",
       departemen: "",

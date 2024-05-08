@@ -198,6 +198,8 @@ exports.reimbursement = async (req, res) => {
       childDoc: "",
       payment_type: payment_type,
       tipePembayaran: tipePembayaran,
+      reviewStatus: "IDLE",
+      review_note: "",
     })
       .then(async (data) => {
         if (parentId) {
@@ -393,6 +395,7 @@ exports.acceptance = async (req, res) => {
     const acceptance_by = r_datas["accepted_by"];
     const parentId = r_datas["parentId"];
     const childId = r_datas["childId"];
+    const extNote = r_datas.note;
 
     if (status == "FOWARDED") {
       ubahDataById(acceptance_by, userId, "iduser", "status", "APPROVED");
@@ -510,13 +513,17 @@ exports.acceptance = async (req, res) => {
 
     const status_finance = status == "APPROVED" ? "WAITING" : "IDLE";
 
+    const formNote = `${extNote && extNote.length > 0 ? extNote + "||" : ""}${
+      userData.nm_user
+    }:${note}`;
+
     return await Reimbursement.update(
       {
         accepted_date: current_date,
         accepted_by: acceptance_by,
         status: status_change,
         nominal: "Rp. " + nominal,
-        note: note || "",
+        note: formNote,
         status_finance: status_finance,
         coa: coa,
       },
@@ -574,12 +581,56 @@ exports.get_status = async (req, res) => {
         "finance_by",
         "realisasi",
         "coa",
+        "reviewStatus",
+        "review_note",
+        "finance_note",
+        "note",
       ],
     });
 
+    // handle note
+    let adminNote = [];
+
+    if (data.note && data.note.length > 0) {
+      const split = data.note.split("||");
+      for (let i = 0; i < split.length; i++) {
+        const spl = split[i].split(":");
+        const base = {
+          title: `Catatan ${spl[0]}`,
+          msg: spl[1] || "-",
+        };
+        adminNote.push(base);
+      }
+    }
+
+    const reviewerNote = data.review_note
+      ? [
+          {
+            title: "Reviewer Note",
+            msg: data.review_note,
+          },
+        ]
+      : [];
+
+    const financeNote = data.finance_note
+      ? [
+          {
+            title: "Finance Note",
+            msg: data.finance_note,
+          },
+        ]
+      : [];
+
+    const allNote = [...adminNote, ...reviewerNote, ...financeNote];
+
     const dataStatus = await data["dataValues"];
 
-    Responder(res, "OK", null, dataStatus, 200);
+    const response = {
+      ...dataStatus,
+      notes: allNote,
+    };
+
+    Responder(res, "OK", null, response, 200);
     return;
   } catch (error) {
     console.log(error);
@@ -617,6 +668,52 @@ exports.finance_acceptance = async (req, res) => {
     const IS_CONFIRM_ONLY = !bankDetail?.accountname?.length;
 
     const userFcm = userRequested.fcmToken;
+
+    if (status == "REJECTED") {
+      if (parentId) {
+        await Reimbursement.update(
+          {
+            childId: "",
+            childDoc: "",
+            realisasi: "",
+          },
+          {
+            where: {
+              id: parentId,
+            },
+          }
+        );
+      }
+
+      return await Reimbursement.update(
+        {
+          status_finance: status,
+          finance_by: financeData,
+          finance_note: note || "-",
+          status: "REJECTED",
+        },
+        {
+          where: {
+            id: id,
+          },
+        }
+      )
+        .then(async () => {
+          if (userFcm) {
+            sendSingleMessage(userFcm, {
+              title:
+                "Pengajuan request of payment anda telah di proses finance!",
+              body: IS_CONFIRM_ONLY
+                ? `Laporan anda telah diterima oleh ${financeData.nm_user} - tim finance`
+                : `Pengajuan request of payment anda telah ditolak oleh ${financeData?.nm_user}`,
+            });
+          }
+          return Responder(res, "OK", null, { updated: true }, 200);
+        })
+        .catch((err) => {
+          return Responder(res, "ERROR", null, { updated: true }, 400);
+        });
+    }
 
     // Handle if has parent id ( Cash Advance Report )
     if (parentId) {
@@ -682,11 +779,51 @@ exports.get_detail = async (req, res) => {
       condition.attributes = ["nominal", "realisasi"];
     }
 
-    const getReim = await Reimbursement.findOne(condition);
+    const data = await Reimbursement.findOne(condition);
 
-    const reimData = await getReim["dataValues"];
+    // handle note
+    let adminNote = [];
 
-    Responder(res, "OK", null, reimData, 200);
+    if (data.note && data.note.length > 0) {
+      const split = data.note.split("||");
+      for (let i = 0; i < split.length; i++) {
+        const spl = split[i].split(":");
+        const base = {
+          title: `Catatan ${spl[0]}`,
+          msg: spl[1] || "-",
+        };
+        adminNote.push(base);
+      }
+    }
+
+    const reviewerNote = data.review_note
+      ? [
+          {
+            title: "Reviewer Note",
+            msg: data.review_note,
+          },
+        ]
+      : [];
+
+    const financeNote = data.finance_note
+      ? [
+          {
+            title: "Finance Note",
+            msg: data.finance_note,
+          },
+        ]
+      : [];
+
+    const allNote = [...adminNote, ...reviewerNote, ...financeNote];
+
+    const reimData = await data["dataValues"];
+
+    const response = {
+      ...reimData,
+      notes: allNote,
+    };
+
+    Responder(res, "OK", null, response, 200);
     return;
   } catch (error) {
     Responder(res, "ERROR", null, null, 400);
@@ -805,6 +942,7 @@ exports.get_super_reimbursement = async (req, res) => {
     endDate,
     cabang,
     bank,
+    coa,
   } = req.query;
 
   try {
@@ -826,6 +964,12 @@ exports.get_super_reimbursement = async (req, res) => {
     if (cabang) {
       whereClause.kode_cabang = {
         [Op.startsWith]: cabang,
+      };
+    }
+
+    if (coa) {
+      whereClause.coa = {
+        [Op.startsWith]: coa,
       };
     }
 
@@ -1036,6 +1180,211 @@ exports.get_super_reimbursement_report = async (req, res) => {
       Responder(res, "OK", null, [], 200);
       return;
     }
+  } catch (error) {
+    console.log(error);
+    Responder(res, "ERROR", null, null, 500);
+    return;
+  }
+};
+
+exports.get_review_reimbursement = async (req, res) => {
+  const { page = 1, limit = 10, monthyear, cari, type } = req.query;
+
+  try {
+    const whereClause = {};
+
+    if (type) {
+      whereClause.reviewStatus =
+        type === "WAITING" ? "IDLE" : { [Op.or]: ["APPROVED", "REJECTED"] };
+    }
+
+    if (monthyear) {
+      const my = monthyear.split("-");
+      const month = my[0];
+      const year = my[1];
+
+      const startDate = new Date(year, month - 1, 1);
+      const endDate = new Date(year, month, 0, 23, 59, 59, 999);
+      whereClause.createdAt = {
+        [Op.between]: [startDate, endDate],
+      };
+    }
+
+    if (cari && cari.length > 0) {
+      const searchSplit = cari.split(" ");
+      const searchConditions = searchSplit.map((item) => ({
+        [Op.or]: [
+          {
+            jenis_reimbursement: {
+              [Op.like]: `%${item}%`,
+            },
+          },
+          {
+            kode_cabang: {
+              [Op.like]: `%${item}%`,
+            },
+          },
+          {
+            coa: {
+              [Op.like]: `%${item}%`,
+            },
+          },
+          {
+            nominal: {
+              [Op.like]: `%${item}%`,
+            },
+          },
+          {
+            no_doc: {
+              [Op.like]: `%${item}%`,
+            },
+          },
+        ],
+      }));
+
+      whereClause[Op.and] = searchConditions;
+    }
+
+    // Menambahkan pengurutan berdasarkan tipePembayaran
+    const orderClause = [
+      ["tipePembayaran", "DESC"], // Mengurutkan dari Urgent ke Regular
+      ["createdAt", "DESC"], // Mengurutkan berdasarkan createdAt secara descending
+    ];
+
+    // Menghitung offset berdasarkan halaman dan batasan
+    const offset = (page - 1) * limit;
+
+    const requested = await Reimbursement.findAndCountAll({
+      where: whereClause,
+      limit: parseInt(limit), // Mengubah batasan menjadi tipe numerik
+      offset: offset, // Menetapkan offset untuk penampilan halaman
+      order: orderClause,
+    });
+
+    // result count
+    const resultCount = requested?.count;
+
+    const totalPage = resultCount / limit;
+    const totalPageFormatted =
+      Math.round(totalPage) == 0 ? 1 : Math.ceil(totalPage);
+
+    if (requested?.rows.length) {
+      Responder(
+        res,
+        "OK",
+        null,
+        {
+          rows: requested.rows,
+          pageInfo: {
+            pageNumber: parseInt(page),
+            pageLimit: parseInt(limit),
+            pageCount: totalPageFormatted,
+            pageSize: resultCount,
+          },
+        },
+        200
+      );
+      return;
+    } else {
+      Responder(res, "OK", null, [], 200);
+      return;
+    }
+  } catch (error) {
+    console.log(error);
+    Responder(res, "ERROR", null, null, 500);
+    return;
+  }
+};
+
+exports.acceptReviewReimbursementData = async (req, res) => {
+  const { id } = req.params;
+  const { coa, adminId, note, status } = req.body;
+
+  try {
+    const getReimburse = await Reimbursement.findOne({
+      where: {
+        id: id,
+      },
+    });
+
+    const getReimburseData = await getReimburse["dataValues"];
+    const parentId = getReimburseData.parentId;
+
+    if (status == "REJECTED") {
+      if (parentId) {
+        await Reimbursement.update(
+          {
+            childId: "",
+            childDoc: "",
+            realisasi: "",
+          },
+          {
+            where: {
+              id: parentId,
+            },
+          }
+        );
+      }
+
+      await Reimbursement.update(
+        {
+          reviewStatus: status,
+          review_note: note,
+          status: "REJECTED",
+        },
+        {
+          where: {
+            id: id,
+          },
+        }
+      );
+
+      Responder(res, "OK", null, { accepted: true }, 200);
+      return;
+    }
+    // =============== ADMIN SECTION
+
+    // Get Approval Admin List
+    const getApprovalAdmin = await Admin.findOne({
+      where: { iduser: adminId },
+    });
+
+    // Get Admin fcm list
+    const getAdminFcmData = await User.findOne({
+      where: { iduser: adminId },
+    });
+
+    const admin = await getApprovalAdmin["dataValues"];
+
+    let adminFCM = "";
+
+    if (getAdminFcmData) {
+      const adminSession = await getAdminFcmData["dataValues"];
+      adminFCM = adminSession.fcmToken;
+    }
+
+    const adminData = {
+      iduser: admin.iduser,
+      nm_user: admin.nm_user,
+      status: "WAITING",
+    };
+
+    await Reimbursement.update(
+      {
+        coa: coa,
+        accepted_by: [adminData],
+        review_note: note,
+        reviewStatus: status,
+      },
+      {
+        where: {
+          id: id,
+        },
+      }
+    );
+
+    Responder(res, "OK", null, { accepted: true }, 200);
+    return;
   } catch (error) {
     console.log(error);
     Responder(res, "ERROR", null, null, 500);

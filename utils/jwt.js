@@ -29,6 +29,8 @@ function decodeToken(jwt) {
 }
 
 function getToken(token = "") {
+  if (token.length < 1) return token;
+
   const tk = token.split(" ")[1];
   return tk;
 }
