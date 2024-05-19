@@ -188,7 +188,7 @@ exports.get_pengajuan = async (req, res) => {
     }
 
     // Cek apakah sudah direview oleh reviewer
-    whereClause.reviewStatus = "APPROVED";
+    //whereClause.reviewStatus = "APPROVED";
 
     // Menambahkan pengurutan berdasarkan tipePembayaran
     const orderClause = [
@@ -258,7 +258,9 @@ exports.get_pengajuan_finance = async (req, res) => {
     if (status === "00") {
       //whereClause.status_finance = { [Op.ne]: "DONE" }; // Memilih status selain 'APPROVED'
       whereClause[Op.and] = [
-        { status: "APPROVED" },
+        {
+          [Op.and]: [{ status: "APPROVED" }, { reviewStatus: "APPROVED" }],
+        },
         {
           [Op.or]: [
             {

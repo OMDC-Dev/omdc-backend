@@ -106,6 +106,12 @@ module.exports = (sequelize, Sequelize) => {
     review_note: {
       type: Sequelize.STRING,
     },
+    makerStatus: {
+      type: Sequelize.STRING,
+    },
+    maker_note: {
+      type: Sequelize.STRING,
+    },
   });
 
   return Reimbursement;
