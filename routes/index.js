@@ -15,6 +15,7 @@ const dept = require("../controllers/dept.controller");
 const coa = require("../controllers/coa.controller");
 const suplier = require("../controllers/suplier.controller");
 const icon = require("../controllers/icon.controller");
+const maker = require("../controllers/maker.controller");
 const { authenticateToken } = require("../utils/jwt");
 
 // routes
@@ -39,6 +40,7 @@ router.get("/cabang", reimbursement.cabang);
 router.post("/reimbursement", reimbursement.reimbursement);
 router.get("/reimbursement", reimbursement.get_reimbursement);
 router.post("/reimbursement/status/:id", reimbursement.acceptance);
+router.post("/reimbursement/extra/:id", reimbursement.acceptExtraReimbursement);
 router.get("/reimbursement/status/:id", reimbursement.get_status);
 router.get("/reimbursement/:id", reimbursement.get_detail);
 router.delete("/reimbursement/:id", reimbursement.cancel_upload);
@@ -69,6 +71,10 @@ router.post(
   "/reviewer/accept/:id",
   reimbursement.acceptReviewReimbursementData
 );
+
+// Maker
+router.get("/maker/reimbursement", maker.get_reimbursement);
+router.post("/maker/accept/:id", maker.acceptMakerReimbursement);
 
 // finance
 router.get("/finance/pengajuan", superuser.get_pengajuan_finance);

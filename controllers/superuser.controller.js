@@ -47,7 +47,7 @@ exports.createUser = async (req, res) => {
 
 exports.getUser = async (req, res) => {
   const { authorization } = req.headers;
-  const { page = 1, limit = 25, get, exceptId } = req.query;
+  const { page = 1, limit = 25, get, exceptId, rid } = req.query;
   try {
     const userData = decodeToken(getToken(authorization));
 
@@ -62,8 +62,27 @@ exports.getUser = async (req, res) => {
       if (exceptId) {
         whereClause.iduser = { [Op.not]: [userData?.iduser, exceptId] };
       } else {
-        // Jika tidak ada exceptId, maka exclude hanya userData?.iduser
-        whereClause.iduser = { [Op.ne]: userData?.iduser };
+        if (rid) {
+          console.log("HAS RID");
+          const r_data = await Reimbursement.findOne({
+            where: {
+              id: rid,
+            },
+          });
+
+          const getR_Data = await r_data;
+          let acceptanceList = getR_Data["accepted_by"].map(
+            (item) => item.iduser
+          );
+          acceptanceList.push(userData.iduser);
+
+          console.log("AC LIST", acceptanceList);
+
+          whereClause.iduser = { [Op.notIn]: acceptanceList };
+        } else {
+          // Jika tidak ada exceptId, maka exclude hanya userData?.iduser
+          whereClause.iduser = { [Op.ne]: userData?.iduser };
+        }
       }
     }
 
@@ -141,10 +160,24 @@ exports.get_pengajuan = async (req, res) => {
     // Menambahkan filter berdasarkan status jika diberikan
     if (status) {
       if (status === "01") {
-        whereClause.status = { [Op.ne]: "WAITING" }; // Memilih status selain 'APPROVED'
+        // whereClause.status = { [Op.ne]: "WAITING" }; // Memilih status selain 'APPROVED'
+        whereClause[Op.or] = [
+          { status: { [Op.ne]: "WAITING" } },
+          { extraAcceptance: { iduser: userData.iduser, status: "APPROVED" } },
+        ];
       } else if (status === "00") {
-        whereClause.status = "WAITING";
+        whereClause[Op.or] = [
+          { status: "WAITING" },
+          { extraAcceptance: { iduser: userData.iduser, status: "WAITING" } },
+        ];
       }
+    } else {
+      console.log("NO STTAUS");
+      whereClause[Op.or] = [
+        { extraAcceptance: { iduser: userData.iduser } },
+        { status: "WAITING" },
+        { status: { [Op.ne]: "WAITING" } },
+      ];
     }
 
     if (cari && cari.length > 0) {
@@ -188,7 +221,7 @@ exports.get_pengajuan = async (req, res) => {
     }
 
     // Cek apakah sudah direview oleh reviewer
-    whereClause.reviewStatus = "APPROVED";
+    //whereClause.reviewStatus = "APPROVED";
 
     // Menambahkan pengurutan berdasarkan tipePembayaran
     const orderClause = [
@@ -258,7 +291,9 @@ exports.get_pengajuan_finance = async (req, res) => {
     if (status === "00") {
       //whereClause.status_finance = { [Op.ne]: "DONE" }; // Memilih status selain 'APPROVED'
       whereClause[Op.and] = [
-        { status: "APPROVED" },
+        {
+          [Op.and]: [{ status: "APPROVED" }, { reviewStatus: "APPROVED" }],
+        },
         {
           [Op.or]: [
             {
