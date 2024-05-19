@@ -112,6 +112,15 @@ module.exports = (sequelize, Sequelize) => {
     maker_note: {
       type: Sequelize.STRING,
     },
+    needExtraAcceptance: {
+      type: Sequelize.BOOLEAN,
+    },
+    extraAcceptance: {
+      type: Sequelize.JSON,
+    },
+    extraAcceptanceStatus: {
+      type: Sequelize.STRING,
+    },
   });
 
   return Reimbursement;

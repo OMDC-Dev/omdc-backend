@@ -202,6 +202,9 @@ exports.reimbursement = async (req, res) => {
       review_note: "",
       makerStatus: "IDLE",
       maker_note: "",
+      needExtraAcceptance: false,
+      extraAcceptance: {},
+      extraAcceptanceStatus: "WAITING",
     })
       .then(async (data) => {
         if (parentId) {
@@ -268,6 +271,7 @@ exports.get_reimbursement = async (req, res) => {
           status: "APPROVED",
           status_finance: "DONE",
           status_finance_child: "DONE",
+          extraAcceptanceStatus: "APPROVED",
         },
         {
           status: "REJECTED",
@@ -276,6 +280,7 @@ exports.get_reimbursement = async (req, res) => {
     } else if (status === "00") {
       whereClause[Op.or] = [
         { status: "WAITING" },
+        { status_finance: "DONE", extraAcceptanceStatus: "WAITING" },
         {
           status: "APPROVED",
           status_finance: { [Op.ne]: "DONE" },
@@ -584,6 +589,8 @@ exports.get_status = async (req, res) => {
         "finance_bank",
         "maker_note",
         "note",
+        "extraAcceptance",
+        "extraAcceptanceStatus",
       ],
     });
 
@@ -629,11 +636,21 @@ exports.get_status = async (req, res) => {
         ]
       : [];
 
+    const extraNote = data.extraAcceptance.iduser
+      ? [
+          {
+            title: `${data.extraAcceptance.nm_user} Note`,
+            msg: data.extraAcceptance.note,
+          },
+        ]
+      : [];
+
     const allNote = [
       ...adminNote,
       ...reviewerNote,
       ...makerNote,
       ...financeNote,
+      ...extraNote,
     ];
 
     let adminPath = data.accepted_by;
@@ -659,6 +676,13 @@ exports.get_status = async (req, res) => {
       adminPath = adminPath.filter((item) => item.nm_user !== "Finance");
     }
 
+    if (data.status_finance == "DONE" && data.extraAcceptance?.iduser) {
+      adminPath.push({
+        nm_user: data.extraAcceptance.nm_user,
+        status: data.extraAcceptance.status,
+      });
+    }
+
     const dataStatus = await data["dataValues"];
 
     const response = {
@@ -680,7 +704,7 @@ exports.finance_acceptance = async (req, res) => {
   const { id } = req.params;
   const { status } = req.query;
   const { authorization } = req.headers;
-  const { nominal, note, coa, bank } = req.body;
+  const { nominal, note, coa, bank, extra } = req.body;
   try {
     const userData = decodeToken(getToken(authorization));
 
@@ -767,6 +791,23 @@ exports.finance_acceptance = async (req, res) => {
       );
     }
 
+    let extraData = {};
+    if (extra) {
+      const getApprovalAdmin = await Admin.findOne({
+        where: { iduser: extra },
+      });
+
+      const admin = await getApprovalAdmin["dataValues"];
+
+      const adminData = {
+        iduser: admin.iduser,
+        nm_user: admin.nm_user,
+        status: "WAITING",
+      };
+
+      extraData = adminData;
+    }
+
     return await Reimbursement.update(
       {
         status_finance: status,
@@ -775,6 +816,9 @@ exports.finance_acceptance = async (req, res) => {
         finance_note: note || "-",
         coa: coa,
         finance_bank: bank || "-",
+        needExtraAcceptance: extra ? true : false,
+        extraAcceptance: extraData || {},
+        extraAcceptanceStatus: extra ? "WAITING" : "APPROVED",
       },
       {
         where: {
@@ -797,6 +841,7 @@ exports.finance_acceptance = async (req, res) => {
         return Responder(res, "ERROR", null, { updated: true }, 400);
       });
   } catch (error) {
+    console.log("ERR", error);
     return Responder(res, "ERROR", null, null, 400);
   }
 };
@@ -1241,6 +1286,9 @@ exports.get_review_reimbursement = async (req, res) => {
       } else {
         whereClause.reviewStatus = { [Op.or]: ["APPROVED", "REJECTED"] };
       }
+    } else {
+      console.log("NO TYPE");
+      whereClause.status = "APPROVED";
     }
 
     if (monthyear) {
@@ -1412,6 +1460,86 @@ exports.acceptReviewReimbursementData = async (req, res) => {
     );
 
     Responder(res, "OK", null, { accepted: true }, 200);
+    return;
+  } catch (error) {
+    console.log(error);
+    Responder(res, "ERROR", null, null, 500);
+    return;
+  }
+};
+
+exports.acceptExtraReimbursement = async (req, res) => {
+  const { id } = req.params;
+  const { note, status } = req.body;
+
+  try {
+    const getReimburse = await Reimbursement.findOne({
+      where: {
+        id: id,
+      },
+    });
+
+    const getReimburseData = await getReimburse["dataValues"];
+    const parentId = getReimburseData.parentId;
+    const user_fcm = getReimburseData["requester"]["fcmToken"];
+    const extras = getReimburseData["extraAcceptance"];
+
+    // update extra status
+    extras.status = status;
+    extras.note = note;
+
+    if (parentId) {
+      await Reimbursement.update(
+        {
+          childId: "",
+          childDoc: "",
+          realisasi: "",
+        },
+        {
+          where: {
+            id: parentId,
+          },
+        }
+      );
+    }
+
+    await Reimbursement.update(
+      {
+        extraAcceptance: extras,
+        extraAcceptanceStatus: status,
+        status: status,
+      },
+      {
+        where: {
+          id: id,
+        },
+      }
+    );
+
+    if (status == "REJECTED") {
+      sendSingleMessage(user_fcm, {
+        title: "Pengajuan request of payment anda telah ditolak!",
+        body: "Pengajuan request of payment anda telah di tolak oleh maker, mohon periksa kembali data anda!",
+      });
+    } else {
+      sendSingleMessage(user_fcm, {
+        title: "Pengajuan request of payment anda telah selesai!",
+        body: "Pengajuan request of payment anda telah disetujui dan selesai di proses.",
+      });
+    }
+
+    Responder(
+      res,
+      "OK",
+      null,
+      {
+        accepted: true,
+        message: `Pengajuan telah ${
+          status == "REJECTED" ? "ditolak." : "disetujui."
+        }`,
+      },
+      200
+    );
     return;
   } catch (error) {
     console.log(error);
