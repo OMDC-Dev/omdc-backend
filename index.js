@@ -66,7 +66,7 @@ app.use(router);
 
 // simple route
 app.get("/", (req, res) => {
-  res.json({ message: "Reimbursement Apps Service v.0.9.2 - rev.1" });
+  res.json({ message: "Reimbursement Apps Service v.0.9.2 - rev.2" });
 });
 
 // set port, listen for requests
