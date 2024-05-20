@@ -326,7 +326,7 @@ exports.get_pengajuan_finance = async (req, res) => {
       // whereClause.status_finance_child = "DONE";
     }
 
-    //whereClause.status = "APPROVED";
+    whereClause.makerStatus = "APPROVED";
 
     if (cari && cari.length > 0) {
       const searchSplit = cari.split(" ");
