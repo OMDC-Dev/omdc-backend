@@ -204,7 +204,7 @@ exports.reimbursement = async (req, res) => {
       maker_note: "",
       needExtraAcceptance: false,
       extraAcceptance: {},
-      extraAcceptanceStatus: "WAITING",
+      extraAcceptanceStatus: "IDLE",
     })
       .then(async (data) => {
         if (parentId) {
@@ -589,6 +589,7 @@ exports.get_status = async (req, res) => {
         "finance_bank",
         "maker_note",
         "note",
+        "needExtraAcceptance",
         "extraAcceptance",
         "extraAcceptanceStatus",
       ],
@@ -636,7 +637,7 @@ exports.get_status = async (req, res) => {
         ]
       : [];
 
-    const extraNote = data.extraAcceptance.iduser
+    const extraNote = data.extraAcceptance.note
       ? [
           {
             title: `${data.extraAcceptance.nm_user} Note`,
@@ -676,7 +677,7 @@ exports.get_status = async (req, res) => {
       adminPath = adminPath.filter((item) => item.nm_user !== "Finance");
     }
 
-    if (data.status_finance == "DONE" && data.extraAcceptance?.iduser) {
+    if (data.needExtraAcceptance && data.extraAcceptance?.iduser) {
       adminPath.push({
         nm_user: data.extraAcceptance.nm_user,
         status: data.extraAcceptance.status,
@@ -791,13 +792,21 @@ exports.finance_acceptance = async (req, res) => {
       );
     }
 
-    let extraData = {};
+    // IF NEED EXTRA APPROVAL
     if (extra) {
       const getApprovalAdmin = await Admin.findOne({
         where: { iduser: extra },
       });
 
       const admin = await getApprovalAdmin["dataValues"];
+      const adminFCM = admin["fcmToken"];
+
+      if (adminFCM) {
+        sendSingleMessage(adminFCM, {
+          title: "Ada pengajuan request of payment baru.",
+          body: "Ada pengajuan request of payment baru yang diteruskan oleh finance dan menunggu persetujuan.",
+        });
+      }
 
       const adminData = {
         iduser: admin.iduser,
@@ -806,6 +815,33 @@ exports.finance_acceptance = async (req, res) => {
       };
 
       extraData = adminData;
+
+      await Reimbursement.update(
+        {
+          finance_note: note || "-",
+          coa: coa,
+          finance_bank: bank || "-",
+          needExtraAcceptance: true,
+          extraAcceptance: adminData,
+          extraAcceptanceStatus: "WAITING",
+        },
+        {
+          where: {
+            id: id,
+          },
+        }
+      );
+
+      return Responder(
+        res,
+        "OK",
+        null,
+        {
+          updated: true,
+          message: "Pengajuan telah diteruskan untuk disetujui lebih lanjut!",
+        },
+        200
+      );
     }
 
     return await Reimbursement.update(
@@ -816,9 +852,6 @@ exports.finance_acceptance = async (req, res) => {
         finance_note: note || "-",
         coa: coa,
         finance_bank: bank || "-",
-        needExtraAcceptance: extra ? true : false,
-        extraAcceptance: extraData || {},
-        extraAcceptanceStatus: extra ? "WAITING" : "APPROVED",
       },
       {
         where: {
@@ -1446,6 +1479,31 @@ exports.acceptReviewReimbursementData = async (req, res) => {
     }
     // =============== ADMIN SECTION
 
+    // === HANDLE NOTIF TO FINANCE
+    const getMakerSession = await User.findAll({
+      where: {
+        type: "MAKER",
+      },
+      attributes: ["fcmToken"],
+    });
+
+    if (getMakerSession) {
+      let tokens = [];
+
+      for (let i = 0; i < getMakerSession.length; i++) {
+        if (getMakerSession[i].fcmToken) {
+          tokens.push(getMakerSession[i].fcmToken);
+        }
+      }
+
+      if (tokens.length) {
+        sendMulticastMessage(tokens, {
+          title: "Ada pengajuan request of payment baru!",
+          body: "Ada pengajuan request of payment yang telah disetujui oleh reviewer dan menunggu untuk diproses!",
+        });
+      }
+    }
+
     await Reimbursement.update(
       {
         coa: coa,
@@ -1516,16 +1574,31 @@ exports.acceptExtraReimbursement = async (req, res) => {
       }
     );
 
-    if (status == "REJECTED") {
-      sendSingleMessage(user_fcm, {
-        title: "Pengajuan request of payment anda telah ditolak!",
-        body: "Pengajuan request of payment anda telah di tolak oleh maker, mohon periksa kembali data anda!",
-      });
-    } else {
-      sendSingleMessage(user_fcm, {
-        title: "Pengajuan request of payment anda telah selesai!",
-        body: "Pengajuan request of payment anda telah disetujui dan selesai di proses.",
-      });
+    // === HANDLE NOTIF TO FINANCE
+    const getFinanceSession = await User.findAll({
+      where: {
+        type: "FINANCE",
+      },
+      attributes: ["fcmToken"],
+    });
+
+    if (getFinanceSession) {
+      let tokens = [];
+
+      for (let i = 0; i < getFinanceSession.length; i++) {
+        if (getFinanceSession[i].fcmToken) {
+          tokens.push(getFinanceSession[i].fcmToken);
+        }
+      }
+
+      if (tokens.length) {
+        sendMulticastMessage(tokens, {
+          title: "Update persetujuan request of payment!",
+          body: `Pengajuan request of payment yang diteruskan telah di ${
+            status == "REJECTED" ? "diutolak" : "disetujui"
+          }, dan menunggu untuk diselesaikan.`,
+        });
+      }
     }
 
     Responder(
