@@ -145,6 +145,41 @@ exports.get_pengajuan = async (req, res) => {
       ],
     };
 
+    // Menambahkan filter berdasarkan status jika diberikan
+    if (status) {
+      if (status === "01") {
+        whereClause.status = { [Op.ne]: "WAITING" }; // Memilih status selain 'APPROVED'
+        // whereClause[Op.or] = [
+        //   { status: { [Op.ne]: "WAITING" } },
+        //   { extraAcceptance: { iduser: userData.iduser, status: "APPROVED" } },
+        // ];
+        whereClause[Op.or].push(
+          { needExtraAcceptance: true },
+          {
+            extraAcceptance: {
+              iduser: userData.iduser,
+              status: { [Op.or]: ["APPROVED", "REJECTED"] },
+            },
+          }
+        );
+      } else if (status === "00") {
+        whereClause.status = "WAITING";
+        whereClause[Op.or].push(
+          { needExtraAcceptance: true },
+          { extraAcceptance: { iduser: userData.iduser, status: "WAITING" } }
+        );
+        // whereClause[Op.or] = [
+        //   { status: "WAITING" },
+        //   { extraAcceptance: { iduser: userData.iduser, status: "WAITING" } },
+        // ];
+      }
+    } else {
+      whereClause[Op.or].push(
+        { needExtraAcceptance: true },
+        { "extraAcceptance.iduser": userData.iduser }
+      );
+    }
+
     if (monthyear) {
       const my = monthyear.split("-");
       const month = my[0];
@@ -155,29 +190,6 @@ exports.get_pengajuan = async (req, res) => {
       whereClause.createdAt = {
         [Op.between]: [startDate, endDate],
       };
-    }
-
-    // Menambahkan filter berdasarkan status jika diberikan
-    if (status) {
-      if (status === "01") {
-        // whereClause.status = { [Op.ne]: "WAITING" }; // Memilih status selain 'APPROVED'
-        whereClause[Op.or] = [
-          { status: { [Op.ne]: "WAITING" } },
-          { extraAcceptance: { iduser: userData.iduser, status: "APPROVED" } },
-        ];
-      } else if (status === "00") {
-        whereClause[Op.or] = [
-          { status: "WAITING" },
-          { extraAcceptance: { iduser: userData.iduser, status: "WAITING" } },
-        ];
-      }
-    } else {
-      console.log("NO STTAUS");
-      whereClause[Op.or] = [
-        { extraAcceptance: { iduser: userData.iduser } },
-        { status: "WAITING" },
-        { status: { [Op.ne]: "WAITING" } },
-      ];
     }
 
     if (cari && cari.length > 0) {
