@@ -16,6 +16,7 @@ const coa = require("../controllers/coa.controller");
 const suplier = require("../controllers/suplier.controller");
 const icon = require("../controllers/icon.controller");
 const maker = require("../controllers/maker.controller");
+const adminpb = require("../controllers/adminpb.controller");
 const { authenticateToken } = require("../utils/jwt");
 
 // routes
@@ -121,5 +122,10 @@ router.get("/suplier/:kdsp", suplier.getSuplierDetail);
 // Icon
 router.get("/icon", icon.getIcon);
 router.post("/updateIcon", icon.updateIcon);
+
+// Admin PB
+router.post("/adminpb/:iduser", adminpb.add_admin);
+router.delete("/adminpb/:iduser", adminpb.delete_admin);
+router.get("/adminpb", adminpb.get_admin);
 
 module.exports = { router };

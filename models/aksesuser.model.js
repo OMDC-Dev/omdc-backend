@@ -21,7 +21,7 @@ module.exports = (sequelize, Sequelize) => {
       },
       flag: {
         type: Sequelize.STRING(10),
-        allowNull: false,
+        allowNull: true,
       },
     },
     {

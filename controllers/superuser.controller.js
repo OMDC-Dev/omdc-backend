@@ -99,12 +99,6 @@ exports.getUser = async (req, res) => {
     const totalPageFormatted =
       Math.round(totalPage) == 0 ? 1 : Math.ceil(totalPage);
 
-    // const filtered = get
-    //   ? users?.rows
-    //   : users?.rows?.filter((item) => {
-    //       return item.iduser !== userData?.iduser;
-    //     });
-
     Responder(
       res,
       "OK",
