@@ -53,5 +53,6 @@ db_user.dept = require("../models/dept.model")(sequelize, Sequelize);
 db_user.coa = require("../models/coa.model")(sequelize, Sequelize);
 db_user.suplier = require("../models/suplier.model")(sequelize, Sequelize);
 db_user.icon = require("../models/icon.model")(sequelize, Sequelize);
+db_user.adminpb = require("../models/adminpb.model")(sequelize, Sequelize);
 
 module.exports = db_user;
