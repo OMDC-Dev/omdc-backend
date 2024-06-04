@@ -94,6 +94,22 @@ module.exports = (sequelize, Sequelize) => {
         type: Sequelize.STRING,
         allowNull: false,
       },
+      approval_adminid: {
+        type: Sequelize.STRING,
+        allowNull: true,
+      },
+      approval_admin_name: {
+        type: Sequelize.STRING,
+        allowNull: true,
+      },
+      approval_admin_date: {
+        type: Sequelize.STRING,
+        allowNull: true,
+      },
+      approval_admin_status: {
+        type: Sequelize.STRING,
+        allowNull: true,
+      },
     },
     {
       tableName: "m_permintaanbarang",

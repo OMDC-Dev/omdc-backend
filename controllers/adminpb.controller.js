@@ -72,6 +72,7 @@ exports.get_admin = async (req, res) => {
     );
     return;
   } catch (error) {
+    console.log(error);
     Responder(res, "ERROR", null, null, 400);
     return;
   }

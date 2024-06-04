@@ -13,6 +13,7 @@ const Barang = user_db.barang;
 const IndukCabang = user_db.cabang;
 const TrxPermintaanBarang = user_db.trx_permintaan_barang;
 const PermintaanBarang = user_db.permintaan_barang;
+const ADMINPB = user_db.adminpb;
 
 exports.getAllAnakCabang = async (req, res) => {
   const { kd_induk } = req.query;
@@ -147,10 +148,11 @@ exports.createTrxPermintaan = async (req, res) => {
    * iduser
    * nm_user
    */
-  const { kodeIndukCabang, kodeAnakCabang, barang } = req.body;
+  const { kodeIndukCabang, kodeAnakCabang, barang, adminId } = req.body;
   const { authorization } = req.headers;
 
   try {
+    console.log("ADMIN ID", adminId);
     // ===== Get Induk Cabang Data
     const getIndukCabang = await IndukCabang.findOne({
       where: {
@@ -185,6 +187,21 @@ exports.createTrxPermintaan = async (req, res) => {
       indukCabang.kd_induk
     }${PB_YY}${PB_MM}${PB_DD}${generateRandomNumber(1000, 9999)}`;
 
+    // == Handle if need admin
+    let adminName = "";
+    if (adminId) {
+      const getAdmin = await ADMINPB.findOne({
+        where: {
+          iduser: adminId,
+        },
+      });
+
+      const adminData = await getAdmin["dataValues"];
+      adminName = adminData.nm_user;
+    }
+
+    // == end
+
     // Create Permintaan
     await PermintaanBarang.create({
       id_pb: ID_PB,
@@ -210,6 +227,10 @@ exports.createTrxPermintaan = async (req, res) => {
       flag_1: "",
       flag_2: "",
       flag_3: "",
+      approval_adminid: adminId || "",
+      approval_admin_name: adminName,
+      approval_admin_date: "",
+      approval_admin_status: adminId ? "WAITING" : "",
     });
 
     // Lopping Barang
