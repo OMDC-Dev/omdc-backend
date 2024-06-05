@@ -326,17 +326,65 @@ exports.createTrxPermintaan = async (req, res) => {
 
 exports.getAllRequestBarang = async (req, res) => {
   const { authorization } = req.headers;
-  const { page = 1, limit = 25 } = req.query;
+  const { page = 1, limit = 50, cari, isAdmin, status } = req.query;
+
   try {
     const userData = decodeToken(getToken(authorization));
 
     // Menghitung offset berdasarkan halaman dan batasan
     const offset = (page - 1) * limit;
 
+    const whereClause = {};
+
+    if (status) {
+      if (status === "WAITING") {
+        if (isAdmin) {
+          whereClause.approval_admin_status = "WAITING";
+        } else {
+          whereClause.status_approve = "";
+        }
+      } else if (status === "DONE") {
+        if (isAdmin) {
+          whereClause.approval_admin_status = {
+            [Op.ne]: "WAITING",
+          };
+        } else {
+          whereClause.status_approve = {
+            [Op.ne]: "",
+          };
+        }
+      }
+    }
+
+    if (isAdmin) {
+      whereClause.approval_adminid = userData.iduser;
+    } else {
+      whereClause.iduser = userData.iduser;
+    }
+
+    if (cari && cari.length > 0) {
+      const searchSplit = cari.split(" ");
+      const searchConditions = searchSplit.map((item) => ({
+        [Op.or]: [
+          {
+            id_pb: {
+              [Op.like]: `%${item}%`,
+            },
+            nm_induk: {
+              [Op.like]: `%${item}%`,
+            },
+            kd_induk: {
+              [Op.like]: `%${item}%`,
+            },
+          },
+        ],
+      }));
+
+      whereClause[Op.and] = searchConditions;
+    }
+
     const requestList = await PermintaanBarang.findAndCountAll({
-      where: {
-        iduser: userData.iduser,
-      },
+      where: whereClause,
       limit: parseInt(limit),
       offset: offset,
       order: [["tgl_trans", "DESC"]],
