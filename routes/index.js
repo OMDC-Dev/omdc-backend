@@ -90,6 +90,7 @@ router.get("/barang", barang.getBarang);
 router.post("/barang/create", barang.createTrxPermintaan);
 router.get("/barang/requested", barang.getAllRequestBarang);
 router.get("/barang/requested/detail", barang.getDetailPermintaan);
+router.post("/barang/admin-approval/:idpb/:mode", barang.admin_approval);
 
 // Pengumuman
 router.post("/pengumuman", pengumuman.createPengumuman);

@@ -2,7 +2,7 @@ const { Op } = require("sequelize");
 const user_db = require("../db/user.db");
 const { Responder } = require("../utils/responder");
 const { decodeToken, getToken } = require("../utils/jwt");
-const { generateRandomNumber } = require("../utils/utils");
+const { generateRandomNumber, getFormattedDate } = require("../utils/utils");
 
 const moment = require("moment");
 const { uploadImagesCloudinary } = require("../utils/cloudinary");
@@ -223,7 +223,7 @@ exports.createTrxPermintaan = async (req, res) => {
       id_approve: "",
       nm_approve: "",
       tgl_approve: "",
-      status_pb: "",
+      status_pb: adminId ? "Menunggu Disetujui" : "",
       flag: "",
       flag_1: "",
       flag_2: "",
@@ -489,6 +489,44 @@ exports.getDetailPermintaan = async (req, res) => {
     });
 
     Responder(res, "OK", null, getPermintaan, 200);
+    return;
+  } catch (error) {
+    Responder(res, "ERROR", null, null, 400);
+    return;
+  }
+};
+
+exports.admin_approval = async (req, res) => {
+  const { idpb, mode } = req.params;
+  const { note } = req.body;
+  try {
+    await PermintaanBarang.update(
+      {
+        approval_admin_status: mode == "ACC" ? "APPROVED" : "REJECTED",
+        status_pb: mode == "ACC" ? "Disetujui" : "Ditolak",
+        approval_admin_date: getFormattedDate(new Date(), "-"),
+        keterangan: note || "",
+      },
+      {
+        where: {
+          id_pb: idpb,
+        },
+      }
+    );
+
+    const getPB = await PermintaanBarang.findOne({
+      where: {
+        id_pb: idpb,
+      },
+      attributes: [
+        "approval_admin_status",
+        "approval_admin_date",
+        "keterangan",
+      ],
+    });
+
+    const getPBData = await getPB["dataValues"];
+    Responder(res, "OK", null, getPBData, 200);
     return;
   } catch (error) {
     Responder(res, "ERROR", null, null, 400);
