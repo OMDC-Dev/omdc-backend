@@ -5,6 +5,7 @@ const { decodeToken, getToken } = require("../utils/jwt");
 const { generateRandomNumber } = require("../utils/utils");
 
 const moment = require("moment");
+const { uploadImagesCloudinary } = require("../utils/cloudinary");
 require("moment/locale/id");
 moment.locale("id");
 
@@ -244,7 +245,7 @@ exports.createTrxPermintaan = async (req, res) => {
 
       const barangData = await getBarang["dataValues"];
 
-      const { stock, request, keterangan } = barang[i].requestData;
+      const { stock, request, keterangan, attachment } = barang[i].requestData;
 
       const ID_TRANS = `${anakCabang.kd_cabang}${ID_PB}${generateRandomNumber(
         100000,
@@ -252,6 +253,19 @@ exports.createTrxPermintaan = async (req, res) => {
       )}`;
 
       const jumlahSatuan = request * barangData.qty_satuan;
+
+      // [Start] -- handle image upload
+      let imageUrl = "";
+
+      if (attachment?.length > 0) {
+        const uploadAttachment = await uploadImagesCloudinary(attachment);
+
+        if (uploadAttachment.url) {
+          imageUrl = uploadAttachment.url;
+        } else {
+          imageUrl = "";
+        }
+      }
 
       await TrxPermintaanBarang.create({
         id_trans: ID_TRANS,
@@ -291,6 +305,7 @@ exports.createTrxPermintaan = async (req, res) => {
         status_pb: "",
         flag: "",
         flag_1: "",
+        attachment: imageUrl || "",
       });
     }
 
@@ -421,6 +436,7 @@ exports.getDetailPermintaan = async (req, res) => {
         "keterangan",
         "status_approve",
         "tgl_approve",
+        "attachment",
       ],
     });
 
