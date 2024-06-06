@@ -248,7 +248,7 @@ exports.reimbursement = async (req, res) => {
 
 exports.get_reimbursement = async (req, res) => {
   const { authorization } = req.headers;
-  const { page = 1, limit = 10, monthyear, status, cari } = req.query;
+  const { page = 1, limit = 10, monthyear, status, cari, type } = req.query;
 
   try {
     const userData = decodeToken(getToken(authorization));
@@ -265,6 +265,15 @@ exports.get_reimbursement = async (req, res) => {
       whereClause.createdAt = {
         [Op.between]: [startDate, endDate],
       };
+    }
+
+    // Tipe Pembayaran
+    if (type) {
+      if (type == "CASH") {
+        whereClause.payment_type = "CASH";
+      } else if (type == "TRANSFER") {
+        whereClause.payment_type = "TRANSFER";
+      }
     }
 
     // Menambahkan filter berdasarkan status jika diberikan
@@ -858,6 +867,7 @@ exports.finance_acceptance = async (req, res) => {
         finance_note: note || "-",
         coa: coa,
         finance_bank: bank || "-",
+        extraAcceptanceStatus: status,
       },
       {
         where: {
