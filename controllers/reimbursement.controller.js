@@ -14,6 +14,7 @@ const {
   sendSingleMessage,
   sendMulticastMessage,
 } = require("../utils/firebase");
+const { uploadImagesCloudinary } = require("../utils/cloudinary");
 
 const M_Cabang = db_user.cabang;
 const Reimbursement = db_user.reimbursement;
@@ -166,6 +167,9 @@ exports.reimbursement = async (req, res) => {
 
     // ============ POST DATA Section
 
+    // Upload Attchment
+    const uploadAttachment = await uploadImagesCloudinary(attachment);
+
     await Reimbursement.create({
       no_doc: doc_no,
       jenis_reimbursement: getType() || "-",
@@ -176,7 +180,7 @@ exports.reimbursement = async (req, res) => {
       requester: userDetail || "-",
       description: description || "-",
       status: "WAITING",
-      attachment: attachment || "-",
+      attachment: uploadAttachment.url || "-",
       bank_detail: bank_detail || "-",
       note: null,
       finance_note: null,
@@ -470,10 +474,12 @@ exports.acceptance = async (req, res) => {
       }
 
       // === Handle notif to reviewer
-      sendMulticastMessage(reviewerTokens, {
-        title: "Ada pengajuan request of payment baru!",
-        body: `Ada pengajuan request of payment baru yang perlu direview!`,
-      });
+      if (reviewerTokens.length > 0) {
+        sendMulticastMessage(reviewerTokens, {
+          title: "Ada pengajuan request of payment baru!",
+          body: `Ada pengajuan request of payment baru yang perlu direview!`,
+        });
+      }
     }
 
     if (status == "REJECTED") {
