@@ -533,3 +533,20 @@ exports.admin_approval = async (req, res) => {
     return;
   }
 };
+
+exports.cance_pengajuan = async (req, res) => {
+  const { idpb } = req.params;
+  try {
+    await PermintaanBarang.destroy({
+      where: {
+        id_pb: idpb,
+      },
+    });
+
+    Responder(res, "OK", null, { success: true }, 200);
+    return;
+  } catch (error) {
+    Responder(res, "ERROR", null, null, 400);
+    return;
+  }
+};
