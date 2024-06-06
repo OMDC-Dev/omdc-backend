@@ -35,6 +35,7 @@ router.post("/user/login", ruser.login);
 router.post("/user/complete/:id", ruser.completeUser);
 router.post("/user/update-password", ruser.updatePw);
 router.post("/user/logout", ruser.logout);
+router.get("/user/kodeakses/:iduser", ruser.get_kodeakses_by_id);
 
 // Reimbursement
 router.get("/cabang", reimbursement.cabang);
