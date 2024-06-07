@@ -21,10 +21,26 @@ const User = db_user.ruser;
 const Admin = db_user.superuser;
 
 exports.get_reimbursement = async (req, res) => {
-  const { page = 1, limit = 10, monthyear, cari, type } = req.query;
+  const {
+    page = 1,
+    limit = 10,
+    monthyear,
+    cari,
+    type,
+    typePembayaran,
+  } = req.query;
 
   try {
     const whereClause = {};
+
+    // Tipe Pembayaran
+    if (typePembayaran) {
+      if (typePembayaran == "CASH") {
+        whereClause.payment_type = "CASH";
+      } else if (typePembayaran == "TRANSFER") {
+        whereClause.payment_type = "TRANSFER";
+      }
+    }
 
     if (type) {
       whereClause.makerStatus =
