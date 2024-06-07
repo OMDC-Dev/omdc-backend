@@ -363,24 +363,13 @@ exports.getAllRequestBarang = async (req, res) => {
     }
 
     if (cari && cari.length > 0) {
-      const searchSplit = cari.split(" ");
-      const searchConditions = searchSplit.map((item) => ({
-        [Op.or]: [
-          {
-            id_pb: {
-              [Op.like]: `%${item}%`,
-            },
-            nm_induk: {
-              [Op.like]: `%${item}%`,
-            },
-            kd_induk: {
-              [Op.like]: `%${item}%`,
-            },
-          },
-        ],
-      }));
-
-      whereClause[Op.and] = searchConditions;
+      whereClause[Op.or] = [
+        { id_pb: { [Op.like]: `%${cari}%` } },
+        { nm_cabang: { [Op.like]: `%${cari}%` } },
+        { kd_cabang: { [Op.like]: `%${cari}%` } },
+        { nm_induk: { [Op.like]: `%${cari}%` } },
+        { kd_induk: { [Op.like]: `%${cari}%` } },
+      ];
     }
 
     const requestList = await PermintaanBarang.findAndCountAll({

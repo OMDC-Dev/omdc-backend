@@ -1,4 +1,6 @@
+const { Op } = require("sequelize");
 const db = require("../db/user.db");
+const { decodeToken, getToken } = require("../utils/jwt");
 const { Responder } = require("../utils/responder");
 const ADMINPB = db.adminpb;
 const MUser = db.muser;
@@ -39,11 +41,24 @@ exports.add_admin = async (req, res) => {
 };
 
 exports.get_admin = async (req, res) => {
-  const { page = 1, limit = 25 } = req.query;
+  const { page = 1, limit = 25, mobile } = req.query;
+  const { authorization } = req.headers;
   try {
     const offset = (page - 1) * limit;
 
+    // ====== User
+    const userData = decodeToken(getToken(authorization));
+
+    const whereClause = {};
+
+    if (mobile) {
+      whereClause.iduser = {
+        [Op.ne]: userData.iduser,
+      };
+    }
+
     const users = await ADMINPB.findAndCountAll({
+      where: whereClause,
       limit: parseInt(limit),
       offset: offset,
     });
