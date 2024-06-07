@@ -15,6 +15,7 @@ const {
   sendMulticastMessage,
 } = require("../utils/firebase");
 const { uploadImagesCloudinary } = require("../utils/cloudinary");
+const { uploadToDrive } = require("../utils/uploadToDrive");
 
 const M_Cabang = db_user.cabang;
 const Reimbursement = db_user.reimbursement;
@@ -168,7 +169,19 @@ exports.reimbursement = async (req, res) => {
     // ============ POST DATA Section
 
     // Upload Attchment
-    const uploadAttachment = await uploadImagesCloudinary(attachment);
+    let uploadAttachment;
+
+    console.log("FILE", file);
+
+    if (file.type !== "application/pdf") {
+      console.log("IMAGE FILE");
+      const upload = await uploadImagesCloudinary(attachment);
+      uploadAttachment = upload.url;
+    } else {
+      console.log("PDF File");
+      const upload = await uploadToDrive(attachment, file.name);
+      uploadAttachment = upload;
+    }
 
     await Reimbursement.create({
       no_doc: doc_no,
@@ -180,7 +193,7 @@ exports.reimbursement = async (req, res) => {
       requester: userDetail || "-",
       description: description || "-",
       status: "WAITING",
-      attachment: uploadAttachment.url || "-",
+      attachment: uploadAttachment || "-",
       bank_detail: bank_detail || "-",
       note: null,
       finance_note: null,
@@ -1279,6 +1292,7 @@ exports.get_super_reimbursement_report = async (req, res) => {
         "tipePembayaran",
         "finance_bank",
         "createdAt",
+        "attachment",
       ],
     });
 
