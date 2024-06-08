@@ -223,7 +223,7 @@ exports.createTrxPermintaan = async (req, res) => {
       id_approve: "",
       nm_approve: "",
       tgl_approve: "",
-      status_pb: adminId ? "Menunggu Disetujui" : "",
+      status_pb: "Menunggu Disetujui",
       flag: "",
       flag_1: "",
       flag_2: "",
@@ -302,10 +302,14 @@ exports.createTrxPermintaan = async (req, res) => {
         id_approve: "",
         nm_approve: "",
         tgl_approve: "",
-        status_pb: "",
+        status_pb: "Menunggu Disetujui",
         flag: "",
         flag_1: "",
         attachment: imageUrl || "",
+        approval_adminid: adminId || "",
+        approval_admin_name: adminName,
+        approval_admin_date: "",
+        approval_admin_status: adminId ? "WAITING" : "",
       });
     }
 
@@ -474,6 +478,7 @@ exports.getDetailPermintaan = async (req, res) => {
         "status_approve",
         "tgl_approve",
         "attachment",
+        "status_pb",
       ],
     });
 
@@ -495,6 +500,19 @@ exports.admin_approval = async (req, res) => {
         status_pb: mode == "ACC" ? "Disetujui" : "Ditolak",
         approval_admin_date: getFormattedDate(new Date(), "-"),
         keterangan: note || "",
+      },
+      {
+        where: {
+          id_pb: idpb,
+        },
+      }
+    );
+
+    await TrxPermintaanBarang.update(
+      {
+        approval_admin_status: mode == "ACC" ? "APPROVED" : "REJECTED",
+        status_pb: mode == "ACC" ? "Disetujui" : "Ditolak",
+        approval_admin_date: getFormattedDate(new Date(), "-"),
       },
       {
         where: {
