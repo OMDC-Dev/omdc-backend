@@ -529,6 +529,7 @@ exports.admin_approval = async (req, res) => {
         "approval_admin_status",
         "approval_admin_date",
         "keterangan",
+        "status_pb",
       ],
     });
 
