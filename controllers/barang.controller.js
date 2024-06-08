@@ -2,9 +2,10 @@ const { Op } = require("sequelize");
 const user_db = require("../db/user.db");
 const { Responder } = require("../utils/responder");
 const { decodeToken, getToken } = require("../utils/jwt");
-const { generateRandomNumber } = require("../utils/utils");
+const { generateRandomNumber, getFormattedDate } = require("../utils/utils");
 
 const moment = require("moment");
+const { uploadImagesCloudinary } = require("../utils/cloudinary");
 require("moment/locale/id");
 moment.locale("id");
 
@@ -13,6 +14,7 @@ const Barang = user_db.barang;
 const IndukCabang = user_db.cabang;
 const TrxPermintaanBarang = user_db.trx_permintaan_barang;
 const PermintaanBarang = user_db.permintaan_barang;
+const ADMINPB = user_db.adminpb;
 
 exports.getAllAnakCabang = async (req, res) => {
   const { kd_induk } = req.query;
@@ -147,10 +149,11 @@ exports.createTrxPermintaan = async (req, res) => {
    * iduser
    * nm_user
    */
-  const { kodeIndukCabang, kodeAnakCabang, barang } = req.body;
+  const { kodeIndukCabang, kodeAnakCabang, barang, adminId } = req.body;
   const { authorization } = req.headers;
 
   try {
+    console.log("ADMIN ID", adminId);
     // ===== Get Induk Cabang Data
     const getIndukCabang = await IndukCabang.findOne({
       where: {
@@ -185,6 +188,21 @@ exports.createTrxPermintaan = async (req, res) => {
       indukCabang.kd_induk
     }${PB_YY}${PB_MM}${PB_DD}${generateRandomNumber(1000, 9999)}`;
 
+    // == Handle if need admin
+    let adminName = "";
+    if (adminId) {
+      const getAdmin = await ADMINPB.findOne({
+        where: {
+          iduser: adminId,
+        },
+      });
+
+      const adminData = await getAdmin["dataValues"];
+      adminName = adminData.nm_user;
+    }
+
+    // == end
+
     // Create Permintaan
     await PermintaanBarang.create({
       id_pb: ID_PB,
@@ -205,11 +223,15 @@ exports.createTrxPermintaan = async (req, res) => {
       id_approve: "",
       nm_approve: "",
       tgl_approve: "",
-      status_pb: "",
+      status_pb: adminId ? "Menunggu Disetujui" : "",
       flag: "",
       flag_1: "",
       flag_2: "",
       flag_3: "",
+      approval_adminid: adminId || "",
+      approval_admin_name: adminName,
+      approval_admin_date: "",
+      approval_admin_status: adminId ? "WAITING" : "",
     });
 
     // Lopping Barang
@@ -223,7 +245,7 @@ exports.createTrxPermintaan = async (req, res) => {
 
       const barangData = await getBarang["dataValues"];
 
-      const { stock, request, keterangan } = barang[i].requestData;
+      const { stock, request, keterangan, attachment } = barang[i].requestData;
 
       const ID_TRANS = `${anakCabang.kd_cabang}${ID_PB}${generateRandomNumber(
         100000,
@@ -231,6 +253,19 @@ exports.createTrxPermintaan = async (req, res) => {
       )}`;
 
       const jumlahSatuan = request * barangData.qty_satuan;
+
+      // [Start] -- handle image upload
+      let imageUrl = "";
+
+      if (attachment?.length > 0) {
+        const uploadAttachment = await uploadImagesCloudinary(attachment);
+
+        if (uploadAttachment.url) {
+          imageUrl = uploadAttachment.secure_url;
+        } else {
+          imageUrl = "";
+        }
+      }
 
       await TrxPermintaanBarang.create({
         id_trans: ID_TRANS,
@@ -270,6 +305,7 @@ exports.createTrxPermintaan = async (req, res) => {
         status_pb: "",
         flag: "",
         flag_1: "",
+        attachment: imageUrl || "",
       });
     }
 
@@ -290,17 +326,54 @@ exports.createTrxPermintaan = async (req, res) => {
 
 exports.getAllRequestBarang = async (req, res) => {
   const { authorization } = req.headers;
-  const { page = 1, limit = 25 } = req.query;
+  const { page = 1, limit = 50, cari, isAdmin, status } = req.query;
+
   try {
     const userData = decodeToken(getToken(authorization));
 
     // Menghitung offset berdasarkan halaman dan batasan
     const offset = (page - 1) * limit;
 
+    const whereClause = {};
+
+    if (status) {
+      if (status === "WAITING") {
+        if (isAdmin) {
+          whereClause.approval_admin_status = "WAITING";
+        } else {
+          whereClause.status_approve = "";
+        }
+      } else if (status === "DONE") {
+        if (isAdmin) {
+          whereClause.approval_admin_status = {
+            [Op.ne]: "WAITING",
+          };
+        } else {
+          whereClause.status_approve = {
+            [Op.ne]: "",
+          };
+        }
+      }
+    }
+
+    if (isAdmin) {
+      whereClause.approval_adminid = userData.iduser;
+    } else {
+      whereClause.iduser = userData.iduser;
+    }
+
+    if (cari && cari.length > 0) {
+      whereClause[Op.or] = [
+        { id_pb: { [Op.like]: `%${cari}%` } },
+        { nm_cabang: { [Op.like]: `%${cari}%` } },
+        { kd_cabang: { [Op.like]: `%${cari}%` } },
+        { nm_induk: { [Op.like]: `%${cari}%` } },
+        { kd_induk: { [Op.like]: `%${cari}%` } },
+      ];
+    }
+
     const requestList = await PermintaanBarang.findAndCountAll({
-      where: {
-        iduser: userData.iduser,
-      },
+      where: whereClause,
       limit: parseInt(limit),
       offset: offset,
       order: [["tgl_trans", "DESC"]],
@@ -400,10 +473,66 @@ exports.getDetailPermintaan = async (req, res) => {
         "keterangan",
         "status_approve",
         "tgl_approve",
+        "attachment",
       ],
     });
 
     Responder(res, "OK", null, getPermintaan, 200);
+    return;
+  } catch (error) {
+    Responder(res, "ERROR", null, null, 400);
+    return;
+  }
+};
+
+exports.admin_approval = async (req, res) => {
+  const { idpb, mode } = req.params;
+  const { note } = req.body;
+  try {
+    await PermintaanBarang.update(
+      {
+        approval_admin_status: mode == "ACC" ? "APPROVED" : "REJECTED",
+        status_pb: mode == "ACC" ? "Disetujui" : "Ditolak",
+        approval_admin_date: getFormattedDate(new Date(), "-"),
+        keterangan: note || "",
+      },
+      {
+        where: {
+          id_pb: idpb,
+        },
+      }
+    );
+
+    const getPB = await PermintaanBarang.findOne({
+      where: {
+        id_pb: idpb,
+      },
+      attributes: [
+        "approval_admin_status",
+        "approval_admin_date",
+        "keterangan",
+      ],
+    });
+
+    const getPBData = await getPB["dataValues"];
+    Responder(res, "OK", null, getPBData, 200);
+    return;
+  } catch (error) {
+    Responder(res, "ERROR", null, null, 400);
+    return;
+  }
+};
+
+exports.cance_pengajuan = async (req, res) => {
+  const { idpb } = req.params;
+  try {
+    await PermintaanBarang.destroy({
+      where: {
+        id_pb: idpb,
+      },
+    });
+
+    Responder(res, "OK", null, { success: true }, 200);
     return;
   } catch (error) {
     Responder(res, "ERROR", null, null, 400);

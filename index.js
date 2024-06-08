@@ -23,11 +23,12 @@ admin.initializeApp({
 
 app.use(cors());
 
-// parse requests of content-type - application/json
-app.use(express.json({ limit: "1mb" }));
+// Fixing "413 Request Entity Too Large" errors
+app.use(express.json({ limit: "50mb", extended: true }));
+app.use(
+  express.urlencoded({ limit: "50mb", extended: true, parameterLimit: 50000 })
+);
 
-// parse requests of content-type - application/x-www-form-urlencoded
-app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 app.set("trust proxy", true);
 app.disable("etag");
 
@@ -66,7 +67,7 @@ app.use(router);
 
 // simple route
 app.get("/", (req, res) => {
-  res.json({ message: "Reimbursement Apps Service v.0.9.2 - rev.3" });
+  res.json({ message: "Reimbursement Apps Service v.0.9.3" });
 });
 
 // set port, listen for requests

@@ -14,6 +14,8 @@ const {
   sendSingleMessage,
   sendMulticastMessage,
 } = require("../utils/firebase");
+const { uploadImagesCloudinary } = require("../utils/cloudinary");
+const { uploadToDrive } = require("../utils/uploadToDrive");
 
 const M_Cabang = db_user.cabang;
 const Reimbursement = db_user.reimbursement;
@@ -166,6 +168,21 @@ exports.reimbursement = async (req, res) => {
 
     // ============ POST DATA Section
 
+    // Upload Attchment
+    let uploadAttachment;
+
+    console.log("FILE", file);
+
+    if (file.type !== "application/pdf") {
+      console.log("IMAGE FILE");
+      const upload = await uploadImagesCloudinary(attachment);
+      uploadAttachment = upload.secure_url;
+    } else {
+      console.log("PDF File");
+      const upload = await uploadToDrive(attachment, file.name);
+      uploadAttachment = upload;
+    }
+
     await Reimbursement.create({
       no_doc: doc_no,
       jenis_reimbursement: getType() || "-",
@@ -176,7 +193,7 @@ exports.reimbursement = async (req, res) => {
       requester: userDetail || "-",
       description: description || "-",
       status: "WAITING",
-      attachment: attachment || "-",
+      attachment: uploadAttachment || "-",
       bank_detail: bank_detail || "-",
       note: null,
       finance_note: null,
@@ -244,7 +261,7 @@ exports.reimbursement = async (req, res) => {
 
 exports.get_reimbursement = async (req, res) => {
   const { authorization } = req.headers;
-  const { page = 1, limit = 10, monthyear, status, cari } = req.query;
+  const { page = 1, limit = 10, monthyear, status, cari, type } = req.query;
 
   try {
     const userData = decodeToken(getToken(authorization));
@@ -261,6 +278,15 @@ exports.get_reimbursement = async (req, res) => {
       whereClause.createdAt = {
         [Op.between]: [startDate, endDate],
       };
+    }
+
+    // Tipe Pembayaran
+    if (type) {
+      if (type == "CASH") {
+        whereClause.payment_type = "CASH";
+      } else if (type == "TRANSFER") {
+        whereClause.payment_type = "TRANSFER";
+      }
     }
 
     // Menambahkan filter berdasarkan status jika diberikan
@@ -470,10 +496,12 @@ exports.acceptance = async (req, res) => {
       }
 
       // === Handle notif to reviewer
-      sendMulticastMessage(reviewerTokens, {
-        title: "Ada pengajuan request of payment baru!",
-        body: `Ada pengajuan request of payment baru yang perlu direview!`,
-      });
+      if (reviewerTokens.length > 0) {
+        sendMulticastMessage(reviewerTokens, {
+          title: "Ada pengajuan request of payment baru!",
+          body: `Ada pengajuan request of payment baru yang perlu direview!`,
+        });
+      }
     }
 
     if (status == "REJECTED") {
@@ -852,6 +880,7 @@ exports.finance_acceptance = async (req, res) => {
         finance_note: note || "-",
         coa: coa,
         finance_bank: bank || "-",
+        extraAcceptanceStatus: status == "REJECTED" ? "REJECTED" : "APPROVED",
       },
       {
         where: {
@@ -1263,6 +1292,7 @@ exports.get_super_reimbursement_report = async (req, res) => {
         "tipePembayaran",
         "finance_bank",
         "createdAt",
+        "attachment",
       ],
     });
 
@@ -1302,10 +1332,26 @@ exports.get_super_reimbursement_report = async (req, res) => {
 };
 
 exports.get_review_reimbursement = async (req, res) => {
-  const { page = 1, limit = 10, monthyear, cari, type } = req.query;
+  const {
+    page = 1,
+    limit = 10,
+    monthyear,
+    cari,
+    type,
+    typePembayaran,
+  } = req.query;
 
   try {
     const whereClause = {};
+
+    // Tipe Pembayaran
+    if (typePembayaran) {
+      if (typePembayaran == "CASH") {
+        whereClause.payment_type = "CASH";
+      } else if (typePembayaran == "TRANSFER") {
+        whereClause.payment_type = "TRANSFER";
+      }
+    }
 
     if (type) {
       // whereClause.reviewStatus =

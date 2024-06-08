@@ -35,6 +35,7 @@ router.post("/user/login", ruser.login);
 router.post("/user/complete/:id", ruser.completeUser);
 router.post("/user/update-password", ruser.updatePw);
 router.post("/user/logout", ruser.logout);
+router.get("/user/kodeakses/:iduser", ruser.get_kodeakses_by_id);
 
 // Reimbursement
 router.get("/cabang", reimbursement.cabang);
@@ -90,6 +91,8 @@ router.get("/barang", barang.getBarang);
 router.post("/barang/create", barang.createTrxPermintaan);
 router.get("/barang/requested", barang.getAllRequestBarang);
 router.get("/barang/requested/detail", barang.getDetailPermintaan);
+router.post("/barang/admin-approval/:idpb/:mode", barang.admin_approval);
+router.delete("/barang/:idpb", barang.cance_pengajuan);
 
 // Pengumuman
 router.post("/pengumuman", pengumuman.createPengumuman);

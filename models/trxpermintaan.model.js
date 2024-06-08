@@ -151,6 +151,10 @@ module.exports = (sequelize, Sequelize) => {
         type: Sequelize.STRING(60),
         allowNull: false,
       },
+      attachment: {
+        type: Sequelize.STRING,
+        allowNull: true,
+      },
     },
     {
       tableName: "trx_permintaanbarang",

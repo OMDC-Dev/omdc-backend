@@ -423,3 +423,28 @@ exports.logout = async (req, res) => {
     return;
   }
 };
+
+exports.get_kodeakses_by_id = async (req, res) => {
+  const { iduser } = req.params;
+  try {
+    // get user access
+    const aksesUser = await Akses.findAll({
+      where: {
+        iduser: iduser,
+      },
+    });
+
+    let kodeAkses = [];
+
+    for (let i = 0; i < aksesUser.length; i++) {
+      const kode = aksesUser[i].kd_ver;
+      kodeAkses.push(kode);
+    }
+
+    Responder(res, "OK", null, { kodeAkses: kodeAkses }, 200);
+    return;
+  } catch (error) {
+    Responder(res, "ERROR", null, null, 400);
+    return;
+  }
+};

@@ -124,7 +124,7 @@ exports.getUser = async (req, res) => {
 
 exports.get_pengajuan = async (req, res) => {
   const { authorization } = req.headers;
-  const { page = 1, limit = 10, monthyear, status, cari } = req.query;
+  const { page = 1, limit = 10, monthyear, status, cari, type } = req.query;
 
   try {
     const userData = decodeToken(getToken(authorization));
@@ -138,6 +138,15 @@ exports.get_pengajuan = async (req, res) => {
         ),
       ],
     };
+
+    // Tipe Pembayaran
+    if (type) {
+      if (type == "CASH") {
+        whereClause.payment_type = "CASH";
+      } else if (type == "TRANSFER") {
+        whereClause.payment_type = "TRANSFER";
+      }
+    }
 
     // Menambahkan filter berdasarkan status jika diberikan
     if (status) {
@@ -274,12 +283,21 @@ exports.get_pengajuan = async (req, res) => {
 
 exports.get_pengajuan_finance = async (req, res) => {
   const { authorization } = req.headers;
-  const { page = 1, limit = 10, monthyear, status, cari } = req.query;
+  const { page = 1, limit = 10, monthyear, status, cari, type } = req.query;
 
   try {
     const userData = decodeToken(getToken(authorization));
 
     const whereClause = {};
+
+    // Tipe Pembayaran
+    if (type) {
+      if (type == "CASH") {
+        whereClause.payment_type = "CASH";
+      } else if (type == "TRANSFER") {
+        whereClause.payment_type = "TRANSFER";
+      }
+    }
 
     if (monthyear) {
       const my = monthyear.split("-");
