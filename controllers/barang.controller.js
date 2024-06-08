@@ -261,7 +261,7 @@ exports.createTrxPermintaan = async (req, res) => {
         const uploadAttachment = await uploadImagesCloudinary(attachment);
 
         if (uploadAttachment.url) {
-          imageUrl = uploadAttachment.url;
+          imageUrl = uploadAttachment.secure_url;
         } else {
           imageUrl = "";
         }

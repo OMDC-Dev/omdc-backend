@@ -176,7 +176,7 @@ exports.reimbursement = async (req, res) => {
     if (file.type !== "application/pdf") {
       console.log("IMAGE FILE");
       const upload = await uploadImagesCloudinary(attachment);
-      uploadAttachment = upload.url;
+      uploadAttachment = upload.secure_url;
     } else {
       console.log("PDF File");
       const upload = await uploadToDrive(attachment, file.name);
