@@ -1226,6 +1226,7 @@ exports.get_super_reimbursement_report = async (req, res) => {
     endDate,
     cabang,
     bank,
+    tipe,
   } = req.query;
 
   try {
@@ -1252,6 +1253,10 @@ exports.get_super_reimbursement_report = async (req, res) => {
 
     if (bank) {
       whereClause.finance_bank = bank;
+    }
+
+    if (tipe) {
+      whereClause.payment_type = tipe.toUpperCase();
     }
 
     // Menambahkan pengurutan berdasarkan tipePembayaran
