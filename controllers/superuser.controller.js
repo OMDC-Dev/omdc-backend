@@ -151,11 +151,7 @@ exports.get_pengajuan = async (req, res) => {
     // Menambahkan filter berdasarkan status jika diberikan
     if (status) {
       if (status === "01") {
-        whereClause.status = { [Op.ne]: "WAITING" }; // Memilih status selain 'APPROVED'
-        // whereClause[Op.or] = [
-        //   { status: { [Op.ne]: "WAITING" } },
-        //   { extraAcceptance: { iduser: userData.iduser, status: "APPROVED" } },
-        // ];
+        whereClause.status = { [Op.ne]: "WAITING" };
         whereClause[Op.or].push(
           { needExtraAcceptance: true },
           {
@@ -171,10 +167,6 @@ exports.get_pengajuan = async (req, res) => {
           { needExtraAcceptance: true },
           { extraAcceptance: { iduser: userData.iduser, status: "WAITING" } }
         );
-        // whereClause[Op.or] = [
-        //   { status: "WAITING" },
-        //   { extraAcceptance: { iduser: userData.iduser, status: "WAITING" } },
-        // ];
       }
     } else {
       whereClause[Op.or].push(
@@ -182,6 +174,8 @@ exports.get_pengajuan = async (req, res) => {
         { "extraAcceptance.iduser": userData.iduser }
       );
     }
+
+    console.log("WHRE CLAUSE: ", whereClause);
 
     if (monthyear) {
       const my = monthyear.split("-");
