@@ -272,7 +272,13 @@ async function loginAsAdmin(req, res, admin, fcmToken) {
     }
 
     return await R_User.update(
-      { userToken: token, fcmToken: newToken, kodeAkses: kodeAkses },
+      {
+        userToken: token,
+        fcmToken: newToken,
+        kodeAkses: kodeAkses,
+        isAdmin: 1,
+        type: adminData.type,
+      },
       { where: { iduser: iduser } }
     )
       .then(() => {
@@ -280,6 +286,8 @@ async function loginAsAdmin(req, res, admin, fcmToken) {
           ...existingUser,
           userToken: token,
           kodeAkses: kodeAkses,
+          isAdmin: 1,
+          type: adminData.type,
         };
         Responder(res, "OK", null, newSession, 200);
         return;
