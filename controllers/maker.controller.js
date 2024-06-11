@@ -28,6 +28,7 @@ exports.get_reimbursement = async (req, res) => {
     cari,
     type,
     typePembayaran,
+    sort,
   } = req.query;
 
   try {
@@ -103,6 +104,23 @@ exports.get_reimbursement = async (req, res) => {
       ["createdAt", "DESC"], // Mengurutkan berdasarkan createdAt secara descending
     ];
 
+    const sortClause = Sequelize.literal(`CASE
+  WHEN makerStatus = 'WAITING' THEN 1
+  ELSE 2
+END`);
+
+    let order;
+
+    if (sort) {
+      order = [
+        sortClause, // First, sort by status
+        ["tipePembayaran", "DESC"], // Then sort by tipePembayaran
+        ["createdAt", "DESC"], // Finally, sort by createdAt
+      ];
+    } else {
+      order = orderClause;
+    }
+
     // Menghitung offset berdasarkan halaman dan batasan
     const offset = (page - 1) * limit;
 
@@ -110,7 +128,7 @@ exports.get_reimbursement = async (req, res) => {
       where: whereClause,
       limit: parseInt(limit), // Mengubah batasan menjadi tipe numerik
       offset: offset, // Menetapkan offset untuk penampilan halaman
-      order: orderClause,
+      order: order,
     });
 
     // result count
