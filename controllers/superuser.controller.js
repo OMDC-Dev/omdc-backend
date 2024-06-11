@@ -124,7 +124,15 @@ exports.getUser = async (req, res) => {
 
 exports.get_pengajuan = async (req, res) => {
   const { authorization } = req.headers;
-  const { page = 1, limit = 10, monthyear, status, cari, type } = req.query;
+  const {
+    page = 1,
+    limit = 10,
+    monthyear,
+    status,
+    cari,
+    type,
+    sort,
+  } = req.query;
 
   try {
     const userData = decodeToken(getToken(authorization));
@@ -238,6 +246,29 @@ exports.get_pengajuan = async (req, res) => {
       ["createdAt", "DESC"], // Mengurutkan berdasarkan createdAt secara descending
     ];
 
+    const sortClause = [
+      [
+        Sequelize.literal(`CASE
+    WHEN JSON_UNQUOTE(JSON_EXTRACT(accepted_by, '$[*].status')) LIKE '%"WAITING"%'
+    THEN 1
+    ELSE 2
+  END`),
+        "ASC",
+      ],
+    ];
+
+    let order;
+
+    if (sort) {
+      order = [
+        sortClause, // First, sort by status
+        ["tipePembayaran", "DESC"], // Then sort by tipePembayaran
+        ["createdAt", "DESC"], // Finally, sort by createdAt
+      ];
+    } else {
+      order = orderClause;
+    }
+
     // Menghitung offset berdasarkan halaman dan batasan
     const offset = (page - 1) * limit;
 
@@ -245,7 +276,7 @@ exports.get_pengajuan = async (req, res) => {
       where: whereClause,
       limit: parseInt(limit), // Mengubah batasan menjadi tipe numerik
       offset: offset, // Menetapkan offset untuk penampilan halaman
-      order: orderClause,
+      order: order,
     });
 
     // result count
@@ -277,7 +308,15 @@ exports.get_pengajuan = async (req, res) => {
 
 exports.get_pengajuan_finance = async (req, res) => {
   const { authorization } = req.headers;
-  const { page = 1, limit = 10, monthyear, status, cari, type } = req.query;
+  const {
+    page = 1,
+    limit = 10,
+    monthyear,
+    status,
+    cari,
+    type,
+    sort,
+  } = req.query;
 
   try {
     const userData = decodeToken(getToken(authorization));
@@ -392,6 +431,23 @@ exports.get_pengajuan_finance = async (req, res) => {
       ["createdAt", "DESC"], // Mengurutkan berdasarkan createdAt secara descending
     ];
 
+    const financeStatusSortClause = Sequelize.literal(`CASE
+  WHEN status_finance = 'WAITING' THEN 1
+  ELSE 2
+END`);
+
+    let order;
+
+    if (sort) {
+      order = [
+        financeStatusSortClause, // First, sort by status
+        ["tipePembayaran", "DESC"], // Then sort by tipePembayaran
+        ["createdAt", "DESC"], // Finally, sort by createdAt
+      ];
+    } else {
+      order = orderClause;
+    }
+
     // Menghitung offset berdasarkan halaman dan batasan
     const offset = (page - 1) * limit;
 
@@ -399,7 +455,7 @@ exports.get_pengajuan_finance = async (req, res) => {
       where: whereClause,
       limit: parseInt(limit), // Mengubah batasan menjadi tipe numerik
       offset: offset, // Menetapkan offset untuk penampilan halaman
-      order: orderClause,
+      order: order,
     });
 
     // result count

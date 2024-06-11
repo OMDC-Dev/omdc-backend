@@ -9,8 +9,11 @@ const admin = require("firebase-admin");
 
 // import service account file (helps to know the firebase project details)
 const serviceAccount = require("./config/serviceAccountKey.json");
+const { Responder } = require("./utils/responder");
 
 const app = express();
+
+const CODE_VERSION = "9.3.3";
 
 // var corsOptions = {
 //   origin: "http://localhost:5173",
@@ -67,7 +70,20 @@ app.use(router);
 
 // simple route
 app.get("/", (req, res) => {
-  res.json({ message: "Reimbursement Apps Service v.0.9.3 - rev 2" });
+  res.json({ message: "Reimbursement Apps Service v.0.9.3 - rev 3" });
+});
+
+app.get("/version/:code", (req, res) => {
+  const { code } = req.params;
+  try {
+    if (code == CODE_VERSION) {
+      Responder(res, "OK", null, "OK", 200);
+    } else {
+      Responder(res, "ERROR", "UPDATE", null, 400);
+    }
+  } catch (error) {
+    Responder(res, "ERROR", "ERROR", null, 500);
+  }
 });
 
 // set port, listen for requests
