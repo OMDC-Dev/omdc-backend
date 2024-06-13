@@ -262,8 +262,8 @@ exports.get_pengajuan = async (req, res) => {
     if (sort) {
       order = [
         sortClause, // First, sort by status
-        ["tipePembayaran", "DESC"], // Then sort by tipePembayaran
         ["createdAt", "DESC"], // Finally, sort by createdAt
+        ["tipePembayaran", "DESC"], // Then sort by tipePembayaran
       ];
     } else {
       order = orderClause;
@@ -442,8 +442,8 @@ END`);
     if (sort) {
       order = [
         financeStatusSortClause, // First, sort by status
-        ["tipePembayaran", "DESC"], // Then sort by tipePembayaran
         ["createdAt", "DESC"], // Finally, sort by createdAt
+        ["tipePembayaran", "DESC"], // Then sort by tipePembayaran
       ];
     } else {
       order = orderClause;
