@@ -70,13 +70,16 @@ app.use(router);
 
 // simple route
 app.get("/", (req, res) => {
-  res.json({ message: "Reimbursement Apps Service v.0.9.3 - rev 3 fix 2" });
+  res.json({ message: "Reimbursement Apps Service v.0.9.3 - rev 3 fix 3" });
 });
 
 app.get("/version/:code", (req, res) => {
   const { code } = req.params;
   try {
-    if (code == CODE_VERSION) {
+    const parseMobileCode = code.replace(/\./g, "");
+    const parseCurrentCode = CODE_VERSION.replace(/\./g, "");
+
+    if (Number(parseMobileCode) >= Number(parseCurrentCode)) {
       Responder(res, "OK", null, "OK", 200);
     } else {
       Responder(res, "ERROR", "UPDATE", null, 400);
