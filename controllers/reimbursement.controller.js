@@ -6,6 +6,7 @@ const {
   generateRandomNumber,
   getFormattedDate,
   ubahDataById,
+  getDateValidFormat,
 } = require("../utils/utils");
 const moment = require("moment");
 require("moment/locale/id");
@@ -1091,10 +1092,13 @@ exports.get_super_reimbursement = async (req, res) => {
   try {
     const whereClause = {};
 
-    const startDateObj = moment(startDate, "YYYY-MM-DD", true)
+    const validStartDate = getDateValidFormat(startDate);
+    const validEndDate = getDateValidFormat(endDate);
+
+    const startDateObj = moment(validStartDate, "YYYY-MM-DD", true)
       .startOf("day")
       .toDate();
-    const endDateObj = moment(endDate, "YYYY-MM-DD", true)
+    const endDateObj = moment(validEndDate, "YYYY-MM-DD", true)
       .endOf("day")
       .toDate();
 

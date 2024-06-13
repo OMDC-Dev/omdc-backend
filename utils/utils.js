@@ -1,3 +1,7 @@
+const moment = require("moment");
+require("moment/locale/id");
+moment.locale("id");
+
 function generateRandomNumber(min, max) {
   // Menghasilkan nomor acak di antara min (inklusif) dan max (inklusif)
   return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -23,8 +27,23 @@ function ubahDataById(data, id, idKey, key, dataBaru) {
   }
 }
 
+function getDateValidFormat(inputDate) {
+  // Cek apakah inputDate valid dan dalam format "YYYY-MM-DD"
+  if (moment(inputDate, "YYYY-MM-DD", true).isValid()) {
+    return inputDate;
+  }
+  // Cek apakah inputDate valid dan dalam format "DD-MM-YYYY"
+  else if (moment(inputDate, "DD-MM-YYYY", true).isValid()) {
+    // Ubah format ke "YYYY-MM-DD"
+    return moment(inputDate, "DD-MM-YYYY").format("YYYY-MM-DD");
+  } else {
+    throw new Error("Invalid date format");
+  }
+}
+
 module.exports = {
   generateRandomNumber,
   getFormattedDate,
   ubahDataById,
+  getDateValidFormat,
 };
