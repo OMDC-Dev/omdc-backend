@@ -433,6 +433,7 @@ exports.get_pengajuan_finance = async (req, res) => {
 
     const financeStatusSortClause = Sequelize.literal(`CASE
   WHEN status_finance = 'WAITING' THEN 1
+  WHEN status_finance = 'IDLE' THEN 1
   ELSE 2
 END`);
 

@@ -1434,6 +1434,7 @@ exports.get_review_reimbursement = async (req, res) => {
 
     const sortClause = Sequelize.literal(`CASE
   WHEN reviewStatus = 'WAITING' THEN 1
+  WHEN reviewStatus = 'IDLE' THEN 1
   ELSE 2
 END`);
 

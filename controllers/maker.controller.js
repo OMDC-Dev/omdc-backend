@@ -106,6 +106,7 @@ exports.get_reimbursement = async (req, res) => {
 
     const sortClause = Sequelize.literal(`CASE
   WHEN makerStatus = 'WAITING' THEN 1
+  WHEN makerStatus = 'IDLE' THEN 1
   ELSE 2
 END`);
 
