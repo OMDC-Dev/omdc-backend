@@ -17,6 +17,10 @@ const suplier = require("../controllers/suplier.controller");
 const icon = require("../controllers/icon.controller");
 const maker = require("../controllers/maker.controller");
 const adminpb = require("../controllers/adminpb.controller");
+const grup = require("../controllers/v4/grup.controller");
+const kategory = require("../controllers/v4/kategory.controller");
+const kemasan = require("../controllers/v4/kemasan.controller");
+const satuan = require("../controllers/v4/satuan.controller");
 const { authenticateToken } = require("../utils/jwt");
 
 // routes
@@ -130,5 +134,11 @@ router.post("/updateIcon", icon.updateIcon);
 router.post("/adminpb/:iduser", adminpb.add_admin);
 router.delete("/adminpb/:iduser", adminpb.delete_admin);
 router.get("/adminpb", adminpb.get_admin);
+
+// Master Barang
+router.get("/barang/grup", grup.getGrup);
+router.get("/barang/kategory", kategory.getKategory);
+router.get("/barang/kemasan", kemasan.getKemasan);
+router.get("/barang/satuan", satuan.getSatuan);
 
 module.exports = { router };

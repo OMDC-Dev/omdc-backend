@@ -55,5 +55,20 @@ db_user.coa = require("../models/coa.model")(sequelize, Sequelize);
 db_user.suplier = require("../models/suplier.model")(sequelize, Sequelize);
 db_user.icon = require("../models/icon.model")(sequelize, Sequelize);
 db_user.adminpb = require("../models/adminpb.model")(sequelize, Sequelize);
+// v4
+db_user.grup = require("../models/v4/grup.model.js")(sequelize, Sequelize);
+db_user.inventory_induk = require("../models/v4/inventory_induk.model.js")(
+  sequelize,
+  Sequelize
+);
+db_user.kategory = require("../models/v4/kategory.model.js")(
+  sequelize,
+  Sequelize
+);
+db_user.kemasan = require("../models/v4/kemasan.model.js")(
+  sequelize,
+  Sequelize
+);
+db_user.satuan = require("../models/v4/satuan.model.js")(sequelize, Sequelize);
 
 module.exports = db_user;
