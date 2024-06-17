@@ -21,6 +21,7 @@ const grup = require("../controllers/v4/grup.controller");
 const kategory = require("../controllers/v4/kategory.controller");
 const kemasan = require("../controllers/v4/kemasan.controller");
 const satuan = require("../controllers/v4/satuan.controller");
+const masterbarang = require("../controllers/v4/masterbarang.controller");
 const { authenticateToken } = require("../utils/jwt");
 
 // routes
@@ -140,5 +141,6 @@ router.get("/barang/grup", grup.getGrup);
 router.get("/barang/kategory", kategory.getKategory);
 router.get("/barang/kemasan", kemasan.getKemasan);
 router.get("/barang/satuan", satuan.getSatuan);
+router.get("/barang/cek-barkode/:barcode", masterbarang.cek_barkode);
 
 module.exports = { router };

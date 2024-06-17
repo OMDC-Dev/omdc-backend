@@ -1092,17 +1092,17 @@ exports.get_super_reimbursement = async (req, res) => {
   try {
     const whereClause = {};
 
-    const validStartDate = getDateValidFormat(startDate);
-    const validEndDate = getDateValidFormat(endDate);
-
-    const startDateObj = moment(validStartDate, "YYYY-MM-DD", true)
-      .startOf("day")
-      .toDate();
-    const endDateObj = moment(validEndDate, "YYYY-MM-DD", true)
-      .endOf("day")
-      .toDate();
-
     if (startDate && endDate) {
+      const validStartDate = getDateValidFormat(startDate);
+      const validEndDate = getDateValidFormat(endDate);
+
+      const startDateObj = moment(validStartDate, "YYYY-MM-DD", true)
+        .startOf("day")
+        .toDate();
+      const endDateObj = moment(validEndDate, "YYYY-MM-DD", true)
+        .endOf("day")
+        .toDate();
+
       whereClause.createdAt = {
         [Op.between]: [startDateObj, endDateObj],
       };
