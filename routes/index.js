@@ -142,5 +142,6 @@ router.get("/barang/kategory", kategory.getKategory);
 router.get("/barang/kemasan", kemasan.getKemasan);
 router.get("/barang/satuan", satuan.getSatuan);
 router.get("/barang/cek-barkode/:barcode", masterbarang.cek_barkode);
+router.post("/barang/add", masterbarang.add_barang);
 
 module.exports = { router };
