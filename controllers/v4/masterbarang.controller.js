@@ -139,3 +139,114 @@ exports.add_barang = async (req, res) => {
     return;
   }
 };
+
+exports.update_barang = async (req, res) => {
+  const { authorization } = req.headers;
+  const { kode_barang } = req.params;
+
+  const {
+    barcode_brg,
+    nama_brg,
+    grup_brg,
+    kategory_brg,
+    suplier,
+    kemasan,
+    satuan,
+    qty_isi,
+    harga_satuan,
+    hpp_satuan,
+    hargajual_satuan,
+    status,
+  } = req.body;
+  try {
+    // get user request
+    const getUser = decodeToken(getToken(authorization));
+
+    // Get supplier by kdsp
+    let suplierData;
+
+    if (suplier) {
+      const getSupl = await M_SUPLIER.findOne({
+        where: {
+          kdsp: suplier,
+        },
+      });
+
+      const getSuplData = await getSupl["dataValues"];
+
+      suplierData = getSuplData;
+    }
+
+    // current date
+    const currentDate = moment().format("YYYY-MM-DD");
+
+    // update to m barang
+    await M_BARANG.update(
+      {
+        barcode_brg: barcode_brg,
+        nm_barang: nama_brg,
+        grup_brg: grup_brg,
+        kategory_brg: kategory_brg,
+        kdsp: suplierData?.kdsp || "",
+        nmsp: suplierData?.nmsp || "",
+        nm_kemasan: kemasan,
+        nm_satuan: satuan,
+        qty_satuan: qty_isi,
+        hrga_satuan: harga_satuan,
+        hrga_kemasan: Number(qty_isi) * Number(harga_satuan),
+        hppsatuan: hpp_satuan,
+        hppkemasan: Number(qty_isi) * Number(hpp_satuan),
+        hrga_jualsatuan: hargajual_satuan,
+        hrga_jualkemasan: Number(qty_isi) * Number(hargajual_satuan),
+        kd_comp: "OSG",
+        nm_comp: "PT.OKTRI SYARIEF GRUP",
+        sts_brg: status,
+        nm_create: "",
+        tgl_create: currentDate,
+        flag_1: getUser.nm_user,
+        flag_2: currentDate,
+        flag_3: "",
+        flag_4: "",
+        val_1: "",
+        val_2: "",
+        val_3: "",
+        val_4: "",
+      },
+      {
+        where: {
+          kd_brg: kode_barang,
+        },
+      }
+    );
+
+    // update to inventory induk
+    await M_INVENTORY_INDUK.update(
+      {
+        nm_barang: nama_brg,
+        onhand: 0,
+        nm_satuan: satuan,
+        pkm: 0,
+        pkm_satuan: satuan,
+        mpkm: 0,
+        mpkm_satuan: satuan,
+        tgl_update: currentDate,
+        flag_1: currentDate,
+        flag_2: currentDate,
+        flag_3: "",
+        flag_4: "",
+      },
+      {
+        where: {
+          kd_brg: kode_barang,
+        },
+      }
+    );
+
+    Responder(res, "OK", null, { success: true }, 200);
+    return;
+  } catch (error) {
+    console.log(error);
+    Responder(res, "ERROR", null, null, 400);
+    return;
+  }
+};
