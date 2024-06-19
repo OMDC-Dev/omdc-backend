@@ -70,5 +70,9 @@ db_user.kemasan = require("../models/v4/kemasan.model.js")(
   Sequelize
 );
 db_user.satuan = require("../models/v4/satuan.model.js")(sequelize, Sequelize);
+db_user.invoice = require("../models/v4/invoice.model.js")(
+  sequelize,
+  Sequelize
+);
 
 module.exports = db_user;

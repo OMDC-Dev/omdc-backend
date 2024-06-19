@@ -22,6 +22,7 @@ const M_Cabang = db_user.cabang;
 const Reimbursement = db_user.reimbursement;
 const User = db_user.ruser;
 const Admin = db_user.superuser;
+const INVOICE = db_user.invoice;
 
 // Get all cabang list
 exports.cabang = async (req, res) => {
@@ -225,6 +226,12 @@ exports.reimbursement = async (req, res) => {
       extraAcceptanceStatus: "IDLE",
     })
       .then(async (data) => {
+        // Handle Invoice
+        item.map((item) => {
+          INVOICE.create({ ...item, nama: item.name });
+        });
+
+        // Parent ID
         if (parentId) {
           await Reimbursement.update(
             { childId: data?.id, childDoc: data?.no_doc },

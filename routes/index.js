@@ -22,6 +22,7 @@ const kategory = require("../controllers/v4/kategory.controller");
 const kemasan = require("../controllers/v4/kemasan.controller");
 const satuan = require("../controllers/v4/satuan.controller");
 const masterbarang = require("../controllers/v4/masterbarang.controller");
+const invoice = require("../controllers/v4/invoice.controller");
 const { authenticateToken } = require("../utils/jwt");
 
 // routes
@@ -144,5 +145,8 @@ router.get("/barang/satuan", satuan.getSatuan);
 router.get("/barang/cek-barkode/:barcode", masterbarang.cek_barkode);
 router.post("/barang/add", masterbarang.add_barang);
 router.post("/barang/update/:kode_barang", masterbarang.update_barang);
+
+// Invoice
+router.get("/invoice/:invoice", invoice.cekInvoice);
 
 module.exports = { router };
