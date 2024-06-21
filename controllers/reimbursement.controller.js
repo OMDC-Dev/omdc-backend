@@ -7,6 +7,7 @@ const {
   getFormattedDate,
   ubahDataById,
   getDateValidFormat,
+  addAdminApprovalDate,
 } = require("../utils/utils");
 const moment = require("moment");
 require("moment/locale/id");
@@ -443,6 +444,10 @@ exports.acceptance = async (req, res) => {
     const childId = r_datas["childId"];
     const extNote = r_datas.note;
 
+    const currentDate = moment().format("DD-MM-YYYY");
+
+    addAdminApprovalDate(acceptance_by, userId, currentDate);
+
     if (status == "FOWARDED") {
       ubahDataById(acceptance_by, userId, "iduser", "status", "APPROVED");
 
@@ -629,6 +634,9 @@ exports.get_status = async (req, res) => {
         "needExtraAcceptance",
         "extraAcceptance",
         "extraAcceptanceStatus",
+        "reviewer_approve",
+        "maker_approve",
+        "extra_admin_approve",
       ],
     });
 
@@ -695,13 +703,25 @@ exports.get_status = async (req, res) => {
     const adminDONE = adminPath.every((item) => item.status == "APPROVED");
 
     if (adminDONE) {
-      adminPath.push({ nm_user: "Reviewer", status: data.reviewStatus });
+      adminPath.push({
+        nm_user: "Reviewer",
+        status: data.reviewStatus,
+        tgl_approve: data.reviewer_approve,
+      });
     }
 
     if (data.reviewStatus === "APPROVED") {
-      adminPath.push({ nm_user: "Maker", status: data.makerStatus });
+      adminPath.push({
+        nm_user: "Maker",
+        status: data.makerStatus,
+        tgl_approve: data.maker_approve,
+      });
       if (data.makerStatus === "APPROVED") {
-        adminPath.push({ nm_user: "Finance", status: data.status_finance });
+        adminPath.push({
+          nm_user: "Finance",
+          status: data.status_finance,
+          tgl_approve: data.finance_by.acceptDate,
+        });
       }
     }
     if (data.reviewStatus !== "APPROVED") {
@@ -718,6 +738,7 @@ exports.get_status = async (req, res) => {
       adminPath.push({
         nm_user: data.extraAcceptance.nm_user,
         status: data.extraAcceptance.status,
+        tgl_approve: data.extra_admin_approve,
       });
     }
 
@@ -1526,6 +1547,7 @@ exports.acceptReviewReimbursementData = async (req, res) => {
     const getReimburseData = await getReimburse["dataValues"];
     const parentId = getReimburseData.parentId;
     const user_fcm = getReimburseData["requester"]["fcmToken"];
+    const currentDate = moment().format("DD-MM-YYYY");
 
     if (status == "REJECTED") {
       if (parentId) {
@@ -1534,6 +1556,7 @@ exports.acceptReviewReimbursementData = async (req, res) => {
             childId: "",
             childDoc: "",
             realisasi: "",
+            reviewer_approve: currentDate,
           },
           {
             where: {
@@ -1548,6 +1571,7 @@ exports.acceptReviewReimbursementData = async (req, res) => {
           reviewStatus: status,
           review_note: note,
           status: "REJECTED",
+          reviewer_approve: currentDate,
         },
         {
           where: {
@@ -1566,7 +1590,7 @@ exports.acceptReviewReimbursementData = async (req, res) => {
     }
     // =============== ADMIN SECTION
 
-    // === HANDLE NOTIF TO FINANCE
+    // === HANDLE NOTIF TO MAKER
     const getMakerSession = await User.findAll({
       where: {
         type: "MAKER",
@@ -1596,6 +1620,7 @@ exports.acceptReviewReimbursementData = async (req, res) => {
         coa: coa,
         review_note: note,
         reviewStatus: status,
+        reviewer_approve: currentDate,
       },
       {
         where: {
@@ -1628,6 +1653,7 @@ exports.acceptExtraReimbursement = async (req, res) => {
     const parentId = getReimburseData.parentId;
     const user_fcm = getReimburseData["requester"]["fcmToken"];
     const extras = getReimburseData["extraAcceptance"];
+    const currentDate = moment().format("DD-MM-YYYY");
 
     // update extra status
     extras.status = status;
@@ -1639,6 +1665,7 @@ exports.acceptExtraReimbursement = async (req, res) => {
           childId: "",
           childDoc: "",
           realisasi: "",
+          extra_admin_approve: currentDate,
         },
         {
           where: {
@@ -1653,6 +1680,7 @@ exports.acceptExtraReimbursement = async (req, res) => {
         extraAcceptance: extras,
         extraAcceptanceStatus: status,
         status: status,
+        extra_admin_approve: currentDate,
       },
       {
         where: {

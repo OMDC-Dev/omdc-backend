@@ -41,9 +41,19 @@ function getDateValidFormat(inputDate) {
   }
 }
 
+function addAdminApprovalDate(data, iduser, tgl_approve) {
+  for (let i = 0; i < data.length; i++) {
+    if (data[i].iduser === iduser) {
+      data[i].tgl_approve = tgl_approve;
+      return; // Optional: Stop looping once the iduser is found and updated
+    }
+  }
+}
+
 module.exports = {
   generateRandomNumber,
   getFormattedDate,
   ubahDataById,
   getDateValidFormat,
+  addAdminApprovalDate,
 };

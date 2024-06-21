@@ -132,12 +132,23 @@ exports.get_pengajuan = async (req, res) => {
     cari,
     type,
     sort,
+    web,
   } = req.query;
 
   try {
     const userData = decodeToken(getToken(authorization));
 
     const whereClause = {};
+
+    if (web) {
+      whereClause[Op.or] = [
+        Sequelize.fn(
+          "JSON_CONTAINS",
+          Sequelize.col("accepted_by"),
+          `[{"iduser": "${userData?.iduser}"}]`
+        ),
+      ];
+    }
 
     // Tipe Pembayaran
     if (type) {

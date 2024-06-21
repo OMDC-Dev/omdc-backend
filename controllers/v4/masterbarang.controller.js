@@ -245,7 +245,7 @@ exports.update_barang = async (req, res) => {
     Responder(res, "OK", null, { success: true }, 200);
     return;
   } catch (error) {
-    console.log(error);
+    console.log("ERR", error);
     Responder(res, "ERROR", null, null, 400);
     return;
   }
