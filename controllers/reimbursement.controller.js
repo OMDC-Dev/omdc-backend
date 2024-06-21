@@ -268,6 +268,7 @@ exports.reimbursement = async (req, res) => {
 };
 
 exports.get_reimbursement = async (req, res) => {
+  console.log("CALLEDS");
   const { authorization } = req.headers;
   const { page = 1, limit = 10, monthyear, status, cari, type } = req.query;
 
@@ -314,7 +315,7 @@ exports.get_reimbursement = async (req, res) => {
     } else if (status === "00") {
       whereClause[Op.or] = [
         { status: "WAITING" },
-        { status_finance: "DONE", extraAcceptanceStatus: "WAITING" },
+        { status_finance: "WAITING", extraAcceptanceStatus: "WAITING" },
         {
           status: "APPROVED",
           status_finance: { [Op.ne]: "DONE" },
@@ -1163,7 +1164,12 @@ exports.get_super_reimbursement = async (req, res) => {
             },
           },
           {
-            nominal: {
+            requester_name: {
+              [Op.like]: `%${item}%`,
+            },
+          },
+          {
+            tipePembayaran: {
               [Op.like]: `%${item}%`,
             },
           },
@@ -1697,6 +1703,59 @@ exports.acceptExtraReimbursement = async (req, res) => {
     return;
   } catch (error) {
     console.log(error);
+    Responder(res, "ERROR", null, null, 500);
+    return;
+  }
+};
+
+exports.change_admin = async (req, res) => {
+  const { id } = req.params;
+  const { adminId } = req.query;
+  const { authorization } = req.headers;
+  try {
+    const getAdmin = await Admin.findOne({
+      where: {
+        iduser: adminId,
+      },
+    });
+
+    const adminData = await getAdmin["dataValues"];
+
+    await Reimbursement.update(
+      {
+        accepted_by: [
+          { iduser: adminId, nm_user: adminData.nm_user, status: "WAITING" },
+        ],
+      },
+      {
+        where: {
+          id: id,
+        },
+      }
+    );
+
+    // Get Admin fcm list
+    const getAdminFcmData = await User.findOne({
+      where: { iduser: adminId },
+    });
+
+    let adminFCM = "";
+
+    if (getAdminFcmData) {
+      const adminSession = await getAdminFcmData["dataValues"];
+      adminFCM = adminSession.fcmToken;
+    }
+
+    const userData = decodeToken(getToken(authorization));
+
+    sendSingleMessage(adminFCM, {
+      title: "Ada pengajuan request of payment baru!",
+      body: `${userData?.nm_user} telah mengajukan permintaan request of payment!`,
+    });
+
+    Responder(res, "OK", null, { success: true }, 200);
+    return;
+  } catch (error) {
     Responder(res, "ERROR", null, null, 500);
     return;
   }
