@@ -1118,6 +1118,8 @@ exports.get_super_reimbursement = async (req, res) => {
     cabang,
     bank,
     coa,
+    type,
+    finance,
   } = req.query;
 
   try {
@@ -1137,6 +1139,29 @@ exports.get_super_reimbursement = async (req, res) => {
       whereClause.createdAt = {
         [Op.between]: [startDateObj, endDateObj],
       };
+    }
+
+    // Tipe Pembayaran
+    if (type) {
+      if (type == "CASH") {
+        whereClause.payment_type = "CASH";
+      } else if (type == "TRANSFER") {
+        whereClause.payment_type = "TRANSFER";
+      }
+    }
+
+    // Finance Status Pembayaran
+    if (finance) {
+      console.log("HAS FINANCE FILTER", finance);
+      if (finance === "DONE") {
+        whereClause.status_finance = {
+          [Op.in]: ["DONE", "REJECTED"],
+        };
+      } else if (finance === "WAITING") {
+        whereClause.status_finance = {
+          [Op.notIn]: ["DONE", "REJECTED"],
+        };
+      }
     }
 
     if (cabang) {
