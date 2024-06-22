@@ -70,7 +70,7 @@ app.use(router);
 
 // simple route
 app.get("/", (req, res) => {
-  res.json({ message: "Reimbursement Apps Service v.0.9.3 - rev 4" });
+  res.json({ message: "Reimbursement Apps Service v.0.9.4" });
 });
 
 app.get("/version/:code", (req, res) => {

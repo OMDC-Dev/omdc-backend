@@ -181,6 +181,7 @@ exports.acceptMakerReimbursement = async (req, res) => {
     const getReimburseData = await getReimburse["dataValues"];
     const parentId = getReimburseData.parentId;
     const user_fcm = getReimburseData["requester"]["fcmToken"];
+    const currentDate = moment().format("DD-MM-YYYY");
 
     if (status == "REJECTED") {
       if (parentId) {
@@ -189,6 +190,7 @@ exports.acceptMakerReimbursement = async (req, res) => {
             childId: "",
             childDoc: "",
             realisasi: "",
+            maker_approve: currentDate,
           },
           {
             where: {
@@ -203,6 +205,7 @@ exports.acceptMakerReimbursement = async (req, res) => {
           makerStatus: status,
           maker_note: note,
           status: "REJECTED",
+          maker_approve: currentDate,
         },
         {
           where: {
@@ -251,7 +254,8 @@ exports.acceptMakerReimbursement = async (req, res) => {
         coa: coa,
         maker_note: note,
         makerStatus: status,
-        finance_bank: bank || "-",
+        finance_bank: bank,
+        maker_approve: currentDate,
       },
       {
         where: {

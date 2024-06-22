@@ -17,6 +17,12 @@ const suplier = require("../controllers/suplier.controller");
 const icon = require("../controllers/icon.controller");
 const maker = require("../controllers/maker.controller");
 const adminpb = require("../controllers/adminpb.controller");
+const grup = require("../controllers/v4/grup.controller");
+const kategory = require("../controllers/v4/kategory.controller");
+const kemasan = require("../controllers/v4/kemasan.controller");
+const satuan = require("../controllers/v4/satuan.controller");
+const masterbarang = require("../controllers/v4/masterbarang.controller");
+const invoice = require("../controllers/v4/invoice.controller");
 const { authenticateToken } = require("../utils/jwt");
 
 // routes
@@ -46,6 +52,11 @@ router.post("/reimbursement/extra/:id", reimbursement.acceptExtraReimbursement);
 router.get("/reimbursement/status/:id", reimbursement.get_status);
 router.get("/reimbursement/:id", reimbursement.get_detail);
 router.delete("/reimbursement/:id", reimbursement.cancel_upload);
+router.post("/reimbursement/update-admin/:id", reimbursement.change_admin);
+router.post(
+  "/reimbursement/reupload-file/:id",
+  reimbursement.reupload_attachment
+);
 
 // Bank
 router.get("/bank", bank.getBank);
@@ -130,5 +141,17 @@ router.post("/updateIcon", icon.updateIcon);
 router.post("/adminpb/:iduser", adminpb.add_admin);
 router.delete("/adminpb/:iduser", adminpb.delete_admin);
 router.get("/adminpb", adminpb.get_admin);
+
+// Master Barang
+router.get("/barang/grup", grup.getGrup);
+router.get("/barang/kategory", kategory.getKategory);
+router.get("/barang/kemasan", kemasan.getKemasan);
+router.get("/barang/satuan", satuan.getSatuan);
+router.get("/barang/cek-barkode/:barcode", masterbarang.cek_barkode);
+router.post("/barang/add", masterbarang.add_barang);
+router.post("/barang/update/:kode_barang", masterbarang.update_barang);
+
+// Invoice
+router.get("/invoice/:invoice", invoice.cekInvoice);
 
 module.exports = { router };

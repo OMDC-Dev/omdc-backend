@@ -121,6 +121,15 @@ module.exports = (sequelize, Sequelize) => {
     extraAcceptanceStatus: {
       type: Sequelize.STRING,
     },
+    maker_approve: {
+      type: Sequelize.STRING(255),
+    },
+    reviewer_approve: {
+      type: Sequelize.STRING(255),
+    },
+    extra_admin_approve: {
+      type: Sequelize.STRING(255),
+    },
   });
 
   return Reimbursement;

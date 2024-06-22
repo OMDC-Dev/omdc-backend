@@ -18,7 +18,7 @@ async function uploadToDrive(base64, fileName) {
     }
     console.log(data);
   } catch (error) {
-    console.log(error);
+    throw error;
   }
 }
 

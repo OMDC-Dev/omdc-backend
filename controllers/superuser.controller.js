@@ -132,20 +132,23 @@ exports.get_pengajuan = async (req, res) => {
     cari,
     type,
     sort,
+    web,
   } = req.query;
 
   try {
     const userData = decodeToken(getToken(authorization));
 
-    const whereClause = {
-      [Op.or]: [
+    const whereClause = {};
+
+    if (web) {
+      whereClause[Op.or] = [
         Sequelize.fn(
           "JSON_CONTAINS",
           Sequelize.col("accepted_by"),
           `[{"iduser": "${userData?.iduser}"}]`
         ),
-      ],
-    };
+      ];
+    }
 
     // Tipe Pembayaran
     if (type) {
@@ -159,22 +162,61 @@ exports.get_pengajuan = async (req, res) => {
     // Menambahkan filter berdasarkan status jika diberikan
     if (status) {
       if (status === "01") {
-        whereClause.status = { [Op.ne]: "WAITING" };
-        whereClause[Op.or].push(
-          { needExtraAcceptance: true },
+        whereClause[Op.or] = [
+          Sequelize.fn(
+            "JSON_CONTAINS",
+            Sequelize.col("accepted_by"),
+            `[{"iduser": "${userData?.iduser}"}]`
+          ),
+        ];
+
+        whereClause[Op.or] = [
           {
+            status: { [Op.ne]: "WAITING" },
+          },
+          {
+            [Op.or]: [
+              Sequelize.fn(
+                "JSON_CONTAINS",
+                Sequelize.col("accepted_by"),
+                `[{"iduser": "${userData?.iduser}", "status": "APPROVED"}]`
+              ),
+              Sequelize.fn(
+                "JSON_CONTAINS",
+                Sequelize.col("accepted_by"),
+                `[{"iduser": "${userData?.iduser}", "status": "REJECTED"}]`
+              ),
+            ],
+          },
+          {
+            needExtraAcceptance: true,
+            extraAcceptanceStatus: { [Op.ne]: "WAITING" },
             extraAcceptance: {
               iduser: userData.iduser,
-              status: { [Op.or]: ["APPROVED", "REJECTED"] },
+              status: { [Op.ne]: "WAITING" },
             },
-          }
-        );
+          },
+        ];
       } else if (status === "00") {
+        whereClause[Op.or] = [
+          Sequelize.fn(
+            "JSON_CONTAINS",
+            Sequelize.col("accepted_by"),
+            `[{"iduser": "${userData?.iduser}", "status": "WAITING"}]`
+          ),
+        ];
+
         whereClause.status = "WAITING";
-        whereClause[Op.or].push(
-          { needExtraAcceptance: true },
-          { extraAcceptance: { iduser: userData.iduser, status: "WAITING" } }
-        );
+
+        whereClause[Op.or].push({
+          status: "WAITING",
+          needExtraAcceptance: true,
+          extraAcceptanceStatus: "WAITING",
+          extraAcceptance: {
+            iduser: userData.iduser,
+            status: "WAITING",
+          },
+        });
       }
     } else {
       whereClause[Op.or].push(

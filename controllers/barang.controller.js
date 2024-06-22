@@ -53,12 +53,14 @@ exports.getCabangDetail = async (req, res) => {
 };
 
 exports.getBarang = async (req, res) => {
-  const { cari, page = 1, limit = 25 } = req.query;
+  const { cari, page = 1, limit = 25, showAll } = req.query;
 
   try {
-    const whereClause = {
-      sts_brg: "AKTIF",
-    };
+    const whereClause = {};
+
+    if (!showAll) {
+      whereClause.sts_brg = "AKTIF";
+    }
 
     // Menghitung offset berdasarkan halaman dan batasan
     const offset = (page - 1) * limit;

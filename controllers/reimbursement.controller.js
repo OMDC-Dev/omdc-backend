@@ -7,6 +7,7 @@ const {
   getFormattedDate,
   ubahDataById,
   getDateValidFormat,
+  addAdminApprovalDate,
 } = require("../utils/utils");
 const moment = require("moment");
 require("moment/locale/id");
@@ -22,6 +23,7 @@ const M_Cabang = db_user.cabang;
 const Reimbursement = db_user.reimbursement;
 const User = db_user.ruser;
 const Admin = db_user.superuser;
+const INVOICE = db_user.invoice;
 
 // Get all cabang list
 exports.cabang = async (req, res) => {
@@ -225,6 +227,12 @@ exports.reimbursement = async (req, res) => {
       extraAcceptanceStatus: "IDLE",
     })
       .then(async (data) => {
+        // Handle Invoice
+        item.map((item) => {
+          INVOICE.create({ ...item, nama: item.name });
+        });
+
+        // Parent ID
         if (parentId) {
           await Reimbursement.update(
             { childId: data?.id, childDoc: data?.no_doc },
@@ -261,6 +269,7 @@ exports.reimbursement = async (req, res) => {
 };
 
 exports.get_reimbursement = async (req, res) => {
+  console.log("CALLEDS");
   const { authorization } = req.headers;
   const { page = 1, limit = 10, monthyear, status, cari, type } = req.query;
 
@@ -307,7 +316,7 @@ exports.get_reimbursement = async (req, res) => {
     } else if (status === "00") {
       whereClause[Op.or] = [
         { status: "WAITING" },
-        { status_finance: "DONE", extraAcceptanceStatus: "WAITING" },
+        { status_finance: "WAITING", extraAcceptanceStatus: "WAITING" },
         {
           status: "APPROVED",
           status_finance: { [Op.ne]: "DONE" },
@@ -434,6 +443,10 @@ exports.acceptance = async (req, res) => {
     const parentId = r_datas["parentId"];
     const childId = r_datas["childId"];
     const extNote = r_datas.note;
+
+    const currentDate = moment().format("DD-MM-YYYY");
+
+    addAdminApprovalDate(acceptance_by, userId, currentDate);
 
     if (status == "FOWARDED") {
       ubahDataById(acceptance_by, userId, "iduser", "status", "APPROVED");
@@ -621,6 +634,11 @@ exports.get_status = async (req, res) => {
         "needExtraAcceptance",
         "extraAcceptance",
         "extraAcceptanceStatus",
+        "reviewer_approve",
+        "maker_approve",
+        "extra_admin_approve",
+        "attachment",
+        "file_info",
       ],
     });
 
@@ -687,13 +705,25 @@ exports.get_status = async (req, res) => {
     const adminDONE = adminPath.every((item) => item.status == "APPROVED");
 
     if (adminDONE) {
-      adminPath.push({ nm_user: "Reviewer", status: data.reviewStatus });
+      adminPath.push({
+        nm_user: "Reviewer",
+        status: data.reviewStatus,
+        tgl_approve: data.reviewer_approve,
+      });
     }
 
     if (data.reviewStatus === "APPROVED") {
-      adminPath.push({ nm_user: "Maker", status: data.makerStatus });
+      adminPath.push({
+        nm_user: "Maker",
+        status: data.makerStatus,
+        tgl_approve: data.maker_approve,
+      });
       if (data.makerStatus === "APPROVED") {
-        adminPath.push({ nm_user: "Finance", status: data.status_finance });
+        adminPath.push({
+          nm_user: "Finance",
+          status: data.status_finance,
+          tgl_approve: data.finance_by.acceptDate,
+        });
       }
     }
     if (data.reviewStatus !== "APPROVED") {
@@ -710,6 +740,7 @@ exports.get_status = async (req, res) => {
       adminPath.push({
         nm_user: data.extraAcceptance.nm_user,
         status: data.extraAcceptance.status,
+        tgl_approve: data.extra_admin_approve,
       });
     }
 
@@ -1087,25 +1118,50 @@ exports.get_super_reimbursement = async (req, res) => {
     cabang,
     bank,
     coa,
+    type,
+    finance,
   } = req.query;
 
   try {
     const whereClause = {};
 
-    const validStartDate = getDateValidFormat(startDate);
-    const validEndDate = getDateValidFormat(endDate);
-
-    const startDateObj = moment(validStartDate, "YYYY-MM-DD", true)
-      .startOf("day")
-      .toDate();
-    const endDateObj = moment(validEndDate, "YYYY-MM-DD", true)
-      .endOf("day")
-      .toDate();
-
     if (startDate && endDate) {
+      const validStartDate = getDateValidFormat(startDate);
+      const validEndDate = getDateValidFormat(endDate);
+
+      const startDateObj = moment(validStartDate, "YYYY-MM-DD", true)
+        .startOf("day")
+        .toDate();
+      const endDateObj = moment(validEndDate, "YYYY-MM-DD", true)
+        .endOf("day")
+        .toDate();
+
       whereClause.createdAt = {
         [Op.between]: [startDateObj, endDateObj],
       };
+    }
+
+    // Tipe Pembayaran
+    if (type) {
+      if (type == "CASH") {
+        whereClause.payment_type = "CASH";
+      } else if (type == "TRANSFER") {
+        whereClause.payment_type = "TRANSFER";
+      }
+    }
+
+    // Finance Status Pembayaran
+    if (finance) {
+      console.log("HAS FINANCE FILTER", finance);
+      if (finance === "DONE") {
+        whereClause.status_finance = {
+          [Op.in]: ["DONE", "REJECTED"],
+        };
+      } else if (finance === "WAITING") {
+        whereClause.status_finance = {
+          [Op.notIn]: ["DONE", "REJECTED"],
+        };
+      }
     }
 
     if (cabang) {
@@ -1156,7 +1212,12 @@ exports.get_super_reimbursement = async (req, res) => {
             },
           },
           {
-            nominal: {
+            requester_name: {
+              [Op.like]: `%${item}%`,
+            },
+          },
+          {
+            tipePembayaran: {
               [Op.like]: `%${item}%`,
             },
           },
@@ -1513,6 +1574,7 @@ exports.acceptReviewReimbursementData = async (req, res) => {
     const getReimburseData = await getReimburse["dataValues"];
     const parentId = getReimburseData.parentId;
     const user_fcm = getReimburseData["requester"]["fcmToken"];
+    const currentDate = moment().format("DD-MM-YYYY");
 
     if (status == "REJECTED") {
       if (parentId) {
@@ -1521,6 +1583,7 @@ exports.acceptReviewReimbursementData = async (req, res) => {
             childId: "",
             childDoc: "",
             realisasi: "",
+            reviewer_approve: currentDate,
           },
           {
             where: {
@@ -1535,6 +1598,7 @@ exports.acceptReviewReimbursementData = async (req, res) => {
           reviewStatus: status,
           review_note: note,
           status: "REJECTED",
+          reviewer_approve: currentDate,
         },
         {
           where: {
@@ -1553,7 +1617,7 @@ exports.acceptReviewReimbursementData = async (req, res) => {
     }
     // =============== ADMIN SECTION
 
-    // === HANDLE NOTIF TO FINANCE
+    // === HANDLE NOTIF TO MAKER
     const getMakerSession = await User.findAll({
       where: {
         type: "MAKER",
@@ -1583,6 +1647,7 @@ exports.acceptReviewReimbursementData = async (req, res) => {
         coa: coa,
         review_note: note,
         reviewStatus: status,
+        reviewer_approve: currentDate,
       },
       {
         where: {
@@ -1615,6 +1680,7 @@ exports.acceptExtraReimbursement = async (req, res) => {
     const parentId = getReimburseData.parentId;
     const user_fcm = getReimburseData["requester"]["fcmToken"];
     const extras = getReimburseData["extraAcceptance"];
+    const currentDate = moment().format("DD-MM-YYYY");
 
     // update extra status
     extras.status = status;
@@ -1626,6 +1692,7 @@ exports.acceptExtraReimbursement = async (req, res) => {
           childId: "",
           childDoc: "",
           realisasi: "",
+          extra_admin_approve: currentDate,
         },
         {
           where: {
@@ -1640,6 +1707,7 @@ exports.acceptExtraReimbursement = async (req, res) => {
         extraAcceptance: extras,
         extraAcceptanceStatus: status,
         status: status,
+        extra_admin_approve: currentDate,
       },
       {
         where: {
@@ -1687,6 +1755,99 @@ exports.acceptExtraReimbursement = async (req, res) => {
       },
       200
     );
+    return;
+  } catch (error) {
+    console.log(error);
+    Responder(res, "ERROR", null, null, 500);
+    return;
+  }
+};
+
+exports.change_admin = async (req, res) => {
+  const { id } = req.params;
+  const { adminId } = req.query;
+  const { authorization } = req.headers;
+  try {
+    const getAdmin = await Admin.findOne({
+      where: {
+        iduser: adminId,
+      },
+    });
+
+    const adminData = await getAdmin["dataValues"];
+
+    await Reimbursement.update(
+      {
+        accepted_by: [
+          { iduser: adminId, nm_user: adminData.nm_user, status: "WAITING" },
+        ],
+      },
+      {
+        where: {
+          id: id,
+        },
+      }
+    );
+
+    // Get Admin fcm list
+    const getAdminFcmData = await User.findOne({
+      where: { iduser: adminId },
+    });
+
+    let adminFCM = "";
+
+    if (getAdminFcmData) {
+      const adminSession = await getAdminFcmData["dataValues"];
+      adminFCM = adminSession.fcmToken;
+    }
+
+    const userData = decodeToken(getToken(authorization));
+
+    sendSingleMessage(adminFCM, {
+      title: "Ada pengajuan request of payment baru!",
+      body: `${userData?.nm_user} telah mengajukan permintaan request of payment!`,
+    });
+
+    Responder(res, "OK", null, { success: true }, 200);
+    return;
+  } catch (error) {
+    Responder(res, "ERROR", null, null, 500);
+    return;
+  }
+};
+
+exports.reupload_attachment = async (req, res) => {
+  const { file, attachment } = req.body;
+  const { id } = req.params;
+
+  try {
+    let uploadAttachment;
+
+    console.log("FILE", file);
+
+    if (file.type !== "application/pdf") {
+      console.log("IMAGE FILE");
+      const upload = await uploadImagesCloudinary(attachment);
+      uploadAttachment = upload.secure_url;
+    } else {
+      console.log("PDF File");
+      const upload = await uploadToDrive(attachment, file.name);
+      uploadAttachment = upload;
+    }
+
+    await Reimbursement.update(
+      {
+        attachment: uploadAttachment,
+        file_info: file,
+      },
+      {
+        where: {
+          id: id,
+        },
+      }
+    );
+
+    Responder(res, "OK", null, { success: true }, 200);
     return;
   } catch (error) {
     console.log(error);
