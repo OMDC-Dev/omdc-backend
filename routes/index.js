@@ -53,6 +53,10 @@ router.get("/reimbursement/status/:id", reimbursement.get_status);
 router.get("/reimbursement/:id", reimbursement.get_detail);
 router.delete("/reimbursement/:id", reimbursement.cancel_upload);
 router.post("/reimbursement/update-admin/:id", reimbursement.change_admin);
+router.post(
+  "/reimbursement/reupload-file/:id",
+  reimbursement.reupload_attachment
+);
 
 // Bank
 router.get("/bank", bank.getBank);

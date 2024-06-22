@@ -17,7 +17,7 @@ async function uploadImagesCloudinary(base64) {
     );
     return uploadResponse;
   } catch (error) {
-    console.log(error);
+    throw error;
   }
 }
 

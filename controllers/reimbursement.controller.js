@@ -637,6 +637,8 @@ exports.get_status = async (req, res) => {
         "reviewer_approve",
         "maker_approve",
         "extra_admin_approve",
+        "attachment",
+        "file_info",
       ],
     });
 
@@ -1784,6 +1786,46 @@ exports.change_admin = async (req, res) => {
     Responder(res, "OK", null, { success: true }, 200);
     return;
   } catch (error) {
+    Responder(res, "ERROR", null, null, 500);
+    return;
+  }
+};
+
+exports.reupload_attachment = async (req, res) => {
+  const { file, attachment } = req.body;
+  const { id } = req.params;
+
+  try {
+    let uploadAttachment;
+
+    console.log("FILE", file);
+
+    if (file.type !== "application/pdf") {
+      console.log("IMAGE FILE");
+      const upload = await uploadImagesCloudinary(attachment);
+      uploadAttachment = upload.secure_url;
+    } else {
+      console.log("PDF File");
+      const upload = await uploadToDrive(attachment, file.name);
+      uploadAttachment = upload;
+    }
+
+    await Reimbursement.update(
+      {
+        attachment: uploadAttachment,
+        file_info: file,
+      },
+      {
+        where: {
+          id: id,
+        },
+      }
+    );
+
+    Responder(res, "OK", null, { success: true }, 200);
+    return;
+  } catch (error) {
+    console.log(error);
     Responder(res, "ERROR", null, null, 500);
     return;
   }
