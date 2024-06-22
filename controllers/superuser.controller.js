@@ -163,29 +163,39 @@ exports.get_pengajuan = async (req, res) => {
     if (status) {
       if (status === "01") {
         whereClause[Op.or] = [
-          Sequelize.fn(
-            "JSON_CONTAINS",
-            Sequelize.col("accepted_by"),
-            `[{"iduser": "${userData?.iduser}"}]`
-          ),
-        ];
-
-        whereClause[Op.or] = [
           {
-            status: { [Op.ne]: "WAITING" },
+            [Op.and]: [
+              Sequelize.fn(
+                "JSON_CONTAINS",
+                Sequelize.col("accepted_by"),
+                `[{"iduser": "${userData?.iduser}"}]`
+              ),
+              {
+                status: { [Op.ne]: "WAITING" },
+              },
+            ],
           },
           {
-            [Op.or]: [
+            [Op.and]: [
               Sequelize.fn(
                 "JSON_CONTAINS",
                 Sequelize.col("accepted_by"),
-                `[{"iduser": "${userData?.iduser}", "status": "APPROVED"}]`
+                `[{"iduser": "${userData?.iduser}"}]`
               ),
-              Sequelize.fn(
-                "JSON_CONTAINS",
-                Sequelize.col("accepted_by"),
-                `[{"iduser": "${userData?.iduser}", "status": "REJECTED"}]`
-              ),
+              {
+                [Op.or]: [
+                  Sequelize.fn(
+                    "JSON_CONTAINS",
+                    Sequelize.col("accepted_by"),
+                    `[{"iduser": "${userData?.iduser}", "status": "APPROVED"}]`
+                  ),
+                  Sequelize.fn(
+                    "JSON_CONTAINS",
+                    Sequelize.col("accepted_by"),
+                    `[{"iduser": "${userData?.iduser}", "status": "REJECTED"}]`
+                  ),
+                ],
+              },
             ],
           },
           {
@@ -198,25 +208,29 @@ exports.get_pengajuan = async (req, res) => {
           },
         ];
       } else if (status === "00") {
+        // NORMAL ACC
         whereClause[Op.or] = [
-          Sequelize.fn(
-            "JSON_CONTAINS",
-            Sequelize.col("accepted_by"),
-            `[{"iduser": "${userData?.iduser}", "status": "WAITING"}]`
-          ),
-        ];
-
-        whereClause.status = "WAITING";
-
-        whereClause[Op.or].push({
-          status: "WAITING",
-          needExtraAcceptance: true,
-          extraAcceptanceStatus: "WAITING",
-          extraAcceptance: {
-            iduser: userData.iduser,
-            status: "WAITING",
+          // Kondisi NORMAL ACC
+          {
+            [Op.and]: [
+              Sequelize.fn(
+                "JSON_CONTAINS",
+                Sequelize.col("accepted_by"),
+                `[{"iduser": "${userData?.iduser}", "status": "WAITING"}]`
+              ),
+              { status: "WAITING" },
+            ],
           },
-        });
+          // Kondisi EXTRA ACC
+          {
+            needExtraAcceptance: true,
+            extraAcceptanceStatus: "WAITING",
+            extraAcceptance: {
+              iduser: userData.iduser,
+              status: "WAITING",
+            },
+          },
+        ];
       }
     } else {
       whereClause[Op.or].push(
