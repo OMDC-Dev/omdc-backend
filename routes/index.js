@@ -152,6 +152,6 @@ router.post("/barang/add", masterbarang.add_barang);
 router.post("/barang/update/:kode_barang", masterbarang.update_barang);
 
 // Invoice
-router.get("/invoice/:invoice", invoice.cekInvoice);
+router.get("/invoice", invoice.cekInvoice);
 
 module.exports = { router };

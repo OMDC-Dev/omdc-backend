@@ -7,6 +7,10 @@ module.exports = (sequelize, Sequelize) => {
         allowNull: false,
         primaryKey: true,
       },
+      rop_id: {
+        type: Sequelize.INTEGER,
+        allowNull: false,
+      },
       nama: {
         type: Sequelize.STRING,
         allowNull: false,

@@ -29,6 +29,7 @@ exports.get_reimbursement = async (req, res) => {
     type,
     typePembayaran,
     sort,
+    statusCA,
   } = req.query;
 
   try {
@@ -43,9 +44,26 @@ exports.get_reimbursement = async (req, res) => {
       }
     }
 
+    // status CA
+    if (statusCA) {
+      if (statusCA == "DONE") {
+        whereClause[Op.and] = [
+          { status_finance: "DONE" },
+          { jenis_reimbursement: "Cash Advance" },
+          { status_finance_child: "DONE" },
+        ];
+      } else {
+        whereClause[Op.and] = [
+          { status_finance: "DONE" },
+          { jenis_reimbursement: "Cash Advance" },
+          { status_finance_child: { [Op.ne]: "DONE" } },
+        ];
+      }
+    }
+
     if (type) {
-      whereClause.makerStatus =
-        type === "WAITING" ? "IDLE" : { [Op.or]: ["APPROVED", "REJECTED"] };
+      // whereClause.makerStatus =
+      //   type === "WAITING" ? "IDLE" : { [Op.or]: ["APPROVED", "REJECTED"] };
 
       if (type == "WAITING") {
         whereClause[Op.or] = [
@@ -54,7 +72,7 @@ exports.get_reimbursement = async (req, res) => {
           },
           {
             [Op.and]: [
-              { makerStatus: { [Op.or]: ["APPROVED", "REJECTED"] } },
+              { makerStatus: "APPROVED" },
               { status_finance: "DONE" },
               { jenis_reimbursement: "Cash Advance" },
               { status_finance_child: "IDLE" },

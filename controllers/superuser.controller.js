@@ -133,6 +133,7 @@ exports.get_pengajuan = async (req, res) => {
     type,
     sort,
     web,
+    statusCA,
   } = req.query;
 
   try {
@@ -148,6 +149,33 @@ exports.get_pengajuan = async (req, res) => {
           `[{"iduser": "${userData?.iduser}"}]`
         ),
       ];
+
+      // status CA
+      if (statusCA) {
+        if (statusCA == "DONE") {
+          whereClause[Op.and] = [
+            Sequelize.fn(
+              "JSON_CONTAINS",
+              Sequelize.col("accepted_by"),
+              `[{"iduser": "${userData?.iduser}"}]`
+            ),
+            { status_finance: "DONE" },
+            { jenis_reimbursement: "Cash Advance" },
+            { status_finance_child: "DONE" },
+          ];
+        } else {
+          whereClause[Op.and] = [
+            Sequelize.fn(
+              "JSON_CONTAINS",
+              Sequelize.col("accepted_by"),
+              `[{"iduser": "${userData?.iduser}"}]`
+            ),
+            { status_finance: "DONE" },
+            { jenis_reimbursement: "Cash Advance" },
+            { status_finance_child: { [Op.ne]: "DONE" } },
+          ];
+        }
+      }
     }
 
     // Tipe Pembayaran
@@ -372,6 +400,7 @@ exports.get_pengajuan_finance = async (req, res) => {
     cari,
     type,
     sort,
+    statusCA,
   } = req.query;
 
   try {
@@ -385,6 +414,23 @@ exports.get_pengajuan_finance = async (req, res) => {
         whereClause.payment_type = "CASH";
       } else if (type == "TRANSFER") {
         whereClause.payment_type = "TRANSFER";
+      }
+    }
+
+    // status CA
+    if (statusCA) {
+      if (statusCA == "DONE") {
+        whereClause[Op.and] = [
+          { status_finance: "DONE" },
+          { jenis_reimbursement: "Cash Advance" },
+          { status_finance_child: "DONE" },
+        ];
+      } else {
+        whereClause[Op.and] = [
+          { status_finance: "DONE" },
+          { jenis_reimbursement: "Cash Advance" },
+          { status_finance_child: { [Op.ne]: "DONE" } },
+        ];
       }
     }
 
