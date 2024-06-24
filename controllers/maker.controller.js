@@ -115,6 +115,11 @@ exports.get_reimbursement = async (req, res) => {
       const searchSplit = cari.split(" ");
       const searchConditions = searchSplit.map((item) => ({
         [Op.or]: [
+          Sequelize.fn(
+            "JSON_CONTAINS",
+            Sequelize.col("item"),
+            `[{"invoice": "${item}"}]`
+          ),
           {
             jenis_reimbursement: {
               [Op.like]: `%${item}%`,
