@@ -1,4 +1,4 @@
-const { Op, Sequelize } = require("sequelize");
+const { Op, Sequelize, literal } = require("sequelize");
 const db_user = require("../db/user.db");
 const { decodeToken, getToken } = require("../utils/jwt");
 const { Responder } = require("../utils/responder");
@@ -229,7 +229,7 @@ exports.reimbursement = async (req, res) => {
       .then(async (data) => {
         // Handle Invoice
         item.map((item) => {
-          INVOICE.create({ ...item, nama: item.name });
+          INVOICE.create({ ...item, nama: item.name, rop_id: data.id });
         });
 
         // Parent ID
@@ -271,7 +271,15 @@ exports.reimbursement = async (req, res) => {
 exports.get_reimbursement = async (req, res) => {
   console.log("CALLEDS");
   const { authorization } = req.headers;
-  const { page = 1, limit = 10, monthyear, status, cari, type } = req.query;
+  const {
+    page = 1,
+    limit = 10,
+    monthyear,
+    status,
+    cari,
+    type,
+    statusCA,
+  } = req.query;
 
   try {
     const userData = decodeToken(getToken(authorization));
@@ -288,6 +296,23 @@ exports.get_reimbursement = async (req, res) => {
       whereClause.createdAt = {
         [Op.between]: [startDate, endDate],
       };
+    }
+
+    // status CA
+    if (statusCA) {
+      if (statusCA == "DONE") {
+        whereClause[Op.and] = [
+          { status_finance: "DONE" },
+          { jenis_reimbursement: "Cash Advance" },
+          { status_finance_child: "DONE" },
+        ];
+      } else {
+        whereClause[Op.and] = [
+          { status_finance: "DONE" },
+          { jenis_reimbursement: "Cash Advance" },
+          { status_finance_child: { [Op.ne]: "DONE" } },
+        ];
+      }
     }
 
     // Tipe Pembayaran
@@ -334,6 +359,11 @@ exports.get_reimbursement = async (req, res) => {
       const searchSplit = cari.split(" ");
       const searchConditions = searchSplit.map((item) => ({
         [Op.or]: [
+          Sequelize.fn(
+            "JSON_CONTAINS",
+            Sequelize.col("item"),
+            `[{"invoice": "${item}"}]`
+          ),
           {
             jenis_reimbursement: {
               [Op.like]: `%${item}%`,
@@ -1120,6 +1150,7 @@ exports.get_super_reimbursement = async (req, res) => {
     coa,
     type,
     finance,
+    statusCA,
   } = req.query;
 
   try {
@@ -1139,6 +1170,23 @@ exports.get_super_reimbursement = async (req, res) => {
       whereClause.createdAt = {
         [Op.between]: [startDateObj, endDateObj],
       };
+    }
+
+    // status CA
+    if (statusCA) {
+      if (statusCA == "DONE") {
+        whereClause[Op.and] = [
+          { status_finance: "DONE" },
+          { jenis_reimbursement: "Cash Advance" },
+          { status_finance_child: "DONE" },
+        ];
+      } else {
+        whereClause[Op.and] = [
+          { status_finance: "DONE" },
+          { jenis_reimbursement: "Cash Advance" },
+          { status_finance_child: { [Op.ne]: "DONE" } },
+        ];
+      }
     }
 
     // Tipe Pembayaran
@@ -1196,6 +1244,11 @@ exports.get_super_reimbursement = async (req, res) => {
       const searchSplit = cari.split(" ");
       const searchConditions = searchSplit.map((item) => ({
         [Op.or]: [
+          Sequelize.fn(
+            "JSON_CONTAINS",
+            Sequelize.col("item"),
+            `[{"invoice": "${item}"}]`
+          ),
           {
             jenis_reimbursement: {
               [Op.like]: `%${item}%`,
@@ -1292,6 +1345,8 @@ exports.get_super_reimbursement_report = async (req, res) => {
     cabang,
     bank,
     tipe,
+    finance,
+    tipePeriode,
   } = req.query;
 
   try {
@@ -1304,11 +1359,33 @@ exports.get_super_reimbursement_report = async (req, res) => {
 
     console.log(endDate, startDate);
 
-    const whereClause = {
-      createdAt: {
+    const whereClause = {};
+
+    if (tipePeriode) {
+      if (tipePeriode == "USER") {
+        whereClause.createdAt = {
+          [Op.between]: [startDateObj, endDateObj],
+        };
+      } else {
+        // Konversi startDate dan endDate menjadi string dalam format "DD-MM-YYYY"
+        const startDateStr = moment(startDate).format("DD-MM-YYYY");
+        const endDateStr = moment(endDate).format("DD-MM-YYYY");
+        whereClause.maker_approve = {
+          [Op.and]: [
+            literal(
+              `STR_TO_DATE(maker_approve, '%d-%m-%Y') >= STR_TO_DATE('${startDateStr}', '%d-%m-%Y')`
+            ),
+            literal(
+              `STR_TO_DATE(maker_approve, '%d-%m-%Y') <= STR_TO_DATE('${endDateStr}', '%d-%m-%Y')`
+            ),
+          ],
+        };
+      }
+    } else {
+      whereClause.createdAt = {
         [Op.between]: [startDateObj, endDateObj],
-      },
-    };
+      };
+    }
 
     if (cabang) {
       whereClause.kode_cabang = {
@@ -1322,6 +1399,20 @@ exports.get_super_reimbursement_report = async (req, res) => {
 
     if (tipe) {
       whereClause.payment_type = tipe.toUpperCase();
+    }
+
+    // Finance Status Pembayaran
+    if (finance) {
+      console.log("HAS FINANCE FILTER", finance);
+      if (finance === "DONE") {
+        whereClause.status_finance = {
+          [Op.in]: ["DONE", "REJECTED"],
+        };
+      } else if (finance === "WAITING") {
+        whereClause.status_finance = {
+          [Op.notIn]: ["DONE", "REJECTED"],
+        };
+      }
     }
 
     // Menambahkan pengurutan berdasarkan tipePembayaran
@@ -1363,6 +1454,8 @@ exports.get_super_reimbursement_report = async (req, res) => {
         "finance_bank",
         "createdAt",
         "attachment",
+        "maker_approve",
+        "reviewer_approve",
       ],
     });
 
@@ -1410,6 +1503,7 @@ exports.get_review_reimbursement = async (req, res) => {
     type,
     typePembayaran,
     sort,
+    statusCA,
   } = req.query;
 
   try {
@@ -1424,17 +1518,73 @@ exports.get_review_reimbursement = async (req, res) => {
       }
     }
 
+    // status CA
+    if (statusCA) {
+      if (statusCA == "DONE") {
+        whereClause[Op.and] = [
+          { status_finance: "DONE" },
+          { jenis_reimbursement: "Cash Advance" },
+          { status_finance_child: "DONE" },
+        ];
+      } else {
+        whereClause[Op.and] = [
+          { status_finance: "DONE" },
+          { jenis_reimbursement: "Cash Advance" },
+          { status_finance_child: { [Op.ne]: "DONE" } },
+        ];
+      }
+    }
+
     if (type) {
       // whereClause.reviewStatus =
       //   type === "WAITING" ? {[Op.and]: ["IDLE"]} : { [Op.or]: ["APPROVED", "REJECTED"] };
 
+      // if (type == "WAITING") {
+      //   whereClause[Op.and] = [
+      //     { reviewStatus: "IDLE" },
+      //     { status: "APPROVED" },
+      //   ];
+      // } else {
+      //   whereClause.reviewStatus = { [Op.or]: ["APPROVED", "REJECTED"] };
+      // }
       if (type == "WAITING") {
-        whereClause[Op.and] = [
-          { reviewStatus: "IDLE" },
-          { status: "APPROVED" },
+        whereClause[Op.or] = [
+          {
+            [Op.and]: [
+              {
+                reviewStatus: "IDLE",
+              },
+              {
+                status: "APPROVED",
+              },
+            ],
+          },
+          {
+            [Op.and]: [
+              { reviewStatus: "APPROVED" },
+              { status_finance: "DONE" },
+              { jenis_reimbursement: "Cash Advance" },
+              { status_finance_child: "IDLE" },
+            ],
+          },
         ];
       } else {
-        whereClause.reviewStatus = { [Op.or]: ["APPROVED", "REJECTED"] };
+        whereClause[Op.or] = [
+          {
+            [Op.and]: [
+              { reviewStatus: { [Op.or]: ["APPROVED", "REJECTED"] } },
+              { jenis_reimbursement: { [Op.ne]: "Cash Advance" } },
+            ],
+          },
+          {
+            [Op.and]: [
+              { reviewStatus: "APPROVED" },
+              { status_finance: "DONE" },
+              { jenis_reimbursement: "Cash Advance" },
+              { status_finance_child: "DONE" },
+            ],
+          },
+        ];
       }
     } else {
       console.log("NO TYPE");
@@ -1457,6 +1607,11 @@ exports.get_review_reimbursement = async (req, res) => {
       const searchSplit = cari.split(" ");
       const searchConditions = searchSplit.map((item) => ({
         [Op.or]: [
+          Sequelize.fn(
+            "JSON_CONTAINS",
+            Sequelize.col("item"),
+            `[{"invoice": "${item}"}]`
+          ),
           {
             jenis_reimbursement: {
               [Op.like]: `%${item}%`,

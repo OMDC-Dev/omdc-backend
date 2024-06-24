@@ -29,6 +29,7 @@ exports.get_reimbursement = async (req, res) => {
     type,
     typePembayaran,
     sort,
+    statusCA,
   } = req.query;
 
   try {
@@ -43,9 +44,59 @@ exports.get_reimbursement = async (req, res) => {
       }
     }
 
+    // status CA
+    if (statusCA) {
+      if (statusCA == "DONE") {
+        whereClause[Op.and] = [
+          { status_finance: "DONE" },
+          { jenis_reimbursement: "Cash Advance" },
+          { status_finance_child: "DONE" },
+        ];
+      } else {
+        whereClause[Op.and] = [
+          { status_finance: "DONE" },
+          { jenis_reimbursement: "Cash Advance" },
+          { status_finance_child: { [Op.ne]: "DONE" } },
+        ];
+      }
+    }
+
     if (type) {
-      whereClause.makerStatus =
-        type === "WAITING" ? "IDLE" : { [Op.or]: ["APPROVED", "REJECTED"] };
+      // whereClause.makerStatus =
+      //   type === "WAITING" ? "IDLE" : { [Op.or]: ["APPROVED", "REJECTED"] };
+
+      if (type == "WAITING") {
+        whereClause[Op.or] = [
+          {
+            makerStatus: "IDLE",
+          },
+          {
+            [Op.and]: [
+              { makerStatus: "APPROVED" },
+              { status_finance: "DONE" },
+              { jenis_reimbursement: "Cash Advance" },
+              { status_finance_child: "IDLE" },
+            ],
+          },
+        ];
+      } else {
+        whereClause[Op.or] = [
+          {
+            [Op.and]: [
+              { makerStatus: { [Op.or]: ["APPROVED", "REJECTED"] } },
+              { jenis_reimbursement: { [Op.ne]: "Cash Advance" } },
+            ],
+          },
+          {
+            [Op.and]: [
+              { makerStatus: "APPROVED" },
+              { status_finance: "DONE" },
+              { jenis_reimbursement: "Cash Advance" },
+              { status_finance_child: "DONE" },
+            ],
+          },
+        ];
+      }
     }
 
     if (monthyear) {
@@ -64,6 +115,11 @@ exports.get_reimbursement = async (req, res) => {
       const searchSplit = cari.split(" ");
       const searchConditions = searchSplit.map((item) => ({
         [Op.or]: [
+          Sequelize.fn(
+            "JSON_CONTAINS",
+            Sequelize.col("item"),
+            `[{"invoice": "${item}"}]`
+          ),
           {
             jenis_reimbursement: {
               [Op.like]: `%${item}%`,

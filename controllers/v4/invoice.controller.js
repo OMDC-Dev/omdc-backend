@@ -3,12 +3,14 @@ const { Responder } = require("../../utils/responder");
 const INVOICE = db.invoice;
 
 exports.cekInvoice = async (req, res) => {
-  const { invoice } = req.params;
+  const { inv } = req.query;
+
+  console.log("INV", inv);
 
   try {
     const getInv = await INVOICE.findOne({
       where: {
-        invoice: invoice,
+        invoice: inv,
       },
     });
 
@@ -20,6 +22,7 @@ exports.cekInvoice = async (req, res) => {
     Responder(res, "OK", null, { success: true }, 200);
     return;
   } catch (error) {
+    console.log(error);
     Responder(res, "ERROR", null, null, 400);
     return;
   }
