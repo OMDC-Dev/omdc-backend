@@ -15,7 +15,7 @@ const Admin = db_user.superuser;
 const Akses = db_user.akses;
 
 exports.login = async (req, res) => {
-  const { iduser, password, fcmToken } = req.body;
+  const { iduser, password, fcmToken, isWeb } = req.body;
   // validate request
   if (!iduser || !password) {
     return Responder(
@@ -98,7 +98,7 @@ exports.login = async (req, res) => {
   if (getSession) {
     const existingUser = await getSession["dataValues"];
 
-    if (existingUser.userToken) {
+    if (existingUser.userToken && !isWeb) {
       return Responder(
         res,
         "ERROR",
@@ -211,7 +211,7 @@ exports.completeUser = async (req, res) => {
 
 // login as admin
 async function loginAsAdmin(req, res, admin, fcmToken) {
-  const { iduser, password } = req.body;
+  const { iduser, password, isWeb } = req.body;
 
   const adminData = admin["dataValues"];
 
@@ -251,7 +251,7 @@ async function loginAsAdmin(req, res, admin, fcmToken) {
   if (getSession) {
     const existingUser = await getSession["dataValues"];
 
-    if (existingUser.userToken) {
+    if (existingUser.userToken && !isWeb) {
       return Responder(
         res,
         "ERROR",
@@ -408,8 +408,15 @@ exports.updatePw = async (req, res) => {
 
 exports.logout = async (req, res) => {
   const { authorization } = req.headers;
+  const { isWeb } = req.query;
   try {
     const tokenData = decodeToken(getToken(authorization));
+
+    if (isWeb) {
+      Responder(res, "OK", null, { message: "Sukses logout!" }, 200);
+      return;
+    }
+
     return await R_User.update(
       { userToken: "" },
       {
