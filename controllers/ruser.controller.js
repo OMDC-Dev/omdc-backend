@@ -98,15 +98,15 @@ exports.login = async (req, res) => {
   if (getSession) {
     const existingUser = await getSession["dataValues"];
 
-    if (existingUser.userToken && !isWeb) {
-      return Responder(
-        res,
-        "ERROR",
-        "Pengguna sudah login ditempat lain.",
-        null,
-        404
-      );
-    }
+    // if (existingUser.userToken && !isWeb) {
+    //   return Responder(
+    //     res,
+    //     "ERROR",
+    //     "Pengguna sudah login ditempat lain.",
+    //     null,
+    //     404
+    //   );
+    // }
 
     let newToken = "";
 
@@ -251,15 +251,15 @@ async function loginAsAdmin(req, res, admin, fcmToken) {
   if (getSession) {
     const existingUser = await getSession["dataValues"];
 
-    if (existingUser.userToken && !isWeb) {
-      return Responder(
-        res,
-        "ERROR",
-        "Pengguna sudah login ditempat lain.",
-        null,
-        404
-      );
-    }
+    // if (existingUser.userToken && !isWeb) {
+    //   return Responder(
+    //     res,
+    //     "ERROR",
+    //     "Pengguna sudah login ditempat lain.",
+    //     null,
+    //     404
+    //   );
+    // }
 
     let newToken = "";
 
@@ -418,7 +418,7 @@ exports.logout = async (req, res) => {
     }
 
     return await R_User.update(
-      { userToken: "" },
+      { fcmToken: "" },
       {
         where: {
           iduser: tokenData.iduser,
