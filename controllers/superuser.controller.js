@@ -134,6 +134,7 @@ exports.get_pengajuan = async (req, res) => {
     sort,
     web,
     statusCA,
+    statusROP,
   } = req.query;
 
   try {
@@ -175,6 +176,50 @@ exports.get_pengajuan = async (req, res) => {
             { status_finance_child: { [Op.ne]: "DONE" } },
           ];
         }
+      }
+    }
+
+    // status ROP
+    if (statusROP) {
+      if (statusROP == "WAITING") {
+        whereClause[Op.and] = [
+          Sequelize.fn(
+            "JSON_CONTAINS",
+            Sequelize.col("accepted_by"),
+            `[{"iduser": "${userData?.iduser}"}]`
+          ),
+          { status: "WAITING" },
+          { status_finance: { [Op.notIn]: ["DONE", "REJECTED"] } },
+        ];
+      } else if (statusROP == "APPROVED") {
+        whereClause[Op.and] = [
+          Sequelize.fn(
+            "JSON_CONTAINS",
+            Sequelize.col("accepted_by"),
+            `[{"iduser": "${userData?.iduser}"}]`
+          ),
+          { status: "APPROVED" },
+          { status_finance: { [Op.notIn]: ["DONE", "REJECTED"] } },
+        ];
+      } else if (statusROP == "REJECTED") {
+        whereClause[Op.and] = [
+          Sequelize.fn(
+            "JSON_CONTAINS",
+            Sequelize.col("accepted_by"),
+            `[{"iduser": "${userData?.iduser}"}]`
+          ),
+          { status: "REJECTED" },
+        ];
+      } else if (statusROP == "DONE") {
+        whereClause[Op.and] = [
+          Sequelize.fn(
+            "JSON_CONTAINS",
+            Sequelize.col("accepted_by"),
+            `[{"iduser": "${userData?.iduser}"}]`
+          ),
+          { status: "APPROVED" },
+          { status_finance: "DONE" },
+        ];
       }
     }
 
@@ -406,6 +451,7 @@ exports.get_pengajuan_finance = async (req, res) => {
     type,
     sort,
     statusCA,
+    statusROP,
   } = req.query;
 
   try {
@@ -435,6 +481,30 @@ exports.get_pengajuan_finance = async (req, res) => {
           { status_finance: "DONE" },
           { jenis_reimbursement: "Cash Advance" },
           { status_finance_child: { [Op.ne]: "DONE" } },
+        ];
+      }
+    }
+
+    // status rop
+    if (statusROP) {
+      if (statusROP == "WAITING") {
+        whereClause[Op.and] = [
+          { status_finance: { [Op.notIn]: ["DONE", "REJECTED"] } },
+        ];
+      } else if (statusROP == "APPROVED") {
+        whereClause[Op.and] = [
+          { status: "APPROVED" },
+          { status_finance: { [Op.notIn]: ["DONE", "REJECTED"] } },
+        ];
+      } else if (statusROP == "REJECTED") {
+        whereClause[Op.or] = [
+          { status: "REJECTED" },
+          { status_finance: "REJECTED" },
+        ];
+      } else if (statusROP == "DONE") {
+        whereClause[Op.and] = [
+          { status: "APPROVED" },
+          { status_finance: "DONE" },
         ];
       }
     }

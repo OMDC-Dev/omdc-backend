@@ -279,6 +279,7 @@ exports.get_reimbursement = async (req, res) => {
     cari,
     type,
     statusCA,
+    statusROP,
   } = req.query;
 
   try {
@@ -311,6 +312,28 @@ exports.get_reimbursement = async (req, res) => {
           { status_finance: "DONE" },
           { jenis_reimbursement: "Cash Advance" },
           { status_finance_child: { [Op.ne]: "DONE" } },
+        ];
+      }
+    }
+
+    // status rop
+    if (statusROP) {
+      if (statusROP == "WAITING") {
+        whereClause[Op.and] = [
+          { status: "WAITING" },
+          { status_finance: { [Op.notIn]: ["DONE", "REJECTED"] } },
+        ];
+      } else if (statusROP == "APPROVED") {
+        whereClause[Op.and] = [
+          { status: "APPROVED" },
+          { status_finance: { [Op.notIn]: ["DONE", "REJECTED"] } },
+        ];
+      } else if (statusROP == "REJECTED") {
+        whereClause.status = "REJECTED";
+      } else if (statusROP == "DONE") {
+        whereClause[Op.and] = [
+          { status: "APPROVED" },
+          { status_finance: "DONE" },
         ];
       }
     }
@@ -1504,6 +1527,7 @@ exports.get_review_reimbursement = async (req, res) => {
     typePembayaran,
     sort,
     statusCA,
+    statusROP,
   } = req.query;
 
   try {
@@ -1531,6 +1555,34 @@ exports.get_review_reimbursement = async (req, res) => {
           { status_finance: "DONE" },
           { jenis_reimbursement: "Cash Advance" },
           { status_finance_child: { [Op.ne]: "DONE" } },
+        ];
+      }
+    }
+
+    // status rop
+    if (statusROP) {
+      console.log("SELECTED STATUS", statusROP);
+      if (statusROP == "WAITING") {
+        whereClause[Op.and] = [
+          { status: "APPROVED" },
+          { reviewStatus: "IDLE" },
+          { status_finance: { [Op.notIn]: ["DONE", "REJECTED"] } },
+        ];
+      } else if (statusROP == "APPROVED") {
+        whereClause[Op.and] = [
+          { status: "APPROVED" },
+          { status_finance: { [Op.notIn]: ["DONE", "REJECTED"] } },
+        ];
+      } else if (statusROP == "REJECTED") {
+        console.log("EXC REJECTED");
+        whereClause[Op.or] = [
+          { status: "REJECTED" },
+          { reviewStatus: "REJECTED" },
+        ];
+      } else if (statusROP == "DONE") {
+        whereClause[Op.and] = [
+          { status: "APPROVED" },
+          { status_finance: "DONE" },
         ];
       }
     }
