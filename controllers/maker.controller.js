@@ -1,12 +1,6 @@
 const { Op, Sequelize } = require("sequelize");
 const db_user = require("../db/user.db");
-const { decodeToken, getToken } = require("../utils/jwt");
 const { Responder } = require("../utils/responder");
-const {
-  generateRandomNumber,
-  getFormattedDate,
-  ubahDataById,
-} = require("../utils/utils");
 const moment = require("moment");
 require("moment/locale/id");
 moment.locale("id");
@@ -14,11 +8,11 @@ const {
   sendSingleMessage,
   sendMulticastMessage,
 } = require("../utils/firebase");
+const { decodeToken, getToken } = require("../utils/jwt");
 
-const M_Cabang = db_user.cabang;
 const Reimbursement = db_user.reimbursement;
 const User = db_user.ruser;
-const Admin = db_user.superuser;
+const INVOICE = db_user.invoice;
 
 exports.get_reimbursement = async (req, res) => {
   const {
@@ -255,6 +249,7 @@ END`);
 exports.acceptMakerReimbursement = async (req, res) => {
   const { id } = req.params;
   const { coa, note, status, bank } = req.body;
+  const { authorization } = req.headers;
 
   try {
     const getReimburse = await Reimbursement.findOne({
@@ -263,12 +258,24 @@ exports.acceptMakerReimbursement = async (req, res) => {
       },
     });
 
+    const userData = decodeToken(getToken(authorization));
+
     const getReimburseData = await getReimburse["dataValues"];
     const parentId = getReimburseData.parentId;
     const user_fcm = getReimburseData["requester"]["fcmToken"];
     const currentDate = moment().format("DD-MM-YYYY");
+    const items = getReimburseData.item;
 
     if (status == "REJECTED") {
+      // Remove used invoice on rejected
+      items.map(async (item) => {
+        await INVOICE.destroy({
+          where: {
+            invoice: item.invoice,
+          },
+        });
+      });
+
       if (parentId) {
         await Reimbursement.update(
           {
@@ -276,6 +283,7 @@ exports.acceptMakerReimbursement = async (req, res) => {
             childDoc: "",
             realisasi: "",
             maker_approve: currentDate,
+            nm_maker_approve: userData.nm_user,
           },
           {
             where: {
@@ -291,6 +299,7 @@ exports.acceptMakerReimbursement = async (req, res) => {
           maker_note: note,
           status: "REJECTED",
           maker_approve: currentDate,
+          nm_maker_approve: userData.nm_user,
         },
         {
           where: {
@@ -341,6 +350,7 @@ exports.acceptMakerReimbursement = async (req, res) => {
         makerStatus: status,
         finance_bank: bank,
         maker_approve: currentDate,
+        nm_maker_approve: userData.nm_user,
       },
       {
         where: {

@@ -120,6 +120,24 @@ exports.reimbursement = async (req, res) => {
       }
     };
 
+    // =================== INVOICE CHECKING
+    const isInvoiceUsed = await Promise.all(
+      item.map(async (item) => {
+        const getInv = await INVOICE.findOne({
+          where: {
+            invoice: item.invoice,
+          },
+        });
+
+        return !!getInv;
+      })
+    );
+
+    if (isInvoiceUsed.includes(true)) {
+      Responder(res, "ERROR", "No. Invoice telah digunakan.", null, 400);
+      return;
+    }
+
     // =================== Cash Advance Section
 
     // Report Parent Doc
@@ -702,6 +720,8 @@ exports.get_status = async (req, res) => {
         "extra_admin_approve",
         "attachment",
         "file_info",
+        "nm_reviewer_approve",
+        "nm_maker_approve",
       ],
     });
 
@@ -781,14 +801,18 @@ exports.get_status = async (req, res) => {
         status: data.makerStatus,
         tgl_approve: data.maker_approve,
       });
+
       if (data.makerStatus === "APPROVED") {
         adminPath.push({
-          nm_user: "Finance",
+          nm_user: data.finance_by?.nm_user
+            ? `${data.finance_by?.nm_user} (Finance)`
+            : "Finance",
           status: data.status_finance,
           tgl_approve: data.finance_by.acceptDate,
         });
       }
     }
+
     if (data.reviewStatus !== "APPROVED") {
       adminPath = adminPath.filter(
         (item) => item.nm_user !== "Maker" || item.nm_user !== "Finance"
@@ -805,6 +829,26 @@ exports.get_status = async (req, res) => {
         status: data.extraAcceptance.status,
         tgl_approve: data.extra_admin_approve,
       });
+    }
+
+    // Update rev name
+    const findRevIndex = adminPath.findIndex(
+      (item) => item.nm_user == "Reviewer"
+    );
+
+    if (findRevIndex && data.nm_reviewer_approve) {
+      adminPath[
+        findRevIndex
+      ].nm_user = `${data.nm_reviewer_approve} (Reviewer)`;
+    }
+
+    // Update rev name
+    const findMakerIndex = adminPath.findIndex(
+      (item) => item.nm_user == "Maker"
+    );
+
+    if (findMakerIndex && data.nm_maker_approve) {
+      adminPath[findMakerIndex].nm_user = `${data.nm_maker_approve} (Maker)`;
     }
 
     const dataStatus = await data["dataValues"];
@@ -849,12 +893,22 @@ exports.finance_acceptance = async (req, res) => {
     const parentId = reimbursementData.parentId;
     const jenis = reimbursementData?.jenis_reimbursement;
     const bankDetail = reimbursementData?.bankDetail;
+    const items = reimbursementData.item;
 
     const IS_CONFIRM_ONLY = !bankDetail?.accountname?.length;
 
     const userFcm = userRequested.fcmToken;
 
     if (status == "REJECTED") {
+      // Remove used invoice on rejected
+      items.map(async (item) => {
+        await INVOICE.destroy({
+          where: {
+            invoice: item.invoice,
+          },
+        });
+      });
+
       if (parentId) {
         await Reimbursement.update(
           {
@@ -1780,6 +1834,7 @@ END`);
 exports.acceptReviewReimbursementData = async (req, res) => {
   const { id } = req.params;
   const { coa, note, status } = req.body;
+  const { authorization } = req.headers;
 
   try {
     const getReimburse = await Reimbursement.findOne({
@@ -1788,12 +1843,24 @@ exports.acceptReviewReimbursementData = async (req, res) => {
       },
     });
 
+    const userData = decodeToken(getToken(authorization));
+
     const getReimburseData = await getReimburse["dataValues"];
     const parentId = getReimburseData.parentId;
     const user_fcm = getReimburseData["requester"]["fcmToken"];
     const currentDate = moment().format("DD-MM-YYYY");
+    const items = getReimburseData.item;
 
     if (status == "REJECTED") {
+      // Remove used invoice on rejected
+      items.map(async (item) => {
+        await INVOICE.destroy({
+          where: {
+            invoice: item.invoice,
+          },
+        });
+      });
+
       if (parentId) {
         await Reimbursement.update(
           {
@@ -1801,6 +1868,7 @@ exports.acceptReviewReimbursementData = async (req, res) => {
             childDoc: "",
             realisasi: "",
             reviewer_approve: currentDate,
+            nm_reviewer_approve: userData.nm_user,
           },
           {
             where: {
@@ -1816,6 +1884,7 @@ exports.acceptReviewReimbursementData = async (req, res) => {
           review_note: note,
           status: "REJECTED",
           reviewer_approve: currentDate,
+          nm_reviewer_approve: userData.nm_user,
         },
         {
           where: {
@@ -1865,6 +1934,7 @@ exports.acceptReviewReimbursementData = async (req, res) => {
         review_note: note,
         reviewStatus: status,
         reviewer_approve: currentDate,
+        nm_reviewer_approve: userData.nm_user,
       },
       {
         where: {
