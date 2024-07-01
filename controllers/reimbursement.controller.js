@@ -496,6 +496,7 @@ exports.acceptance = async (req, res) => {
     const parentId = r_datas["parentId"];
     const childId = r_datas["childId"];
     const extNote = r_datas.note;
+    const items = r_datas.item;
 
     const currentDate = moment().format("DD-MM-YYYY");
 
@@ -582,6 +583,15 @@ exports.acceptance = async (req, res) => {
           }.`,
         });
       }
+
+      // Remove used invoice on rejected
+      items.map(async (item) => {
+        await INVOICE.destroy({
+          where: {
+            invoice: item.invoice,
+          },
+        });
+      });
 
       // Remove from parent if rejected
       if (parentId) {
