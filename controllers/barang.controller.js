@@ -463,6 +463,7 @@ exports.getDetailPermintaan = async (req, res) => {
         id_pb: id_pb,
       },
       attributes: [
+        "id_trans",
         "kd_brg",
         "nm_barang",
         "grup_brg",
@@ -487,6 +488,70 @@ exports.getDetailPermintaan = async (req, res) => {
     Responder(res, "OK", null, getPermintaan, 200);
     return;
   } catch (error) {
+    Responder(res, "ERROR", null, null, 400);
+    return;
+  }
+};
+
+exports.update_trx_brg = async (req, res) => {
+  const { id } = req.query;
+  const { stock, request } = req.body;
+  try {
+    const getPermintaan = await TrxPermintaanBarang.findOne({
+      where: {
+        id_trans: id,
+      },
+      attributes: ["qty_satuan"],
+    });
+
+    console.log("QRY ID", id);
+
+    const barangData = await getPermintaan["dataValues"];
+
+    const jumlahSatuan = request * barangData.qty_satuan;
+
+    // Update request
+    await TrxPermintaanBarang.update(
+      {
+        jml_satuan: jumlahSatuan,
+        jml_kemasan: request,
+        qty_stock: stock,
+      },
+      {
+        where: {
+          id_trans: id,
+        },
+      }
+    );
+
+    Responder(res, "OK", null, { success: true }, 200);
+    return;
+  } catch (error) {
+    console.log(error);
+    Responder(res, "ERROR", null, null, 400);
+    return;
+  }
+};
+
+exports.reject_trx_brg = async (req, res) => {
+  const { id } = req.query;
+  try {
+    // Update request
+    await TrxPermintaanBarang.update(
+      {
+        status_pb: "Ditolak",
+      },
+      {
+        where: {
+          id_trans: id,
+        },
+      }
+    );
+
+    Responder(res, "OK", null, { success: true }, 200);
+    return;
+  } catch (error) {
+    console.log(error);
     Responder(res, "ERROR", null, null, 400);
     return;
   }

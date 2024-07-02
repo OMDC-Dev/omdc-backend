@@ -73,6 +73,19 @@ app.get("/", (req, res) => {
   res.json({ message: "Reimbursement Apps Service v.0.9.4.4" });
 });
 
+// simple route
+app.get("/DEV-SYNC", (req, res) => {
+  db_user.sequelize
+    .sync({ alter: true })
+    .then(() => {
+      res.json({ message: "SYNC OK" });
+    })
+    .catch((err) => {
+      console.log(err);
+      res.json({ message: "SYNC FAILED" });
+    });
+});
+
 app.get("/version/:code", (req, res) => {
   const { code } = req.params;
   try {
