@@ -497,10 +497,7 @@ exports.get_pengajuan_finance = async (req, res) => {
           { status_finance: { [Op.notIn]: ["DONE", "REJECTED"] } },
         ];
       } else if (statusROP == "REJECTED") {
-        whereClause[Op.or] = [
-          { status: "REJECTED" },
-          { status_finance: "REJECTED" },
-        ];
+        whereClause.status = "REJECTED";
       } else if (statusROP == "DONE") {
         whereClause[Op.and] = [
           { status: "APPROVED" },

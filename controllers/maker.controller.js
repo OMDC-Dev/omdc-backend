@@ -71,11 +71,7 @@ exports.get_reimbursement = async (req, res) => {
           { status_finance: { [Op.notIn]: ["DONE", "REJECTED"] } },
         ];
       } else if (statusROP == "REJECTED") {
-        console.log("EXC REJECTED");
-        whereClause[Op.or] = [
-          { status: "REJECTED" },
-          { makerStatus: "REJECTED" },
-        ];
+        whereClause.status = "REJECTED";
       } else if (statusROP == "DONE") {
         whereClause[Op.and] = [
           { status: "APPROVED" },

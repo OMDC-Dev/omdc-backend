@@ -1192,6 +1192,16 @@ exports.cancel_upload = async (req, res) => {
     });
 
     const DETAILS_DATA = await DETAILS["dataValues"];
+    const items = DETAILS_DATA["item"];
+
+    // Remove invoice
+    items.map(async (item) => {
+      await INVOICE.destroy({
+        where: {
+          invoice: item.invoice,
+        },
+      });
+    });
 
     // Get selected parent ID
     if (DETAILS_DATA?.parentId) {
@@ -1639,10 +1649,7 @@ exports.get_review_reimbursement = async (req, res) => {
         ];
       } else if (statusROP == "REJECTED") {
         console.log("EXC REJECTED");
-        whereClause[Op.or] = [
-          { status: "REJECTED" },
-          { reviewStatus: "REJECTED" },
-        ];
+        whereClause.status = "REJECTED";
       } else if (statusROP == "DONE") {
         whereClause[Op.and] = [
           { status: "APPROVED" },
@@ -1652,17 +1659,6 @@ exports.get_review_reimbursement = async (req, res) => {
     }
 
     if (type) {
-      // whereClause.reviewStatus =
-      //   type === "WAITING" ? {[Op.and]: ["IDLE"]} : { [Op.or]: ["APPROVED", "REJECTED"] };
-
-      // if (type == "WAITING") {
-      //   whereClause[Op.and] = [
-      //     { reviewStatus: "IDLE" },
-      //     { status: "APPROVED" },
-      //   ];
-      // } else {
-      //   whereClause.reviewStatus = { [Op.or]: ["APPROVED", "REJECTED"] };
-      // }
       if (type == "WAITING") {
         whereClause[Op.or] = [
           {
@@ -1704,7 +1700,16 @@ exports.get_review_reimbursement = async (req, res) => {
       }
     } else {
       console.log("NO TYPE");
-      whereClause.status = "APPROVED";
+      whereClause[Op.or] = [
+        {
+          status: "APPROVED",
+        },
+        {
+          status: "REJECTED",
+          reviewStatus: "REJECTED",
+          makerStatus: "IDLE",
+        },
+      ];
     }
 
     if (monthyear) {
