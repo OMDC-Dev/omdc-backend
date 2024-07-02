@@ -190,7 +190,7 @@ END`);
     if (sort) {
       order = [
         sortClause, // First, sort by status
-        ["createdAt", "ASC"], // Finally, sort by createdAt
+        ["createdAt", "DESC"], // Finally, sort by createdAt
         ["tipePembayaran", "DESC"], // Then sort by tipePembayaran
       ];
     } else {

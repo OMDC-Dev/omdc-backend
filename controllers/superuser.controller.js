@@ -246,6 +246,7 @@ exports.get_pengajuan = async (req, res) => {
               {
                 status: { [Op.ne]: "WAITING" },
               },
+              { jenis_reimbursement: { [Op.ne]: "Cash Advance" } },
             ],
           },
           {
@@ -269,6 +270,22 @@ exports.get_pengajuan = async (req, res) => {
                   ),
                 ],
               },
+              { jenis_reimbursement: { [Op.ne]: "Cash Advance" } },
+            ],
+          },
+          {
+            [Op.and]: [
+              Sequelize.fn(
+                "JSON_CONTAINS",
+                Sequelize.col("accepted_by"),
+                `[{"iduser": "${userData?.iduser}"}]`
+              ),
+              {
+                status: { [Op.ne]: "WAITING" },
+              },
+              { jenis_reimbursement: "Cash Advance" },
+              { status_finance: "DONE" },
+              { status_finance_child: "DONE" },
             ],
           },
           {
@@ -278,6 +295,7 @@ exports.get_pengajuan = async (req, res) => {
               iduser: userData.iduser,
               status: { [Op.ne]: "WAITING" },
             },
+            jenis_reimbursement: { [Op.ne]: "Cash Advance" },
           },
         ];
       } else if (status === "00") {
@@ -303,6 +321,13 @@ exports.get_pengajuan = async (req, res) => {
               status: "WAITING",
             },
           },
+          {
+            [Op.and]: [
+              { status_finance: "DONE" },
+              { jenis_reimbursement: "Cash Advance" },
+              { status_finance_child: "IDLE" },
+            ],
+          },
         ];
       }
     } else {
@@ -311,8 +336,6 @@ exports.get_pengajuan = async (req, res) => {
         { "extraAcceptance.iduser": userData.iduser }
       );
     }
-
-    console.log("WHRE CLAUSE: ", whereClause);
 
     if (monthyear) {
       const my = monthyear.split("-");
@@ -396,7 +419,7 @@ exports.get_pengajuan = async (req, res) => {
     if (sort) {
       order = [
         sortClause, // First, sort by status
-        ["createdAt", "ASC"], // Finally, sort by createdAt
+        ["createdAt", "DESC"], // Finally, sort by createdAt
         ["tipePembayaran", "DESC"], // Then sort by tipePembayaran
       ];
     } else {
@@ -621,7 +644,7 @@ END`);
     if (sort) {
       order = [
         financeStatusSortClause, // First, sort by status
-        ["createdAt", "ASC"], // Finally, sort by createdAt
+        ["createdAt", "DESC"], // Finally, sort by createdAt
         ["tipePembayaran", "DESC"], // Then sort by tipePembayaran
       ];
     } else {
