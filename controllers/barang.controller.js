@@ -378,11 +378,16 @@ exports.getAllRequestBarang = async (req, res) => {
       ];
     }
 
+    const orderClause = [
+      ["tgl_trans", "DESC"], // Mengurutkan dari Urgent ke Regular
+      ["jam_trans", "DESC"], // Mengurutkan berdasarkan createdAt secara descending
+    ];
+
     const requestList = await PermintaanBarang.findAndCountAll({
       where: whereClause,
       limit: parseInt(limit),
       offset: offset,
-      order: [["tgl_trans", "DESC"]],
+      order: orderClause,
     });
 
     // result count
