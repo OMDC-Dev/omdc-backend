@@ -580,17 +580,32 @@ exports.admin_approval = async (req, res) => {
       }
     );
 
-    await TrxPermintaanBarang.update(
-      {
-        approval_admin_status: mode == "ACC" ? "APPROVED" : "REJECTED",
-        approval_admin_date: getFormattedDate(new Date(), "-"),
-      },
-      {
-        where: {
-          id_pb: idpb,
+    if (mode == "ACC") {
+      await TrxPermintaanBarang.update(
+        {
+          approval_admin_status: "APPROVED",
+          approval_admin_date: getFormattedDate(new Date(), "-"),
         },
-      }
-    );
+        {
+          where: {
+            id_pb: idpb,
+          },
+        }
+      );
+    } else {
+      await TrxPermintaanBarang.update(
+        {
+          approval_admin_status: "REJECTED",
+          approval_admin_date: getFormattedDate(new Date(), "-"),
+          status_pb: "Ditolak",
+        },
+        {
+          where: {
+            id_pb: idpb,
+          },
+        }
+      );
+    }
 
     const getPB = await PermintaanBarang.findOne({
       where: {

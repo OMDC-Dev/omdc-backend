@@ -1248,6 +1248,7 @@ exports.get_super_reimbursement = async (req, res) => {
     type,
     finance,
     statusCA,
+    statusROP,
   } = req.query;
 
   try {
@@ -1282,6 +1283,28 @@ exports.get_super_reimbursement = async (req, res) => {
           { status_finance: "DONE" },
           { jenis_reimbursement: "Cash Advance" },
           { status_finance_child: { [Op.ne]: "DONE" } },
+        ];
+      }
+    }
+
+    // status ROP
+    if (statusROP) {
+      if (statusROP == "WAITING") {
+        whereClause[Op.and] = [
+          { status: "WAITING" },
+          { status_finance: { [Op.notIn]: ["DONE", "REJECTED"] } },
+        ];
+      } else if (statusROP == "APPROVED") {
+        whereClause[Op.and] = [
+          { status: "APPROVED" },
+          { status_finance: { [Op.notIn]: ["DONE", "REJECTED"] } },
+        ];
+      } else if (statusROP == "REJECTED") {
+        whereClause[Op.and] = [{ status: "REJECTED" }];
+      } else if (statusROP == "DONE") {
+        whereClause[Op.and] = [
+          { status: "APPROVED" },
+          { status_finance: "DONE" },
         ];
       }
     }
