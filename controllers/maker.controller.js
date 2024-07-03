@@ -164,6 +164,11 @@ exports.get_reimbursement = async (req, res) => {
               [Op.like]: `%${item}%`,
             },
           },
+          {
+            name: {
+              [Op.like]: `%${item}%`,
+            },
+          },
         ],
       }));
 

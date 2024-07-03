@@ -67,15 +67,14 @@ exports.reimbursement = async (req, res) => {
       !date ||
       !cabang ||
       !description ||
-      !attachment ||
       !bank_detail ||
       !nominal ||
       !item ||
       !coa ||
       !approved_by ||
-      !file ||
       !payment_type
     ) {
+      console.log("TIDAK LENGKAP");
       return Responder(res, "ERROR", "Data tidak lengkap!", null, 400);
     }
 
@@ -437,6 +436,11 @@ exports.get_reimbursement = async (req, res) => {
           },
           {
             no_doc: {
+              [Op.like]: `%${item}%`,
+            },
+          },
+          {
+            name: {
               [Op.like]: `%${item}%`,
             },
           },
@@ -1404,6 +1408,11 @@ exports.get_super_reimbursement = async (req, res) => {
               [Op.like]: `%${item}%`,
             },
           },
+          {
+            name: {
+              [Op.like]: `%${item}%`,
+            },
+          },
         ],
       }));
 
@@ -1783,6 +1792,11 @@ exports.get_review_reimbursement = async (req, res) => {
           },
           {
             no_doc: {
+              [Op.like]: `%${item}%`,
+            },
+          },
+          {
+            name: {
               [Op.like]: `%${item}%`,
             },
           },
