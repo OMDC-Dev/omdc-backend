@@ -154,6 +154,7 @@ exports.login = async (req, res) => {
         return;
       })
       .catch((err) => {
+        console.log(err);
         Responder(res, "ERROR", null, null, 400);
         return;
       });

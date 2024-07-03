@@ -68,9 +68,14 @@ db_user.sequelize
 // router
 app.use(router);
 
+app.use((err, req, res, next) => {
+  console.error(`[${new Date().toISOString()}] ${err.stack}`);
+  res.status(500).send("Something broke!");
+});
+
 // simple route
 app.get("/", (req, res) => {
-  res.json({ message: "Reimbursement Apps Service v.0.9.4.4" });
+  res.json({ message: "Reimbursement Apps Service v.0.9.5" });
 });
 
 // simple route
