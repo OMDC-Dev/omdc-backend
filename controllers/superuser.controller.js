@@ -134,6 +134,7 @@ exports.get_pengajuan = async (req, res) => {
     sort,
     web,
     statusCA,
+    statusROP,
   } = req.query;
 
   try {
@@ -178,6 +179,50 @@ exports.get_pengajuan = async (req, res) => {
       }
     }
 
+    // status ROP
+    if (statusROP) {
+      if (statusROP == "WAITING") {
+        whereClause[Op.and] = [
+          Sequelize.fn(
+            "JSON_CONTAINS",
+            Sequelize.col("accepted_by"),
+            `[{"iduser": "${userData?.iduser}"}]`
+          ),
+          { status: "WAITING" },
+          { status_finance: { [Op.notIn]: ["DONE", "REJECTED"] } },
+        ];
+      } else if (statusROP == "APPROVED") {
+        whereClause[Op.and] = [
+          Sequelize.fn(
+            "JSON_CONTAINS",
+            Sequelize.col("accepted_by"),
+            `[{"iduser": "${userData?.iduser}"}]`
+          ),
+          { status: "APPROVED" },
+          { status_finance: { [Op.notIn]: ["DONE", "REJECTED"] } },
+        ];
+      } else if (statusROP == "REJECTED") {
+        whereClause[Op.and] = [
+          Sequelize.fn(
+            "JSON_CONTAINS",
+            Sequelize.col("accepted_by"),
+            `[{"iduser": "${userData?.iduser}"}]`
+          ),
+          { status: "REJECTED" },
+        ];
+      } else if (statusROP == "DONE") {
+        whereClause[Op.and] = [
+          Sequelize.fn(
+            "JSON_CONTAINS",
+            Sequelize.col("accepted_by"),
+            `[{"iduser": "${userData?.iduser}"}]`
+          ),
+          { status: "APPROVED" },
+          { status_finance: "DONE" },
+        ];
+      }
+    }
+
     // Tipe Pembayaran
     if (type) {
       if (type == "CASH") {
@@ -201,6 +246,7 @@ exports.get_pengajuan = async (req, res) => {
               {
                 status: { [Op.ne]: "WAITING" },
               },
+              { jenis_reimbursement: { [Op.ne]: "Cash Advance" } },
             ],
           },
           {
@@ -224,6 +270,22 @@ exports.get_pengajuan = async (req, res) => {
                   ),
                 ],
               },
+              { jenis_reimbursement: { [Op.ne]: "Cash Advance" } },
+            ],
+          },
+          {
+            [Op.and]: [
+              Sequelize.fn(
+                "JSON_CONTAINS",
+                Sequelize.col("accepted_by"),
+                `[{"iduser": "${userData?.iduser}"}]`
+              ),
+              {
+                status: { [Op.ne]: "WAITING" },
+              },
+              { jenis_reimbursement: "Cash Advance" },
+              { status_finance: "DONE" },
+              { status_finance_child: "DONE" },
             ],
           },
           {
@@ -233,6 +295,7 @@ exports.get_pengajuan = async (req, res) => {
               iduser: userData.iduser,
               status: { [Op.ne]: "WAITING" },
             },
+            jenis_reimbursement: { [Op.ne]: "Cash Advance" },
           },
         ];
       } else if (status === "00") {
@@ -258,6 +321,13 @@ exports.get_pengajuan = async (req, res) => {
               status: "WAITING",
             },
           },
+          {
+            [Op.and]: [
+              { status_finance: "DONE" },
+              { jenis_reimbursement: "Cash Advance" },
+              { status_finance_child: "IDLE" },
+            ],
+          },
         ];
       }
     } else {
@@ -266,8 +336,6 @@ exports.get_pengajuan = async (req, res) => {
         { "extraAcceptance.iduser": userData.iduser }
       );
     }
-
-    console.log("WHRE CLAUSE: ", whereClause);
 
     if (monthyear) {
       const my = monthyear.split("-");
@@ -351,7 +419,7 @@ exports.get_pengajuan = async (req, res) => {
     if (sort) {
       order = [
         sortClause, // First, sort by status
-        ["createdAt", "ASC"], // Finally, sort by createdAt
+        ["createdAt", "DESC"], // Finally, sort by createdAt
         ["tipePembayaran", "DESC"], // Then sort by tipePembayaran
       ];
     } else {
@@ -406,6 +474,7 @@ exports.get_pengajuan_finance = async (req, res) => {
     type,
     sort,
     statusCA,
+    statusROP,
   } = req.query;
 
   try {
@@ -435,6 +504,27 @@ exports.get_pengajuan_finance = async (req, res) => {
           { status_finance: "DONE" },
           { jenis_reimbursement: "Cash Advance" },
           { status_finance_child: { [Op.ne]: "DONE" } },
+        ];
+      }
+    }
+
+    // status rop
+    if (statusROP) {
+      if (statusROP == "WAITING") {
+        whereClause[Op.and] = [
+          { status_finance: { [Op.notIn]: ["DONE", "REJECTED"] } },
+        ];
+      } else if (statusROP == "APPROVED") {
+        whereClause[Op.and] = [
+          { status: "APPROVED" },
+          { status_finance: { [Op.notIn]: ["DONE", "REJECTED"] } },
+        ];
+      } else if (statusROP == "REJECTED") {
+        whereClause.status = "REJECTED";
+      } else if (statusROP == "DONE") {
+        whereClause[Op.and] = [
+          { status: "APPROVED" },
+          { status_finance: "DONE" },
         ];
       }
     }
@@ -554,7 +644,7 @@ END`);
     if (sort) {
       order = [
         financeStatusSortClause, // First, sort by status
-        ["createdAt", "ASC"], // Finally, sort by createdAt
+        ["createdAt", "DESC"], // Finally, sort by createdAt
         ["tipePembayaran", "DESC"], // Then sort by tipePembayaran
       ];
     } else {

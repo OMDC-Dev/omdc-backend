@@ -10,6 +10,7 @@ const sendMessaging = () => {
 };
 
 const sendSingleMessage = (token, notification) => {
+  if (!token) return;
   return admin
     .messaging()
     .send({
@@ -38,6 +39,7 @@ const sendSingleMessage = (token, notification) => {
 };
 
 const sendMulticastMessage = (tokens, notification) => {
+  if (!tokens) return;
   return admin
     .messaging()
     .sendEachForMulticast({

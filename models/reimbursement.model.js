@@ -130,6 +130,12 @@ module.exports = (sequelize, Sequelize) => {
     extra_admin_approve: {
       type: Sequelize.STRING(255),
     },
+    nm_maker_approve: {
+      type: Sequelize.STRING(255),
+    },
+    nm_reviewer_approve: {
+      type: Sequelize.STRING(255),
+    },
   });
 
   return Reimbursement;

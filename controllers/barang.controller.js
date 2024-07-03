@@ -378,11 +378,16 @@ exports.getAllRequestBarang = async (req, res) => {
       ];
     }
 
+    const orderClause = [
+      ["tgl_trans", "DESC"], // Mengurutkan dari Urgent ke Regular
+      ["jam_trans", "DESC"], // Mengurutkan berdasarkan createdAt secara descending
+    ];
+
     const requestList = await PermintaanBarang.findAndCountAll({
       where: whereClause,
       limit: parseInt(limit),
       offset: offset,
-      order: [["tgl_trans", "DESC"]],
+      order: orderClause,
     });
 
     // result count
@@ -463,6 +468,7 @@ exports.getDetailPermintaan = async (req, res) => {
         id_pb: id_pb,
       },
       attributes: [
+        "id_trans",
         "kd_brg",
         "nm_barang",
         "grup_brg",
@@ -492,6 +498,70 @@ exports.getDetailPermintaan = async (req, res) => {
   }
 };
 
+exports.update_trx_brg = async (req, res) => {
+  const { id } = req.query;
+  const { stock, request } = req.body;
+  try {
+    const getPermintaan = await TrxPermintaanBarang.findOne({
+      where: {
+        id_trans: id,
+      },
+      attributes: ["qty_satuan"],
+    });
+
+    console.log("QRY ID", id);
+
+    const barangData = await getPermintaan["dataValues"];
+
+    const jumlahSatuan = request * barangData.qty_satuan;
+
+    // Update request
+    await TrxPermintaanBarang.update(
+      {
+        jml_satuan: jumlahSatuan,
+        jml_kemasan: request,
+        qty_stock: stock,
+      },
+      {
+        where: {
+          id_trans: id,
+        },
+      }
+    );
+
+    Responder(res, "OK", null, { success: true }, 200);
+    return;
+  } catch (error) {
+    console.log(error);
+    Responder(res, "ERROR", null, null, 400);
+    return;
+  }
+};
+
+exports.reject_trx_brg = async (req, res) => {
+  const { id } = req.query;
+  try {
+    // Update request
+    await TrxPermintaanBarang.update(
+      {
+        status_pb: "Ditolak",
+      },
+      {
+        where: {
+          id_trans: id,
+        },
+      }
+    );
+
+    Responder(res, "OK", null, { success: true }, 200);
+    return;
+  } catch (error) {
+    console.log(error);
+    Responder(res, "ERROR", null, null, 400);
+    return;
+  }
+};
+
 exports.admin_approval = async (req, res) => {
   const { idpb, mode } = req.params;
   const { note } = req.body;
@@ -510,18 +580,32 @@ exports.admin_approval = async (req, res) => {
       }
     );
 
-    await TrxPermintaanBarang.update(
-      {
-        approval_admin_status: mode == "ACC" ? "APPROVED" : "REJECTED",
-        status_pb: mode == "ACC" ? "Menunggu Diproses" : "Ditolak",
-        approval_admin_date: getFormattedDate(new Date(), "-"),
-      },
-      {
-        where: {
-          id_pb: idpb,
+    if (mode == "ACC") {
+      await TrxPermintaanBarang.update(
+        {
+          approval_admin_status: "APPROVED",
+          approval_admin_date: getFormattedDate(new Date(), "-"),
         },
-      }
-    );
+        {
+          where: {
+            id_pb: idpb,
+          },
+        }
+      );
+    } else {
+      await TrxPermintaanBarang.update(
+        {
+          approval_admin_status: "REJECTED",
+          approval_admin_date: getFormattedDate(new Date(), "-"),
+          status_pb: "Ditolak",
+        },
+        {
+          where: {
+            id_pb: idpb,
+          },
+        }
+      );
+    }
 
     const getPB = await PermintaanBarang.findOne({
       where: {
