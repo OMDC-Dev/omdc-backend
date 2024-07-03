@@ -388,6 +388,11 @@ exports.get_pengajuan = async (req, res) => {
               [Op.like]: `%${item}%`,
             },
           },
+          {
+            name: {
+              [Op.like]: `%${item}%`,
+            },
+          },
         ],
       }));
 
@@ -618,6 +623,11 @@ exports.get_pengajuan_finance = async (req, res) => {
           },
           {
             no_doc: {
+              [Op.like]: `%${item}%`,
+            },
+          },
+          {
+            name: {
               [Op.like]: `%${item}%`,
             },
           },
