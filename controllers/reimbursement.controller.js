@@ -59,6 +59,7 @@ exports.reimbursement = async (req, res) => {
     parentId,
     payment_type,
     tipePembayaran,
+    uploadedFile,
   } = req.body;
   try {
     if (
@@ -194,14 +195,18 @@ exports.reimbursement = async (req, res) => {
 
     console.log("FILE", file);
 
-    if (file.type !== "application/pdf") {
-      console.log("IMAGE FILE");
-      const upload = await uploadImagesCloudinary(attachment);
-      uploadAttachment = upload.secure_url;
+    if (!uploadedFile) {
+      if (file.type !== "application/pdf") {
+        console.log("IMAGE FILE");
+        const upload = await uploadImagesCloudinary(attachment);
+        uploadAttachment = upload.secure_url;
+      } else {
+        console.log("PDF File");
+        const upload = await uploadToDrive(attachment, file.name);
+        uploadAttachment = upload;
+      }
     } else {
-      console.log("PDF File");
-      const upload = await uploadToDrive(attachment, file.name);
-      uploadAttachment = upload;
+      uploadAttachment = uploadedFile;
     }
 
     await Reimbursement.create({
