@@ -75,4 +75,12 @@ db_user.invoice = require("../models/v4/invoice.model.js")(
   Sequelize
 );
 
+// Setup associations
+Object.keys(db_user).forEach((modelName) => {
+  //console.log(modelName);
+  if (db_user[modelName].associate) {
+    db_user[modelName].associate(db_user);
+  }
+});
+
 module.exports = db_user;

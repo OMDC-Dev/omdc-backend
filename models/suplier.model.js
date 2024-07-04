@@ -100,6 +100,12 @@ module.exports = (sequelize, Sequelize) => {
   );
 
   M_Suplier.removeAttribute("id");
+  M_Suplier.associate = (models) => {
+    M_Suplier.hasMany(models.reimbursement, {
+      foreignKey: "kdsp",
+      as: "reimbursements",
+    });
+  };
 
   return M_Suplier;
 };

@@ -24,6 +24,7 @@ const Reimbursement = db_user.reimbursement;
 const User = db_user.ruser;
 const Admin = db_user.superuser;
 const INVOICE = db_user.invoice;
+const Suplier = db_user.suplier;
 
 // Get all cabang list
 exports.cabang = async (req, res) => {
@@ -60,6 +61,7 @@ exports.reimbursement = async (req, res) => {
     payment_type,
     tipePembayaran,
     uploadedFile,
+    kdsp,
   } = req.body;
   try {
     if (
@@ -247,6 +249,7 @@ exports.reimbursement = async (req, res) => {
       needExtraAcceptance: false,
       extraAcceptance: {},
       extraAcceptanceStatus: "IDLE",
+      kdsp: kdsp || "",
     })
       .then(async (data) => {
         // Handle Invoice
@@ -464,6 +467,13 @@ exports.get_reimbursement = async (req, res) => {
       limit: parseInt(limit), // Mengubah batasan menjadi tipe numerik
       offset: offset, // Menetapkan offset untuk penampilan halaman
       order: orderClause,
+      include: [
+        {
+          model: Suplier,
+          as: "suplierDetail",
+          required: false, // left join
+        },
+      ],
     });
 
     // result count
@@ -1074,6 +1084,13 @@ exports.get_detail = async (req, res) => {
       where: {
         id: id,
       },
+      include: [
+        {
+          model: Suplier,
+          as: "suplierDetail",
+          required: false, // left join
+        },
+      ],
     };
 
     if (type && type == "VALUE") {
