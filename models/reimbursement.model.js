@@ -136,7 +136,17 @@ module.exports = (sequelize, Sequelize) => {
     nm_reviewer_approve: {
       type: Sequelize.STRING(255),
     },
+    kdsp: {
+      type: Sequelize.STRING(255),
+    },
   });
+
+  Reimbursement.associate = (models) => {
+    Reimbursement.belongsTo(models.suplier, {
+      foreignKey: "kdsp",
+      as: "suplierDetail",
+    });
+  };
 
   return Reimbursement;
 };

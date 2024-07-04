@@ -500,7 +500,7 @@ exports.getDetailPermintaan = async (req, res) => {
 
 exports.update_trx_brg = async (req, res) => {
   const { id } = req.query;
-  const { stock, request } = req.body;
+  const { request } = req.body;
   try {
     const getPermintaan = await TrxPermintaanBarang.findOne({
       where: {
@@ -508,8 +508,6 @@ exports.update_trx_brg = async (req, res) => {
       },
       attributes: ["qty_satuan"],
     });
-
-    console.log("QRY ID", id);
 
     const barangData = await getPermintaan["dataValues"];
 
@@ -520,7 +518,6 @@ exports.update_trx_brg = async (req, res) => {
       {
         jml_satuan: jumlahSatuan,
         jml_kemasan: request,
-        qty_stock: stock,
       },
       {
         where: {
@@ -583,12 +580,14 @@ exports.admin_approval = async (req, res) => {
     if (mode == "ACC") {
       await TrxPermintaanBarang.update(
         {
+          status_pb: "Disetujui",
           approval_admin_status: "APPROVED",
           approval_admin_date: getFormattedDate(new Date(), "-"),
         },
         {
           where: {
             id_pb: idpb,
+            status_pb: "Menunggu Disetujui",
           },
         }
       );
