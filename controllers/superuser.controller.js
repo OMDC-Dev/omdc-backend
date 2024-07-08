@@ -323,6 +323,11 @@ exports.get_pengajuan = async (req, res) => {
           },
           {
             [Op.and]: [
+              Sequelize.fn(
+                "JSON_CONTAINS",
+                Sequelize.col("accepted_by"),
+                `[{"iduser": "${userData?.iduser}"}]`
+              ),
               { status_finance: "DONE" },
               { jenis_reimbursement: "Cash Advance" },
               { status_finance_child: "IDLE" },
