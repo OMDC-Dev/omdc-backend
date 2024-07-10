@@ -25,6 +25,8 @@ exports.get_reimbursement = async (req, res) => {
     sort,
     statusCA,
     statusROP,
+    periodeStart,
+    periodeEnd,
   } = req.query;
 
   try {
@@ -37,6 +39,12 @@ exports.get_reimbursement = async (req, res) => {
       } else if (typePembayaran == "TRANSFER") {
         whereClause.payment_type = "TRANSFER";
       }
+    }
+
+    if (periodeStart && periodeEnd) {
+      whereClause.accepted_date = {
+        [Op.between]: [periodeStart, periodeEnd],
+      };
     }
 
     // status CA

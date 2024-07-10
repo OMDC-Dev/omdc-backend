@@ -305,6 +305,8 @@ exports.get_reimbursement = async (req, res) => {
     type,
     statusCA,
     statusROP,
+    periodeStart,
+    periodeEnd,
   } = req.query;
 
   try {
@@ -321,6 +323,12 @@ exports.get_reimbursement = async (req, res) => {
       const endDate = new Date(year, month, 0, 23, 59, 59, 999);
       whereClause.createdAt = {
         [Op.between]: [startDate, endDate],
+      };
+    }
+
+    if (periodeStart && periodeEnd) {
+      whereClause.createdAt = {
+        [Op.between]: [periodeStart, periodeEnd],
       };
     }
 
@@ -1656,6 +1664,8 @@ exports.get_review_reimbursement = async (req, res) => {
     sort,
     statusCA,
     statusROP,
+    periodeStart,
+    periodeEnd,
   } = req.query;
 
   try {
@@ -1778,6 +1788,18 @@ exports.get_review_reimbursement = async (req, res) => {
       };
     }
 
+    if (periodeStart && periodeEnd) {
+      whereClause.accepted_date = {
+        [Op.between]: [periodeStart, periodeEnd],
+      };
+    }
+
+    // if (periodeEnd) {
+    //   whereClause.accepted_date = {
+    //     [Op.lte]: periodeEnd,
+    //   };
+    // }
+
     if (cari && cari.length > 0) {
       const searchSplit = cari.split(" ");
       const searchConditions = searchSplit.map((item) => ({
@@ -1843,8 +1865,9 @@ END`);
     if (sort) {
       order = [
         sortClause, // First, sort by status
-        ["createdAt", "DESC"], // Finally, sort by createdAt
         ["tipePembayaran", "DESC"], // Then sort by tipePembayaran
+        ["accepted_date", "ASC"], // Finally, sort by createdAt
+        ["createdAt", "DESC"], // Finally, sort by createdAt
       ];
     } else {
       order = orderClause;
@@ -2194,6 +2217,56 @@ exports.reupload_attachment = async (req, res) => {
       {
         where: {
           id: id,
+        },
+      }
+    );
+
+    Responder(res, "OK", null, { success: true }, 200);
+    return;
+  } catch (error) {
+    console.log(error);
+    Responder(res, "ERROR", null, null, 500);
+    return;
+  }
+};
+
+exports.reupload_by_doc_attachment = async (req, res) => {
+  const { file, attachment } = req.body;
+  const { no_doc } = req.query;
+
+  try {
+    const getRR = await Reimbursement.findOne({
+      where: {
+        no_doc: no_doc,
+      },
+    });
+
+    if (!getRR) {
+      console.log(error);
+      Responder(res, "ERROR", "No. Dokumen tidak ditemukan.", null, 500);
+      return;
+    }
+
+    let uploadAttachment;
+
+    if (file.type !== "application/pdf") {
+      console.log("IMAGE FILE");
+      const upload = await uploadImagesCloudinary(attachment);
+      uploadAttachment = upload.secure_url;
+    } else {
+      console.log("PDF File");
+      const upload = await uploadToDrive(attachment, file.name);
+      uploadAttachment = upload;
+    }
+
+    await Reimbursement.update(
+      {
+        attachment: uploadAttachment,
+        file_info: file,
+      },
+      {
+        where: {
+          no_doc: no_doc,
         },
       }
     );

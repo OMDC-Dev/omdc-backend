@@ -57,6 +57,10 @@ router.post(
   "/reimbursement/reupload-file/:id",
   reimbursement.reupload_attachment
 );
+router.post(
+  "/reimbursement/reupload",
+  reimbursement.reupload_by_doc_attachment
+);
 
 // Bank
 router.get("/bank", bank.getBank);
