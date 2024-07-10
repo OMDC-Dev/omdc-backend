@@ -580,7 +580,7 @@ exports.admin_approval = async (req, res) => {
     if (mode == "ACC") {
       await TrxPermintaanBarang.update(
         {
-          status_pb: "Disetujui",
+          status_pb: "Menunggu Diproses",
           approval_admin_status: "APPROVED",
           approval_admin_date: getFormattedDate(new Date(), "-"),
         },

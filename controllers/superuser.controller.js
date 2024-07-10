@@ -135,6 +135,8 @@ exports.get_pengajuan = async (req, res) => {
     web,
     statusCA,
     statusROP,
+    periodeStart,
+    periodeEnd,
   } = req.query;
 
   try {
@@ -230,6 +232,12 @@ exports.get_pengajuan = async (req, res) => {
       } else if (type == "TRANSFER") {
         whereClause.payment_type = "TRANSFER";
       }
+    }
+
+    if (periodeStart && periodeEnd) {
+      whereClause.accepted_date = {
+        [Op.between]: [periodeStart, periodeEnd],
+      };
     }
 
     // Menambahkan filter berdasarkan status jika diberikan
@@ -428,9 +436,9 @@ exports.get_pengajuan = async (req, res) => {
 
     if (sort) {
       order = [
-        sortClause, // First, sort by status
-        ["createdAt", "DESC"], // Finally, sort by createdAt
-        ["tipePembayaran", "DESC"], // Then sort by tipePembayaran
+        sortClause, // Order by status
+        ["createdAt", "DESC"], // Order by cretaedAt
+        ["tipePembayaran", "DESC"], // Order by tipe pembayaran
       ];
     } else {
       order = orderClause;
@@ -485,6 +493,8 @@ exports.get_pengajuan_finance = async (req, res) => {
     sort,
     statusCA,
     statusROP,
+    periodeStart,
+    periodeEnd,
   } = req.query;
 
   try {
@@ -499,6 +509,12 @@ exports.get_pengajuan_finance = async (req, res) => {
       } else if (type == "TRANSFER") {
         whereClause.payment_type = "TRANSFER";
       }
+    }
+
+    if (periodeStart && periodeEnd) {
+      whereClause.accepted_date = {
+        [Op.between]: [periodeStart, periodeEnd],
+      };
     }
 
     // status CA
