@@ -207,6 +207,7 @@ exports.reimbursement = async (req, res) => {
         uploadAttachment = upload;
       }
     } else {
+      // use existing file
       uploadAttachment = uploadedFile;
     }
 
@@ -220,7 +221,7 @@ exports.reimbursement = async (req, res) => {
       requester: userDetail || "-",
       description: description || "-",
       status: "WAITING",
-      attachment: uploadAttachment || "-",
+      attachment: uploadAttachment || "",
       bank_detail: bank_detail || "-",
       note: null,
       finance_note: null,
