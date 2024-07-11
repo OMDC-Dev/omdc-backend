@@ -50,10 +50,20 @@ function addAdminApprovalDate(data, iduser, tgl_approve) {
   }
 }
 
+function isValidUrl(string) {
+  try {
+    new URL(string);
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
 module.exports = {
   generateRandomNumber,
   getFormattedDate,
   ubahDataById,
   getDateValidFormat,
   addAdminApprovalDate,
+  isValidUrl,
 };
