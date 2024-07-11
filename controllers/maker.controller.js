@@ -27,6 +27,7 @@ exports.get_reimbursement = async (req, res) => {
     statusROP,
     periodeStart,
     periodeEnd,
+    statusType,
   } = req.query;
 
   try {
@@ -47,21 +48,39 @@ exports.get_reimbursement = async (req, res) => {
       };
     }
 
-    // status CA
-    if (statusCA) {
-      if (statusCA == "DONE") {
+    if (statusType) {
+      if (statusType === "waiting") {
         whereClause[Op.and] = [
-          { status_finance: "DONE" },
-          { jenis_reimbursement: "Cash Advance" },
-          { status_finance_child: "DONE" },
+          { makerStatus: "IDLE" },
+          { reviewStatus: "APPROVED" },
         ];
       } else {
-        whereClause[Op.and] = [
-          { status_finance: "DONE" },
-          { jenis_reimbursement: "Cash Advance" },
-          { status_finance_child: { [Op.ne]: "DONE" } },
-        ];
+        // status CA
+        if (statusCA) {
+          whereClause[Op.and] = [
+            { status_finance: "DONE" },
+            { jenis_reimbursement: "Cash Advance" },
+            {
+              status_finance_child:
+                statusCA === "DONE" ? "DONE" : { [Op.ne]: "DONE" },
+            },
+          ];
+        } else {
+          whereClause[Op.and] = [
+            { makerStatus: { [Op.ne]: "IDLE" } },
+            { reviewStatus: "APPROVED" },
+          ];
+        }
       }
+    } else if (statusCA) {
+      whereClause[Op.and] = [
+        { status_finance: "DONE" },
+        { jenis_reimbursement: "Cash Advance" },
+        {
+          status_finance_child:
+            statusCA === "DONE" ? "DONE" : { [Op.ne]: "DONE" },
+        },
+      ];
     }
 
     // status rop
@@ -189,27 +208,28 @@ exports.get_reimbursement = async (req, res) => {
     // Menambahkan pengurutan berdasarkan tipePembayaran
     const orderClause = [
       ["tipePembayaran", "DESC"], // Mengurutkan dari Urgent ke Regular
+      ["accepted_date", "DESC"], // Finally, sort by createdAt
       ["createdAt", "DESC"], // Mengurutkan berdasarkan createdAt secara descending
     ];
 
-    const sortClause = Sequelize.literal(`CASE
-  WHEN makerStatus = 'WAITING' THEN 1
-  WHEN makerStatus = 'IDLE' THEN 1
-  ELSE 2
-END`);
+    //     const sortClause = Sequelize.literal(`CASE
+    //   WHEN makerStatus = 'WAITING' THEN 1
+    //   WHEN makerStatus = 'IDLE' THEN 1
+    //   ELSE 2
+    // END`);
 
-    let order;
+    //     let order;
 
-    if (sort) {
-      order = [
-        sortClause, // First, sort by status
-        ["tipePembayaran", "DESC"], // Then sort by tipePembayaran
-        ["accepted_date", "ASC"], // Finally, sort by createdAt
-        ["createdAt", "DESC"], // Finally, sort by createdAt
-      ];
-    } else {
-      order = orderClause;
-    }
+    //     if (sort) {
+    //       order = [
+    //         sortClause, // First, sort by status
+    //         ["tipePembayaran", "DESC"], // Then sort by tipePembayaran
+    //         ["accepted_date", "ASC"], // Finally, sort by createdAt
+    //         ["createdAt", "DESC"], // Finally, sort by createdAt
+    //       ];
+    //     } else {
+    //       order = orderClause;
+    //     }
 
     // Menghitung offset berdasarkan halaman dan batasan
     const offset = (page - 1) * limit;
@@ -218,7 +238,7 @@ END`);
       where: whereClause,
       limit: parseInt(limit), // Mengubah batasan menjadi tipe numerik
       offset: offset, // Menetapkan offset untuk penampilan halaman
-      order: order,
+      order: orderClause,
     });
 
     // result count

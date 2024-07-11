@@ -1667,6 +1667,7 @@ exports.get_review_reimbursement = async (req, res) => {
     statusROP,
     periodeStart,
     periodeEnd,
+    statusType,
   } = req.query;
 
   try {
@@ -1764,17 +1765,32 @@ exports.get_review_reimbursement = async (req, res) => {
         ];
       }
     } else {
-      console.log("NO TYPE");
-      whereClause[Op.or] = [
-        {
-          status: "APPROVED",
-        },
-        {
-          status: "REJECTED",
-          reviewStatus: "REJECTED",
-          makerStatus: "IDLE",
-        },
-      ];
+      if (statusType == "waiting") {
+        console.log("SP WAITING");
+        whereClause[Op.and] = [
+          {
+            status: "APPROVED",
+          },
+          {
+            reviewStatus: "IDLE",
+          },
+        ];
+      } else {
+        console.log("SP DONE");
+        whereClause[Op.or] = [
+          {
+            status: "APPROVED",
+            reviewStatus: {
+              [Op.ne]: ["IDLE"],
+            },
+          },
+          {
+            status: "REJECTED",
+            reviewStatus: "REJECTED",
+            makerStatus: "IDLE",
+          },
+        ];
+      }
     }
 
     if (monthyear) {
@@ -1852,27 +1868,28 @@ exports.get_review_reimbursement = async (req, res) => {
     // Menambahkan pengurutan berdasarkan tipePembayaran
     const orderClause = [
       ["tipePembayaran", "DESC"], // Mengurutkan dari Urgent ke Regular
+      ["accepted_date", "DESC"], // Finally, sort by createdAt
       ["createdAt", "DESC"], // Mengurutkan berdasarkan createdAt secara descending
     ];
 
-    const sortClause = Sequelize.literal(`CASE
-  WHEN reviewStatus = 'WAITING' THEN 1
-  WHEN reviewStatus = 'IDLE' THEN 1
-  ELSE 2
-END`);
+    //     const sortClause = Sequelize.literal(`CASE
+    //   WHEN reviewStatus = 'WAITING' THEN 1
+    //   WHEN reviewStatus = 'IDLE' THEN 1
+    //   ELSE 2
+    // END`);
 
-    let order;
+    //     let order;
 
-    if (sort) {
-      order = [
-        sortClause, // First, sort by status
-        ["tipePembayaran", "DESC"], // Then sort by tipePembayaran
-        ["accepted_date", "ASC"], // Finally, sort by createdAt
-        ["createdAt", "DESC"], // Finally, sort by createdAt
-      ];
-    } else {
-      order = orderClause;
-    }
+    //     if (sort) {
+    //       order = [
+    //         sortClause, // First, sort by status
+    //         ["tipePembayaran", "DESC"], // Then sort by tipePembayaran
+    //         ["accepted_date", "ASC"], // Finally, sort by createdAt
+    //         ["createdAt", "DESC"], // Finally, sort by createdAt
+    //       ];
+    //     } else {
+    //       order = orderClause;
+    //     }
 
     // Menghitung offset berdasarkan halaman dan batasan
     const offset = (page - 1) * limit;
@@ -1881,7 +1898,7 @@ END`);
       where: whereClause,
       limit: parseInt(limit), // Mengubah batasan menjadi tipe numerik
       offset: offset, // Menetapkan offset untuk penampilan halaman
-      order: order,
+      order: orderClause,
     });
 
     // result count
