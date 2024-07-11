@@ -137,21 +137,99 @@ exports.get_pengajuan = async (req, res) => {
     statusROP,
     periodeStart,
     periodeEnd,
+    statusType,
   } = req.query;
 
   try {
     const userData = decodeToken(getToken(authorization));
 
+    let order;
     const whereClause = {};
 
+    // Menambahkan pengurutan berdasarkan tipePembayaran
+    const orderClause = [
+      ["tipePembayaran", "DESC"], // Mengurutkan dari Urgent ke Regular
+      ["accepted_date", "DESC"], // Finally, sort by createdAt
+      ["createdAt", "DESC"], // Mengurutkan berdasarkan createdAt secara descending
+    ];
+
+    //   const sortClause = [
+    //     [
+    //       Sequelize.literal(`CASE
+    //   WHEN JSON_UNQUOTE(JSON_EXTRACT(accepted_by, '$[*].status')) LIKE '%"WAITING"%'
+    //   THEN 1
+    //   ELSE 2
+    // END`),
+    //       "ASC",
+    //     ],
+    //   ];
+
+    // if (sort) {
+    //   order = [
+    //     ["tipePembayaran", "DESC"], // Then sort by tipePembayaran
+    //     ["accepted_date", "DESC"], // Finally, sort by createdAt
+    //     ["createdAt", "DESC"], // Finally, sort by createdAt
+    //   ];
+    // } else {
+    //   order = orderClause;
+    // }
+
     if (web) {
-      whereClause[Op.or] = [
-        Sequelize.fn(
-          "JSON_CONTAINS",
-          Sequelize.col("accepted_by"),
-          `[{"iduser": "${userData?.iduser}"}]`
-        ),
-      ];
+      // whereClause[Op.or] = [
+      //   Sequelize.fn(
+      //     "JSON_CONTAINS",
+      //     Sequelize.col("accepted_by"),
+      //     `[{"iduser": "${userData?.iduser}"}]`
+      //   ),
+      //   {
+      //     [Op.and]: [
+      //       { needExtraAcceptance: true },
+      //       { "extraAcceptance.iduser": userData.iduser },
+      //     ],
+      //   },
+      // ];
+
+      if (statusType == "waiting") {
+        whereClause[Op.or] = [
+          {
+            [Op.and]: [
+              Sequelize.fn(
+                "JSON_CONTAINS",
+                Sequelize.col("accepted_by"),
+                `[{"iduser": "${userData?.iduser}"}]`
+              ),
+              { status: "WAITING" },
+            ],
+          },
+          {
+            [Op.and]: [
+              { needExtraAcceptance: true },
+              { "extraAcceptance.iduser": userData.iduser },
+            ],
+          },
+        ];
+      } else if (statusType == "done") {
+        whereClause[Op.and] = [
+          Sequelize.fn(
+            "JSON_CONTAINS",
+            Sequelize.col("accepted_by"),
+            `[{"iduser": "${userData?.iduser}"}]`
+          ),
+          {
+            status: {
+              [Op.ne]: ["WAITING"],
+            },
+          },
+        ];
+      } else {
+        whereClause[Op.or] = [
+          Sequelize.fn(
+            "JSON_CONTAINS",
+            Sequelize.col("accepted_by"),
+            `[{"iduser": "${userData?.iduser}"}]`
+          ),
+        ];
+      }
 
       // status CA
       if (statusCA) {
@@ -343,11 +421,6 @@ exports.get_pengajuan = async (req, res) => {
           },
         ];
       }
-    } else {
-      whereClause[Op.or].push(
-        { needExtraAcceptance: true },
-        { "extraAcceptance.iduser": userData.iduser }
-      );
     }
 
     if (monthyear) {
@@ -415,36 +488,6 @@ exports.get_pengajuan = async (req, res) => {
     // Cek apakah sudah direview oleh reviewer
     //whereClause.reviewStatus = "APPROVED";
 
-    // Menambahkan pengurutan berdasarkan tipePembayaran
-    const orderClause = [
-      ["tipePembayaran", "DESC"], // Mengurutkan dari Urgent ke Regular
-      ["createdAt", "DESC"], // Mengurutkan berdasarkan createdAt secara descending
-    ];
-
-    const sortClause = [
-      [
-        Sequelize.literal(`CASE
-    WHEN JSON_UNQUOTE(JSON_EXTRACT(accepted_by, '$[*].status')) LIKE '%"WAITING"%'
-    THEN 1
-    ELSE 2
-  END`),
-        "ASC",
-      ],
-    ];
-
-    let order;
-
-    if (sort) {
-      order = [
-        sortClause, // Order by status
-        ["tipePembayaran", "DESC"], // Then sort by tipePembayaran
-        ["accepted_date", "ASC"], // Finally, sort by createdAt
-        ["createdAt", "DESC"], // Finally, sort by createdAt
-      ];
-    } else {
-      order = orderClause;
-    }
-
     // Menghitung offset berdasarkan halaman dan batasan
     const offset = (page - 1) * limit;
 
@@ -452,7 +495,7 @@ exports.get_pengajuan = async (req, res) => {
       where: whereClause,
       limit: parseInt(limit), // Mengubah batasan menjadi tipe numerik
       offset: offset, // Menetapkan offset untuk penampilan halaman
-      order: order,
+      order: orderClause,
     });
 
     // result count
@@ -496,6 +539,7 @@ exports.get_pengajuan_finance = async (req, res) => {
     statusROP,
     periodeStart,
     periodeEnd,
+    statusType,
   } = req.query;
 
   try {
@@ -518,21 +562,31 @@ exports.get_pengajuan_finance = async (req, res) => {
       };
     }
 
-    // status CA
-    if (statusCA) {
-      if (statusCA == "DONE") {
+    const getStatusFinanceChildCondition = (statusCA) =>
+      statusCA === "DONE" ? "DONE" : { [Op.ne]: "DONE" };
+
+    const getWhereClauseForCA = (statusCA) => [
+      { status_finance: "DONE" },
+      { jenis_reimbursement: "Cash Advance" },
+      { status_finance_child: getStatusFinanceChildCondition(statusCA) },
+    ];
+
+    if (statusType) {
+      if (statusType === "waiting") {
         whereClause[Op.and] = [
-          { status_finance: "DONE" },
-          { jenis_reimbursement: "Cash Advance" },
-          { status_finance_child: "DONE" },
+          { makerStatus: "APPROVED" },
+          { status_finance: "WAITING" },
         ];
+      } else if (statusCA) {
+        whereClause[Op.and] = getWhereClauseForCA(statusCA);
       } else {
         whereClause[Op.and] = [
-          { status_finance: "DONE" },
-          { jenis_reimbursement: "Cash Advance" },
-          { status_finance_child: { [Op.ne]: "DONE" } },
+          { makerStatus: "APPROVED" },
+          { status_finance: { [Op.ne]: "WAITING" } },
         ];
       }
+    } else if (statusCA) {
+      whereClause[Op.and] = getWhereClauseForCA(statusCA);
     }
 
     // status rop
@@ -662,27 +716,28 @@ exports.get_pengajuan_finance = async (req, res) => {
     // Menambahkan pengurutan berdasarkan tipePembayaran
     const orderClause = [
       ["tipePembayaran", "DESC"], // Mengurutkan dari Urgent ke Regular
+      ["accepted_date", "DESC"], // Finally, sort by createdAt
       ["createdAt", "DESC"], // Mengurutkan berdasarkan createdAt secara descending
     ];
 
-    const financeStatusSortClause = Sequelize.literal(`CASE
-  WHEN status_finance = 'WAITING' THEN 1
-  WHEN status_finance = 'IDLE' THEN 1
-  ELSE 2
-END`);
+    //     const financeStatusSortClause = Sequelize.literal(`CASE
+    //   WHEN status_finance = 'WAITING' THEN 1
+    //   WHEN status_finance = 'IDLE' THEN 1
+    //   ELSE 2
+    // END`);
 
-    let order;
+    //     let order;
 
-    if (sort) {
-      order = [
-        financeStatusSortClause, // First, sort by status
-        ["tipePembayaran", "DESC"], // Then sort by tipePembayaran
-        ["accepted_date", "ASC"], // Finally, sort by createdAt
-        ["createdAt", "DESC"], // Finally, sort by createdAt
-      ];
-    } else {
-      order = orderClause;
-    }
+    //     if (sort) {
+    //       order = [
+    //         financeStatusSortClause, // First, sort by status
+    //         ["tipePembayaran", "DESC"], // Then sort by tipePembayaran
+    //         ["accepted_date", "ASC"], // Finally, sort by createdAt
+    //         ["createdAt", "DESC"], // Finally, sort by createdAt
+    //       ];
+    //     } else {
+    //       order = orderClause;
+    //     }
 
     // Menghitung offset berdasarkan halaman dan batasan
     const offset = (page - 1) * limit;
@@ -691,7 +746,7 @@ END`);
       where: whereClause,
       limit: parseInt(limit), // Mengubah batasan menjadi tipe numerik
       offset: offset, // Menetapkan offset untuk penampilan halaman
-      order: order,
+      order: orderClause,
     });
 
     // result count
