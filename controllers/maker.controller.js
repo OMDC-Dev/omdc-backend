@@ -32,6 +32,14 @@ exports.get_reimbursement = async (req, res) => {
 
   try {
     const whereClause = {};
+    let order;
+
+    // Menambahkan pengurutan berdasarkan tipePembayaran
+    const orderClause = [
+      ["tipePembayaran", "DESC"], // Mengurutkan dari Urgent ke Regular
+      ["accepted_date", "DESC"], // Finally, sort by createdAt
+      ["createdAt", "DESC"], // Mengurutkan berdasarkan createdAt secara descending
+    ];
 
     // Tipe Pembayaran
     if (typePembayaran) {
@@ -54,6 +62,11 @@ exports.get_reimbursement = async (req, res) => {
           { makerStatus: "IDLE" },
           { reviewStatus: "APPROVED" },
         ];
+
+        order = [
+          ["tipePembayaran", "DESC"], // Mengurutkan dari Urgent ke Regular
+          ["createdAt", "ASC"], // Mengurutkan berdasarkan createdAt secara descending
+        ];
       } else {
         // status CA
         if (statusCA) {
@@ -72,6 +85,9 @@ exports.get_reimbursement = async (req, res) => {
           ];
         }
       }
+      order = [
+        ["createdAt", "DESC"], // Mengurutkan berdasarkan createdAt secara descending
+      ];
     } else if (statusCA) {
       whereClause[Op.and] = [
         { status_finance: "DONE" },
@@ -108,6 +124,7 @@ exports.get_reimbursement = async (req, res) => {
     }
 
     if (type) {
+      order = orderClause;
       // whereClause.makerStatus =
       //   type === "WAITING" ? "IDLE" : { [Op.or]: ["APPROVED", "REJECTED"] };
 
@@ -205,13 +222,6 @@ exports.get_reimbursement = async (req, res) => {
     // Admin already accepted
     whereClause.reviewStatus = "APPROVED";
 
-    // Menambahkan pengurutan berdasarkan tipePembayaran
-    const orderClause = [
-      ["tipePembayaran", "DESC"], // Mengurutkan dari Urgent ke Regular
-      ["accepted_date", "DESC"], // Finally, sort by createdAt
-      ["createdAt", "DESC"], // Mengurutkan berdasarkan createdAt secara descending
-    ];
-
     //     const sortClause = Sequelize.literal(`CASE
     //   WHEN makerStatus = 'WAITING' THEN 1
     //   WHEN makerStatus = 'IDLE' THEN 1
@@ -238,7 +248,7 @@ exports.get_reimbursement = async (req, res) => {
       where: whereClause,
       limit: parseInt(limit), // Mengubah batasan menjadi tipe numerik
       offset: offset, // Menetapkan offset untuk penampilan halaman
-      order: orderClause,
+      order: order,
     });
 
     // result count

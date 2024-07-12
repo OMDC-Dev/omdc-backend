@@ -1672,6 +1672,14 @@ exports.get_review_reimbursement = async (req, res) => {
 
   try {
     const whereClause = {};
+    let order;
+
+    // Menambahkan pengurutan berdasarkan tipePembayaran
+    const orderClause = [
+      ["tipePembayaran", "DESC"], // Mengurutkan dari Urgent ke Regular
+      ["accepted_date", "DESC"], // Finally, sort by createdAt
+      ["createdAt", "DESC"], // Mengurutkan berdasarkan createdAt secara descending
+    ];
 
     // Tipe Pembayaran
     if (typePembayaran) {
@@ -1725,6 +1733,7 @@ exports.get_review_reimbursement = async (req, res) => {
     }
 
     if (type) {
+      order = orderClause;
       if (type == "WAITING") {
         whereClause[Op.or] = [
           {
@@ -1775,6 +1784,10 @@ exports.get_review_reimbursement = async (req, res) => {
             reviewStatus: "IDLE",
           },
         ];
+        order = [
+          ["tipePembayaran", "DESC"],
+          ["createdAt", "ASC"],
+        ];
       } else {
         console.log("SP DONE");
         whereClause[Op.or] = [
@@ -1790,6 +1803,8 @@ exports.get_review_reimbursement = async (req, res) => {
             makerStatus: "IDLE",
           },
         ];
+
+        order = [["createdAt", "DESC"]];
       }
     }
 
@@ -1865,13 +1880,6 @@ exports.get_review_reimbursement = async (req, res) => {
     // Admin already accepted
     //whereClause.status = "APPROVED";
 
-    // Menambahkan pengurutan berdasarkan tipePembayaran
-    const orderClause = [
-      ["tipePembayaran", "DESC"], // Mengurutkan dari Urgent ke Regular
-      ["accepted_date", "DESC"], // Finally, sort by createdAt
-      ["createdAt", "DESC"], // Mengurutkan berdasarkan createdAt secara descending
-    ];
-
     //     const sortClause = Sequelize.literal(`CASE
     //   WHEN reviewStatus = 'WAITING' THEN 1
     //   WHEN reviewStatus = 'IDLE' THEN 1
@@ -1898,7 +1906,7 @@ exports.get_review_reimbursement = async (req, res) => {
       where: whereClause,
       limit: parseInt(limit), // Mengubah batasan menjadi tipe numerik
       offset: offset, // Menetapkan offset untuk penampilan halaman
-      order: orderClause,
+      order: order,
     });
 
     // result count
