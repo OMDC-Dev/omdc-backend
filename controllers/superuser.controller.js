@@ -138,6 +138,7 @@ exports.get_pengajuan = async (req, res) => {
     periodeStart,
     periodeEnd,
     statusType,
+    kategori,
   } = req.query;
 
   try {
@@ -199,12 +200,16 @@ exports.get_pengajuan = async (req, res) => {
                 `[{"iduser": "${userData?.iduser}"}]`
               ),
               { status: "WAITING" },
+              ...(kategori ? [{ tipePembayaran: kategori }] : []),
+              // Jika param kategori ada maka tambahkan kondisi { tipePembayaran: kategori }
             ],
           },
           {
             [Op.and]: [
               { needExtraAcceptance: true },
               { "extraAcceptance.iduser": userData.iduser },
+              ...(kategori ? [{ tipePembayaran: kategori }] : []),
+              // Jika param kategori ada maka tambahkan kondisi { tipePembayaran: kategori }
             ],
           },
         ];
@@ -225,6 +230,7 @@ exports.get_pengajuan = async (req, res) => {
               [Op.ne]: ["WAITING"],
             },
           },
+          ...(kategori ? [{ tipePembayaran: kategori }] : []),
         ];
         order = [["createdAt", "DESC"]];
       } else {
@@ -234,6 +240,7 @@ exports.get_pengajuan = async (req, res) => {
             Sequelize.col("accepted_by"),
             `[{"iduser": "${userData?.iduser}"}]`
           ),
+          ...(kategori ? [{ tipePembayaran: kategori }] : []),
         ];
       }
 
@@ -548,6 +555,7 @@ exports.get_pengajuan_finance = async (req, res) => {
     periodeStart,
     periodeEnd,
     statusType,
+    kategori,
   } = req.query;
 
   try {
@@ -585,6 +593,7 @@ exports.get_pengajuan_finance = async (req, res) => {
       { status_finance: "DONE" },
       { jenis_reimbursement: "Cash Advance" },
       { status_finance_child: getStatusFinanceChildCondition(statusCA) },
+      ...(kategori ? [{ tipePembayaran: kategori }] : []),
     ];
 
     if (statusType) {
@@ -592,6 +601,7 @@ exports.get_pengajuan_finance = async (req, res) => {
         whereClause[Op.and] = [
           { makerStatus: "APPROVED" },
           { status_finance: "WAITING" },
+          ...(kategori ? [{ tipePembayaran: kategori }] : []),
         ];
         order = [
           ["tipePembayaran", "DESC"], // Mengurutkan dari Urgent ke Regular
@@ -606,6 +616,7 @@ exports.get_pengajuan_finance = async (req, res) => {
         whereClause[Op.and] = [
           { makerStatus: "APPROVED" },
           { status_finance: { [Op.ne]: "WAITING" } },
+          ...(kategori ? [{ tipePembayaran: kategori }] : []),
         ];
         order = [
           ["createdAt", "DESC"], // Mengurutkan berdasarkan createdAt secara descending

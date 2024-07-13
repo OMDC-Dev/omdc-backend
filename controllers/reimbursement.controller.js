@@ -1668,6 +1668,7 @@ exports.get_review_reimbursement = async (req, res) => {
     periodeStart,
     periodeEnd,
     statusType,
+    kategori,
   } = req.query;
 
   try {
@@ -1783,6 +1784,7 @@ exports.get_review_reimbursement = async (req, res) => {
           {
             reviewStatus: "IDLE",
           },
+          ...(kategori ? [{ tipePembayaran: kategori }] : []),
         ];
         order = [
           ["tipePembayaran", "DESC"],
@@ -1802,6 +1804,7 @@ exports.get_review_reimbursement = async (req, res) => {
             reviewStatus: "REJECTED",
             makerStatus: "IDLE",
           },
+          ...(kategori ? [{ tipePembayaran: kategori }] : []),
         ];
 
         order = [["createdAt", "DESC"]];

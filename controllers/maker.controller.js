@@ -28,6 +28,7 @@ exports.get_reimbursement = async (req, res) => {
     periodeStart,
     periodeEnd,
     statusType,
+    kategori,
   } = req.query;
 
   try {
@@ -61,6 +62,7 @@ exports.get_reimbursement = async (req, res) => {
         whereClause[Op.and] = [
           { makerStatus: "IDLE" },
           { reviewStatus: "APPROVED" },
+          ...(kategori ? [{ tipePembayaran: kategori }] : []),
         ];
 
         order = [
@@ -77,11 +79,13 @@ exports.get_reimbursement = async (req, res) => {
               status_finance_child:
                 statusCA === "DONE" ? "DONE" : { [Op.ne]: "DONE" },
             },
+            ...(kategori ? [{ tipePembayaran: kategori }] : []),
           ];
         } else {
           whereClause[Op.and] = [
             { makerStatus: { [Op.ne]: "IDLE" } },
             { reviewStatus: "APPROVED" },
+            ...(kategori ? [{ tipePembayaran: kategori }] : []),
           ];
         }
       }
@@ -96,6 +100,7 @@ exports.get_reimbursement = async (req, res) => {
           status_finance_child:
             statusCA === "DONE" ? "DONE" : { [Op.ne]: "DONE" },
         },
+        ...(kategori ? [{ tipePembayaran: kategori }] : []),
       ];
     }
 
