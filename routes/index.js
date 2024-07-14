@@ -48,6 +48,7 @@ router.get("/cabang", reimbursement.cabang);
 router.post("/reimbursement", reimbursement.reimbursement);
 router.get("/reimbursement", reimbursement.get_reimbursement);
 router.post("/reimbursement/status/:id", reimbursement.acceptance);
+router.post("/reimbursement/status-multi", reimbursement.acceptance_multi);
 router.post("/reimbursement/extra/:id", reimbursement.acceptExtraReimbursement);
 router.get("/reimbursement/status/:id", reimbursement.get_status);
 router.get("/reimbursement/:id", reimbursement.get_detail);

@@ -154,16 +154,16 @@ exports.get_pengajuan = async (req, res) => {
       ["createdAt", "DESC"], // Mengurutkan berdasarkan createdAt secara descending
     ];
 
-    //   const sortClause = [
-    //     [
-    //       Sequelize.literal(`CASE
-    //   WHEN JSON_UNQUOTE(JSON_EXTRACT(accepted_by, '$[*].status')) LIKE '%"WAITING"%'
-    //   THEN 1
-    //   ELSE 2
-    // END`),
-    //       "ASC",
-    //     ],
-    //   ];
+    const sortClause = [
+      [
+        Sequelize.literal(`CASE
+      WHEN JSON_UNQUOTE(JSON_EXTRACT(accepted_by, '$[*].status')) LIKE '%"WAITING"%'
+      THEN 1
+      ELSE 2
+    END`),
+        "ASC",
+      ],
+    ];
 
     // if (sort) {
     //   order = [
@@ -399,6 +399,8 @@ exports.get_pengajuan = async (req, res) => {
             jenis_reimbursement: { [Op.ne]: "Cash Advance" },
           },
         ];
+
+        order = orderClause;
       } else if (status === "00") {
         // NORMAL ACC
         whereClause[Op.or] = [
@@ -434,6 +436,13 @@ exports.get_pengajuan = async (req, res) => {
               { status_finance_child: "IDLE" },
             ],
           },
+        ];
+
+        order = [
+          sortClause,
+          ["tipePembayaran", "DESC"], // Mengurutkan dari Urgent ke Regular
+          ["accepted_date", "DESC"], // Finally, sort by createdAt
+          ["createdAt", "DESC"], // Mengurutkan berdasarkan createdAt secara descending
         ];
       }
     }
@@ -564,6 +573,12 @@ exports.get_pengajuan_finance = async (req, res) => {
     const whereClause = {};
     let order;
 
+    const financeStatusSortClause = Sequelize.literal(`CASE
+      WHEN status_finance = 'WAITING' THEN 1
+      WHEN status_finance = 'IDLE' THEN 1
+      ELSE 2
+    END`);
+
     // Menambahkan pengurutan berdasarkan tipePembayaran
     const orderClause = [
       ["tipePembayaran", "DESC"], // Mengurutkan dari Urgent ke Regular
@@ -689,6 +704,13 @@ exports.get_pengajuan_finance = async (req, res) => {
           ],
         },
       ];
+
+      order = [
+        financeStatusSortClause,
+        ["tipePembayaran", "DESC"], // Mengurutkan dari Urgent ke Regular
+        ["accepted_date", "DESC"], // Finally, sort by createdAt
+        ["createdAt", "DESC"], // Mengurutkan berdasarkan createdAt secara descending
+      ];
     } else if (status === "01") {
       whereClause[Op.or] = [
         {
@@ -703,6 +725,8 @@ exports.get_pengajuan_finance = async (req, res) => {
       ];
       // whereClause.status_finance = "DONE";
       // whereClause.status_finance_child = "DONE";
+
+      order = orderClause;
     }
 
     whereClause.makerStatus = "APPROVED";
@@ -756,12 +780,6 @@ exports.get_pengajuan_finance = async (req, res) => {
 
       whereClause[Op.and] = searchConditions;
     }
-
-    //     const financeStatusSortClause = Sequelize.literal(`CASE
-    //   WHEN status_finance = 'WAITING' THEN 1
-    //   WHEN status_finance = 'IDLE' THEN 1
-    //   ELSE 2
-    // END`);
 
     //     let order;
 
