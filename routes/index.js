@@ -42,12 +42,14 @@ router.post("/user/complete/:id", ruser.completeUser);
 router.post("/user/update-password", ruser.updatePw);
 router.post("/user/logout", ruser.logout);
 router.get("/user/kodeakses/:iduser", ruser.get_kodeakses_by_id);
+router.get("/user/status/:iduser", ruser.get_status_user);
 
 // Reimbursement
 router.get("/cabang", reimbursement.cabang);
 router.post("/reimbursement", reimbursement.reimbursement);
 router.get("/reimbursement", reimbursement.get_reimbursement);
 router.post("/reimbursement/status/:id", reimbursement.acceptance);
+router.post("/reimbursement/status-multi", reimbursement.acceptance_multi);
 router.post("/reimbursement/extra/:id", reimbursement.acceptExtraReimbursement);
 router.get("/reimbursement/status/:id", reimbursement.get_status);
 router.get("/reimbursement/:id", reimbursement.get_detail);

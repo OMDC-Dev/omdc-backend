@@ -1682,6 +1682,12 @@ exports.get_review_reimbursement = async (req, res) => {
       ["createdAt", "DESC"], // Mengurutkan berdasarkan createdAt secara descending
     ];
 
+    const sortClause = Sequelize.literal(`CASE
+      WHEN reviewStatus = 'WAITING' THEN 1
+      WHEN reviewStatus = 'IDLE' THEN 1
+      ELSE 2
+    END`);
+
     // Tipe Pembayaran
     if (typePembayaran) {
       if (typePembayaran == "CASH") {
@@ -1734,7 +1740,6 @@ exports.get_review_reimbursement = async (req, res) => {
     }
 
     if (type) {
-      order = orderClause;
       if (type == "WAITING") {
         whereClause[Op.or] = [
           {
@@ -1756,6 +1761,13 @@ exports.get_review_reimbursement = async (req, res) => {
             ],
           },
         ];
+
+        order = [
+          sortClause,
+          ["tipePembayaran", "DESC"], // Mengurutkan dari Urgent ke Regular
+          ["accepted_date", "DESC"], // Finally, sort by createdAt
+          ["createdAt", "DESC"], // Mengurutkan berdasarkan createdAt secara descending
+        ];
       } else {
         whereClause[Op.or] = [
           {
@@ -1773,6 +1785,8 @@ exports.get_review_reimbursement = async (req, res) => {
             ],
           },
         ];
+
+        order = orderClause;
       }
     } else {
       if (statusType == "waiting") {
@@ -1882,12 +1896,6 @@ exports.get_review_reimbursement = async (req, res) => {
 
     // Admin already accepted
     //whereClause.status = "APPROVED";
-
-    //     const sortClause = Sequelize.literal(`CASE
-    //   WHEN reviewStatus = 'WAITING' THEN 1
-    //   WHEN reviewStatus = 'IDLE' THEN 1
-    //   ELSE 2
-    // END`);
 
     //     let order;
 
@@ -2301,6 +2309,114 @@ exports.reupload_by_doc_attachment = async (req, res) => {
     );
 
     Responder(res, "OK", null, { success: true }, 200);
+    return;
+  } catch (error) {
+    console.log(error);
+    Responder(res, "ERROR", null, null, 500);
+    return;
+  }
+};
+
+exports.acceptance_multi = async (req, res) => {
+  const { ids } = req.body;
+  const { authorization } = req.headers;
+
+  try {
+    const userData = decodeToken(getToken(authorization));
+    const userId = userData.iduser;
+
+    const currentDate = moment().format("DD-MM-YYYY");
+    const current_date = moment().format("YYYY-MM-DD HH:mm:ss").toString();
+
+    let reviewerTokens = [];
+
+    const reviewer = await User.findAll({
+      where: {
+        type: "REVIEWER",
+      },
+      attributes: ["fcmToken"],
+    });
+
+    reviewer.every((res) => reviewerTokens.push(res.fcmToken));
+
+    // Accept multiple pengajuan by id
+    ids.map(async (itemId) => {
+      const datas = await Reimbursement.findOne({
+        where: {
+          id: itemId,
+        },
+      });
+
+      // reimbursement data
+      const r_datas = await datas["dataValues"];
+      const user_fcm = r_datas["requester"]["fcmToken"];
+      const acceptance_by = r_datas["accepted_by"];
+      const parentId = r_datas["parentId"];
+      const nominal = r_datas["nominal"];
+      const extNote = r_datas.note;
+
+      addAdminApprovalDate(acceptance_by, userId, currentDate);
+
+      ubahDataById(acceptance_by, userId, "iduser", "status", "APPROVED");
+
+      if (user_fcm) {
+        sendSingleMessage(user_fcm, {
+          title: "Pengajuan anda telah setujui!",
+          body: `Pengajuan request of payment anda telah disetujui oleh ${
+            userData?.nm_user || "penyetuju"
+          } dan menunggu diproses.`,
+        });
+      }
+
+      // === Handle notif to reviewer
+      if (reviewerTokens.length > 0) {
+        sendMulticastMessage(reviewerTokens, {
+          title: "Ada pengajuan request of payment baru!",
+          body: `Ada pengajuan request of payment baru yang perlu direview!`,
+        });
+      }
+
+      const formNote = `${extNote && extNote.length > 0 ? extNote + "||" : ""}${
+        userData.nm_user
+      }:${""}`;
+
+      await Reimbursement.update(
+        {
+          accepted_date: current_date,
+          accepted_by: acceptance_by,
+          status: "APPROVED",
+          note: formNote,
+          status_finance: "WAITING",
+        },
+        {
+          where: {
+            id: itemId,
+          },
+        }
+      ).then(async () => {
+        // Update if has parent ID ( Cash Advance Report )
+        if (parentId) {
+          await Reimbursement.update(
+            {
+              realisasi: nominal,
+            },
+            {
+              where: {
+                id: parentId,
+              },
+            }
+          );
+        }
+      });
+    });
+
+    Responder(
+      res,
+      "OK",
+      null,
+      { updated: true, message: "Pengajuan berhasil di update!" },
+      200
+    );
     return;
   } catch (error) {
     console.log(error);

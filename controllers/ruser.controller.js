@@ -464,3 +464,24 @@ exports.get_kodeakses_by_id = async (req, res) => {
     return;
   }
 };
+
+exports.get_status_user = async (req, res) => {
+  const { iduser } = req.params;
+  try {
+    // get user access
+    const getUser = await M_User.findOne({
+      where: {
+        iduser: iduser,
+      },
+      attributes: ["status"],
+    });
+
+    const userStatus = await getUser["dataValues"];
+
+    Responder(res, "OK", null, userStatus, 200);
+    return;
+  } catch (error) {
+    Responder(res, "ERROR", null, null, 400);
+    return;
+  }
+};

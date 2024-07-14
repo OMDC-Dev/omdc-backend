@@ -42,6 +42,12 @@ exports.get_reimbursement = async (req, res) => {
       ["createdAt", "DESC"], // Mengurutkan berdasarkan createdAt secara descending
     ];
 
+    const sortClause = Sequelize.literal(`CASE
+      WHEN makerStatus = 'WAITING' THEN 1
+      WHEN makerStatus = 'IDLE' THEN 1
+      ELSE 2
+    END`);
+
     // Tipe Pembayaran
     if (typePembayaran) {
       if (typePembayaran == "CASH") {
@@ -129,7 +135,6 @@ exports.get_reimbursement = async (req, res) => {
     }
 
     if (type) {
-      order = orderClause;
       // whereClause.makerStatus =
       //   type === "WAITING" ? "IDLE" : { [Op.or]: ["APPROVED", "REJECTED"] };
 
@@ -146,6 +151,13 @@ exports.get_reimbursement = async (req, res) => {
               { status_finance_child: "IDLE" },
             ],
           },
+        ];
+
+        order = [
+          sortClause,
+          ["tipePembayaran", "DESC"], // Mengurutkan dari Urgent ke Regular
+          ["accepted_date", "DESC"], // Finally, sort by createdAt
+          ["createdAt", "DESC"], // Mengurutkan berdasarkan createdAt secara descending
         ];
       } else {
         whereClause[Op.or] = [
@@ -164,6 +176,8 @@ exports.get_reimbursement = async (req, res) => {
             ],
           },
         ];
+
+        order = orderClause;
       }
     }
 
