@@ -70,6 +70,7 @@ router.get("/bank/name", bank.getBankAccName);
 
 // M User
 router.get("/muser", muser.getUser);
+router.post("/muser/update-status/:nik", muser.update_userstatus_by_nik);
 
 //  Super User
 router.post("/superuser", superuser.createUser);

@@ -26,3 +26,39 @@ exports.getUser = async (req, res) => {
       Responder(res, "ERROR", null, null, 500);
     });
 };
+
+exports.update_userstatus_by_nik = async (req, res) => {
+  const { nik } = req.params;
+  const { status } = req.query;
+  try {
+    if (!nik || !status) {
+      return Responder(
+        res,
+        "ERROR",
+        "NIK atau Status tidak boleh kosong.",
+        null
+      );
+    }
+
+    const getUser = await M_User.findOne({
+      where: {
+        flag: nik,
+      },
+    });
+
+    if (!getUser) {
+      return Responder(
+        res,
+        "ERROR",
+        `User dengan NIK ${nik} tidak ditemukan.`,
+        null
+      );
+    }
+
+    await M_User.update({ status: status }, { where: { flag: nik } });
+    return Responder(res, "OK", null, { success: true }, 200);
+  } catch (error) {
+    Responder(res, "ERROR", null, null, 500);
+    return;
+  }
+};
