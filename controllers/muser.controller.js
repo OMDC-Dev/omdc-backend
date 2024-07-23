@@ -40,6 +40,18 @@ exports.update_userstatus_by_nik = async (req, res) => {
       );
     }
 
+    if (
+      status.toLowerCase() !== "aktif" &&
+      status.toLowerCase() !== "tidakaktif"
+    ) {
+      return Responder(
+        res,
+        "ERROR",
+        "Status harus memiliki value salah satu dari 'Aktif' atau 'TidakAktif'",
+        null
+      );
+    }
+
     const getUser = await M_User.findOne({
       where: {
         flag: nik,
@@ -55,7 +67,10 @@ exports.update_userstatus_by_nik = async (req, res) => {
       );
     }
 
-    await M_User.update({ status: status }, { where: { flag: nik } });
+    const statusFinal =
+      status.toLowerCase() == "aktif" ? "Aktif" : "Tidak Aktif";
+
+    await M_User.update({ status: statusFinal }, { where: { flag: nik } });
     return Responder(res, "OK", null, { success: true }, 200);
   } catch (error) {
     Responder(res, "ERROR", null, null, 500);
