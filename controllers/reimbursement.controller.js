@@ -1616,6 +1616,7 @@ exports.get_super_reimbursement_report = async (req, res) => {
         "attachment",
         "maker_approve",
         "reviewer_approve",
+        "pengajuan_ca",
       ],
     });
 
