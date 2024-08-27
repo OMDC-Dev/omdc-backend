@@ -2386,7 +2386,7 @@ exports.acceptance_multi = async (req, res) => {
           accepted_date: current_date,
           accepted_by: acceptance_by,
           status: "APPROVED",
-          note: formNote,
+          note: "",
           status_finance: "WAITING",
         },
         {
