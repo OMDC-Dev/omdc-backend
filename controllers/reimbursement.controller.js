@@ -308,6 +308,7 @@ exports.get_reimbursement = async (req, res) => {
     statusROP,
     periodeStart,
     periodeEnd,
+    cabang,
   } = req.query;
 
   try {
@@ -370,6 +371,11 @@ exports.get_reimbursement = async (req, res) => {
           { status_finance: "DONE" },
         ];
       }
+    }
+
+    // Cabang
+    if (cabang) {
+      whereClause.kode_cabang = cabang;
     }
 
     // Tipe Pembayaran
@@ -1367,10 +1373,9 @@ exports.get_super_reimbursement = async (req, res) => {
       }
     }
 
+    // Cabang
     if (cabang) {
-      whereClause.kode_cabang = {
-        [Op.startsWith]: cabang,
-      };
+      whereClause.kode_cabang = cabang;
     }
 
     if (coa) {
@@ -1617,6 +1622,8 @@ exports.get_super_reimbursement_report = async (req, res) => {
         "maker_approve",
         "reviewer_approve",
         "pengajuan_ca",
+        "parentDoc",
+        "childDoc",
       ],
     });
 
@@ -1670,6 +1677,7 @@ exports.get_review_reimbursement = async (req, res) => {
     periodeEnd,
     statusType,
     kategori,
+    cabang,
   } = req.query;
 
   try {
@@ -1893,6 +1901,10 @@ exports.get_review_reimbursement = async (req, res) => {
       }));
 
       whereClause[Op.and] = searchConditions;
+    }
+
+    if (cabang) {
+      whereClause.kode_cabang = cabang;
     }
 
     // Admin already accepted

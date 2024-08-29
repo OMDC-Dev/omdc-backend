@@ -29,6 +29,7 @@ exports.get_reimbursement = async (req, res) => {
     periodeEnd,
     statusType,
     kategori,
+    cabang,
   } = req.query;
 
   try {
@@ -55,6 +56,10 @@ exports.get_reimbursement = async (req, res) => {
       } else if (typePembayaran == "TRANSFER") {
         whereClause.payment_type = "TRANSFER";
       }
+    }
+
+    if (cabang) {
+      whereClause.kode_cabang = cabang;
     }
 
     if (periodeStart && periodeEnd) {
