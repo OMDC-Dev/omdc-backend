@@ -139,6 +139,7 @@ exports.get_pengajuan = async (req, res) => {
     periodeEnd,
     statusType,
     kategori,
+    cabang,
   } = req.query;
 
   try {
@@ -325,6 +326,10 @@ exports.get_pengajuan = async (req, res) => {
       } else if (type == "TRANSFER") {
         whereClause.payment_type = "TRANSFER";
       }
+    }
+
+    if (cabang) {
+      whereClause.kode_cabang = cabang;
     }
 
     if (periodeStart && periodeEnd) {
@@ -565,6 +570,7 @@ exports.get_pengajuan_finance = async (req, res) => {
     periodeEnd,
     statusType,
     kategori,
+    cabang,
   } = req.query;
 
   try {
@@ -599,6 +605,10 @@ exports.get_pengajuan_finance = async (req, res) => {
       whereClause.accepted_date = {
         [Op.between]: [periodeStart, periodeEnd],
       };
+    }
+
+    if (cabang) {
+      whereClause.kode_cabang = cabang;
     }
 
     const getStatusFinanceChildCondition = (statusCA) =>
