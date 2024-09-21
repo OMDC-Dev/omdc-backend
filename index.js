@@ -46,14 +46,14 @@ app.use((req, res, next) => {
 });
 
 // DATABASE
-db.sequelize
-  .sync()
-  .then(() => {
-    console.log("Synced db.");
-  })
-  .catch((err) => {
-    console.log("Failed to sync db: " + err.message);
-  });
+// db.sequelize
+//   .sync()
+//   .then(() => {
+//     console.log("Synced db.");
+//   })
+//   .catch((err) => {
+//     console.log("Failed to sync db: " + err.message);
+//   });
 
 // sync user db
 db_user.sequelize
@@ -76,7 +76,8 @@ app.use((err, req, res, next) => {
 // simple route
 app.get("/", (req, res) => {
   res.json({
-    message: "Reimbursement Apps Service v.0.9.5 rev 8 - 29 Agu 2024",
+    message:
+      "Reimbursement Apps Service v.0.9.5 rev 9 - 21 Sep 2024 ( Reviewer Acc Multi )",
   });
 });
 
