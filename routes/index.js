@@ -91,6 +91,10 @@ router.post(
   "/reviewer/accept/:id",
   reimbursement.acceptReviewReimbursementData
 );
+router.post(
+  "/reviewer/accept-multi",
+  reimbursement.acceptReviewReimbursementDataMulti
+);
 
 // Maker
 router.get("/maker/reimbursement", maker.get_reimbursement);

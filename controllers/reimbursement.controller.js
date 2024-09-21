@@ -2089,6 +2089,69 @@ exports.acceptReviewReimbursementData = async (req, res) => {
   }
 };
 
+exports.acceptReviewReimbursementDataMulti = async (req, res) => {
+  const { status, ids } = req.body;
+  const { authorization } = req.headers;
+
+  try {
+    // === HANDLE NOTIF TO MAKER
+    const getMakerSession = await User.findAll({
+      where: {
+        type: "MAKER",
+      },
+      attributes: ["fcmToken"],
+    });
+
+    const userData = decodeToken(getToken(authorization));
+    const currentDate = moment().format("DD-MM-YYYY");
+
+    ids.map(async (itemId) => {
+      // const getReimburse = await Reimbursement.findOne({
+      //   where: {
+      //     id: itemId,
+      //   },
+      // });
+
+      if (getMakerSession) {
+        let tokens = [];
+
+        for (let i = 0; i < getMakerSession.length; i++) {
+          if (getMakerSession[i].fcmToken) {
+            tokens.push(getMakerSession[i].fcmToken);
+          }
+        }
+
+        if (tokens.length) {
+          sendMulticastMessage(tokens, {
+            title: "Ada pengajuan request of payment baru!",
+            body: "Ada pengajuan request of payment yang telah disetujui oleh reviewer dan menunggu untuk diproses!",
+          });
+        }
+      }
+
+      await Reimbursement.update(
+        {
+          reviewStatus: status,
+          reviewer_approve: currentDate,
+          nm_reviewer_approve: userData.nm_user,
+        },
+        {
+          where: {
+            id: itemId,
+          },
+        }
+      );
+    });
+
+    Responder(res, "OK", null, { accepted: true }, 200);
+    return;
+  } catch (error) {
+    console.log(error);
+    Responder(res, "ERROR", null, null, 500);
+    return;
+  }
+};
+
 exports.acceptExtraReimbursement = async (req, res) => {
   const { id } = req.params;
   const { note, status } = req.body;
