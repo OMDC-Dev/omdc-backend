@@ -1091,6 +1091,87 @@ exports.finance_acceptance = async (req, res) => {
   }
 };
 
+exports.finance_acceptance_multi = async (req, res) => {
+  const { ids } = req.body;
+  const { authorization } = req.headers;
+  try {
+    const userData = decodeToken(getToken(authorization));
+
+    const financeData = {
+      nm_user: userData.nm_user,
+      iduser: userData?.iduser,
+      acceptDate: moment().format("YYYY-MM-DD"),
+    };
+
+    ids.map(async (itemId) => {
+      const getReimburse = await Reimbursement.findOne({
+        where: {
+          id: itemId,
+        },
+      });
+
+      const reimbursementData = await getReimburse["dataValues"];
+      const userRequested = reimbursementData.requester;
+      const parentId = reimbursementData.parentId;
+      const jenis = reimbursementData?.jenis_reimbursement;
+      const bankDetail = reimbursementData?.bankDetail;
+      const nominal = reimbursementData?.nominal;
+
+      const IS_CONFIRM_ONLY = !bankDetail?.accountname?.length;
+
+      const userFcm = userRequested.fcmToken;
+
+      // Handle if has parent id ( Cash Advance Report )
+      if (parentId) {
+        await Reimbursement.update(
+          {
+            realisasi: nominal,
+            status_finance_child: "DONE",
+          },
+          {
+            where: {
+              id: parentId,
+            },
+          }
+        );
+      }
+
+      return await Reimbursement.update(
+        {
+          status_finance: "DONE",
+          status_finance_child: jenis == "Cash Advance" ? "IDLE" : "DONE",
+          finance_by: financeData,
+          finance_note: "",
+          extraAcceptanceStatus: "APPROVED",
+        },
+        {
+          where: {
+            id: itemId,
+          },
+        }
+      )
+        .then(async () => {
+          if (userFcm) {
+            sendSingleMessage(userFcm, {
+              title:
+                "Pengajuan request of payment anda telah di proses finance!",
+              body: IS_CONFIRM_ONLY
+                ? `Laporan anda telah diterima oleh ${financeData.nm_user} - tim finance`
+                : `Pengajuan request of payment anda telah diproses oleh ${financeData?.nm_user} sebesar ${nominal}`,
+            });
+          }
+          return Responder(res, "OK", null, { updated: true }, 200);
+        })
+        .catch((err) => {
+          return Responder(res, "ERROR", null, { updated: true }, 400);
+        });
+    });
+  } catch (error) {
+    console.log("ERR", error);
+    return Responder(res, "ERROR", null, null, 400);
+  }
+};
+
 exports.get_detail = async (req, res) => {
   const { id } = req.params;
   const { type } = req.query;
