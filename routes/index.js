@@ -103,6 +103,10 @@ router.post("/maker/accept/:id", maker.acceptMakerReimbursement);
 // finance
 router.get("/finance/pengajuan", superuser.get_pengajuan_finance);
 router.post("/finance/acceptance/:id", reimbursement.finance_acceptance);
+router.post(
+  "/finance/acceptance-multi",
+  reimbursement.finance_acceptance_multi
+);
 router.delete("/superuser/delete/:iduser", superuser.deleteAdmin);
 router.post("/finance/update-coa/:id", reimbursement.finance_update_coa);
 
