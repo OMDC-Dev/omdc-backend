@@ -1705,6 +1705,8 @@ exports.get_super_reimbursement_report = async (req, res) => {
         "pengajuan_ca",
         "parentDoc",
         "childDoc",
+        "finance_note",
+        "maker_note",
       ],
     });
 
