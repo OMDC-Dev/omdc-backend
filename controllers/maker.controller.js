@@ -11,6 +11,7 @@ const {
 const { decodeToken, getToken } = require("../utils/jwt");
 
 const Reimbursement = db_user.reimbursement;
+const M_Cabang = db_user.cabang;
 const User = db_user.ruser;
 const INVOICE = db_user.invoice;
 
@@ -312,7 +313,7 @@ exports.get_reimbursement = async (req, res) => {
 
 exports.acceptMakerReimbursement = async (req, res) => {
   const { id } = req.params;
-  const { coa, note, status, bank } = req.body;
+  const { coa, note, status, bank, cabang } = req.body;
   const { authorization } = req.headers;
 
   try {
@@ -405,6 +406,24 @@ exports.acceptMakerReimbursement = async (req, res) => {
           body: "Ada pengajuan request of payment yang telah disetujui oleh penyetuju dan menunggu untuk diproses!",
         });
       }
+    }
+
+    // Update cabang if cabang updated
+    if (cabang && status == "APPROVED") {
+      // get cabang
+      const getCabang = await M_Cabang.findOne({ where: { kd_induk: cabang } });
+      const cabangData = getCabang["dataValues"];
+
+      await Reimbursement.update(
+        {
+          kode_cabang: `${cabangData["kd_induk"]} - ${cabangData["nm_induk"]}`,
+        },
+        {
+          where: {
+            id: id,
+          },
+        }
+      );
     }
 
     await Reimbursement.update(

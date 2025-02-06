@@ -528,7 +528,7 @@ exports.get_reimbursement = async (req, res) => {
 
 exports.acceptance = async (req, res) => {
   const { id } = req.params;
-  const { fowarder_id, status, nominal, note, coa } = req.body;
+  const { fowarder_id, status, nominal, note, coa, cabang } = req.body;
   const { authorization } = req.headers;
 
   try {
@@ -549,6 +549,24 @@ exports.acceptance = async (req, res) => {
     const childId = r_datas["childId"];
     const extNote = r_datas.note;
     const items = r_datas.item;
+
+    // Update cabang if cabang updated
+    if (cabang && status == "APPROVED") {
+      // get cabang
+      const getCabang = await M_Cabang.findOne({ where: { kd_induk: cabang } });
+      const cabangData = getCabang["dataValues"];
+
+      await Reimbursement.update(
+        {
+          kode_cabang: `${cabangData["kd_induk"]} - ${cabangData["nm_induk"]}`,
+        },
+        {
+          where: {
+            id: id,
+          },
+        }
+      );
+    }
 
     const currentDate = moment().format("DD-MM-YYYY");
 
@@ -756,6 +774,7 @@ exports.get_status = async (req, res) => {
         "file_info",
         "nm_reviewer_approve",
         "nm_maker_approve",
+        "kode_cabang",
       ],
     });
 
@@ -906,7 +925,7 @@ exports.finance_acceptance = async (req, res) => {
   const { id } = req.params;
   const { status } = req.query;
   const { authorization } = req.headers;
-  const { nominal, note, coa, bank, extra } = req.body;
+  const { nominal, note, coa, bank, extra, cabang } = req.body;
   try {
     const userData = decodeToken(getToken(authorization));
 
@@ -1043,6 +1062,26 @@ exports.finance_acceptance = async (req, res) => {
         }
       );
 
+      // Update cabang if cabang updated
+      if (cabang && status == "DONE") {
+        // get cabang
+        const getCabang = await M_Cabang.findOne({
+          where: { kd_induk: cabang },
+        });
+        const cabangData = getCabang["dataValues"];
+
+        await Reimbursement.update(
+          {
+            kode_cabang: `${cabangData["kd_induk"]} - ${cabangData["nm_induk"]}`,
+          },
+          {
+            where: {
+              id: id,
+            },
+          }
+        );
+      }
+
       return Responder(
         res,
         "OK",
@@ -1052,6 +1091,24 @@ exports.finance_acceptance = async (req, res) => {
           message: "Pengajuan telah diteruskan untuk disetujui lebih lanjut!",
         },
         200
+      );
+    }
+
+    // Update cabang if cabang updated
+    if (cabang && status == "DONE") {
+      // get cabang
+      const getCabang = await M_Cabang.findOne({ where: { kd_induk: cabang } });
+      const cabangData = getCabang["dataValues"];
+
+      await Reimbursement.update(
+        {
+          kode_cabang: `${cabangData["kd_induk"]} - ${cabangData["nm_induk"]}`,
+        },
+        {
+          where: {
+            id: id,
+          },
+        }
       );
     }
 
@@ -2053,7 +2110,7 @@ exports.get_review_reimbursement = async (req, res) => {
 
 exports.acceptReviewReimbursementData = async (req, res) => {
   const { id } = req.params;
-  const { coa, note, status } = req.body;
+  const { coa, note, status, cabang } = req.body;
   const { authorization } = req.headers;
 
   try {
@@ -2148,6 +2205,24 @@ exports.acceptReviewReimbursementData = async (req, res) => {
       }
     }
 
+    // Update cabang if cabang updated
+    if (cabang && status == "APPROVED") {
+      // get cabang
+      const getCabang = await M_Cabang.findOne({ where: { kd_induk: cabang } });
+      const cabangData = getCabang["dataValues"];
+
+      await Reimbursement.update(
+        {
+          kode_cabang: `${cabangData["kd_induk"]} - ${cabangData["nm_induk"]}`,
+        },
+        {
+          where: {
+            id: id,
+          },
+        }
+      );
+    }
+
     await Reimbursement.update(
       {
         coa: coa,
@@ -2237,7 +2312,7 @@ exports.acceptReviewReimbursementDataMulti = async (req, res) => {
 
 exports.acceptExtraReimbursement = async (req, res) => {
   const { id } = req.params;
-  const { note, status } = req.body;
+  const { note, status, cabang } = req.body;
 
   try {
     const getReimburse = await Reimbursement.findOne({
@@ -2311,6 +2386,24 @@ exports.acceptExtraReimbursement = async (req, res) => {
           }, dan menunggu untuk diselesaikan.`,
         });
       }
+    }
+
+    // Update cabang if cabang updated
+    if (cabang && status == "APPROVED") {
+      // get cabang
+      const getCabang = await M_Cabang.findOne({ where: { kd_induk: cabang } });
+      const cabangData = getCabang["dataValues"];
+
+      await Reimbursement.update(
+        {
+          kode_cabang: `${cabangData["kd_induk"]} - ${cabangData["nm_induk"]}`,
+        },
+        {
+          where: {
+            id: id,
+          },
+        }
+      );
     }
 
     Responder(
