@@ -64,6 +64,11 @@ router.post(
   "/reimbursement/reupload",
   reimbursement.reupload_by_doc_attachment
 );
+router.get("/reviewer/remarked", reimbursement.get_reimbursement_remark);
+router.post(
+  "/reviewer/remarked/check/:id",
+  reimbursement.reviewer_check_remark
+);
 
 // Bank
 router.get("/bank", bank.getBank);

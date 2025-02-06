@@ -145,6 +145,9 @@ module.exports = (sequelize, Sequelize) => {
     bukti_file_info: {
       type: Sequelize.JSON,
     },
+    remarked: {
+      type: Sequelize.BOOLEAN,
+    },
   });
 
   Reimbursement.associate = (models) => {
