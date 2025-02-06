@@ -139,6 +139,12 @@ module.exports = (sequelize, Sequelize) => {
     kdsp: {
       type: Sequelize.STRING(255),
     },
+    bukti_attachment: {
+      type: Sequelize.TEXT("long"),
+    },
+    bukti_file_info: {
+      type: Sequelize.JSON,
+    },
   });
 
   Reimbursement.associate = (models) => {

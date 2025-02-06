@@ -62,6 +62,9 @@ exports.reimbursement = async (req, res) => {
     tipePembayaran,
     uploadedFile,
     kdsp,
+    need_bukti,
+    bukti_attachment,
+    bukti_file_info,
   } = req.body;
   try {
     if (
@@ -211,6 +214,20 @@ exports.reimbursement = async (req, res) => {
       uploadAttachment = uploadedFile;
     }
 
+    let uploadedBuktiAttachment;
+
+    if (need_bukti) {
+      if (bukti_file_info.type !== "application/pdf") {
+        console.log("IMAGE FILE");
+        const upload = await uploadImagesCloudinary(bukti_attachment);
+        uploadedBuktiAttachment = upload.secure_url;
+      } else {
+        console.log("PDF File");
+        const upload = await uploadToDrive(bukti_attachment, file.name);
+        uploadedBuktiAttachment = upload;
+      }
+    }
+
     await Reimbursement.create({
       no_doc: doc_no,
       jenis_reimbursement: getType() || "-",
@@ -251,6 +268,8 @@ exports.reimbursement = async (req, res) => {
       extraAcceptance: {},
       extraAcceptanceStatus: "IDLE",
       kdsp: kdsp || "",
+      bukti_attachment: uploadedBuktiAttachment || "",
+      bukti_file_info: bukti_file_info,
     })
       .then(async (data) => {
         // Handle Invoice
@@ -775,6 +794,8 @@ exports.get_status = async (req, res) => {
         "nm_reviewer_approve",
         "nm_maker_approve",
         "kode_cabang",
+        "bukti_attachment",
+        "bukti_file_info",
       ],
     });
 
