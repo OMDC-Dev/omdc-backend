@@ -476,10 +476,35 @@ exports.get_status_user = async (req, res) => {
       attributes: ["status"],
     });
 
-    const userStatus = await getUser["dataValues"];
+    const getSession = await R_User.findOne({
+      where: {
+        iduser: iduser,
+      },
+      attributes: ["isAdmin"],
+    });
 
-    Responder(res, "OK", null, userStatus, 200);
+    const userStatus = await getUser["dataValues"];
+    const userIsAdmin = await getSession["dataValues"];
+
+    Responder(res, "OK", null, { ...userStatus, ...userIsAdmin }, 200);
     return;
+  } catch (error) {
+    Responder(res, "ERROR", null, null, 400);
+    return;
+  }
+};
+
+exports.get_user_session_by_id = async (req, res) => {
+  const { iduser } = req.params;
+  try {
+    const getSession = await R_User.findOne({ where: { iduser: iduser } });
+
+    if (getSession) {
+      const existingUser = await getSession["dataValues"];
+
+      Responder(res, "OK", null, existingUser, 200);
+      return;
+    }
   } catch (error) {
     Responder(res, "ERROR", null, null, 400);
     return;

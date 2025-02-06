@@ -873,6 +873,18 @@ exports.deleteAdmin = async (req, res) => {
       },
     });
 
+    await User.update(
+      {
+        isAdmin: 0,
+        type: "USER",
+      },
+      {
+        where: {
+          iduser: iduser,
+        },
+      }
+    );
+
     Responder(res, "OK", null, { message: "Admin berhasil dihapus!" }, 200);
     return;
   } catch (error) {
