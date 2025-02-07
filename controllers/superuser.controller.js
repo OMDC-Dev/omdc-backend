@@ -329,7 +329,13 @@ exports.get_pengajuan = async (req, res) => {
     }
 
     if (cabang) {
-      whereClause.kode_cabang = cabang;
+      const cabangValues = cabang.split(",");
+
+      whereClause.kode_cabang = {
+        [Op.or]: cabangValues.map((value) => ({
+          [Op.like]: `${value} -%`,
+        })),
+      };
     }
 
     if (periodeStart && periodeEnd) {
@@ -608,7 +614,13 @@ exports.get_pengajuan_finance = async (req, res) => {
     }
 
     if (cabang) {
-      whereClause.kode_cabang = cabang;
+      const cabangValues = cabang.split(",");
+
+      whereClause.kode_cabang = {
+        [Op.or]: cabangValues.map((value) => ({
+          [Op.like]: `${value} -%`,
+        })),
+      };
     }
 
     const getStatusFinanceChildCondition = (statusCA) =>

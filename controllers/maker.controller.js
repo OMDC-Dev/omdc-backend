@@ -60,7 +60,13 @@ exports.get_reimbursement = async (req, res) => {
     }
 
     if (cabang) {
-      whereClause.kode_cabang = cabang;
+      const cabangValues = cabang.split(",");
+
+      whereClause.kode_cabang = {
+        [Op.or]: cabangValues.map((value) => ({
+          [Op.like]: `${value} -%`,
+        })),
+      };
     }
 
     if (periodeStart && periodeEnd) {

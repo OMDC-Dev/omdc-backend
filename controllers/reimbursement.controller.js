@@ -314,7 +314,6 @@ exports.reimbursement = async (req, res) => {
 };
 
 exports.get_reimbursement = async (req, res) => {
-  console.log("CALLEDS");
   const { authorization } = req.headers;
   const {
     page = 1,
@@ -394,7 +393,13 @@ exports.get_reimbursement = async (req, res) => {
 
     // Cabang
     if (cabang) {
-      whereClause.kode_cabang = cabang;
+      const cabangValues = cabang.split(",");
+
+      whereClause.kode_cabang = {
+        [Op.or]: cabangValues.map((value) => ({
+          [Op.like]: `${value} -%`,
+        })),
+      };
     }
 
     // Tipe Pembayaran
@@ -1534,7 +1539,13 @@ exports.get_super_reimbursement = async (req, res) => {
 
     // Cabang
     if (cabang) {
-      whereClause.kode_cabang = cabang;
+      const cabangValues = cabang.split(",");
+
+      whereClause.kode_cabang = {
+        [Op.or]: cabangValues.map((value) => ({
+          [Op.like]: `${value} -%`,
+        })),
+      };
     }
 
     if (coa) {
@@ -1712,8 +1723,12 @@ exports.get_super_reimbursement_report = async (req, res) => {
     }
 
     if (cabang) {
+      const cabangValues = cabang.split(",");
+
       whereClause.kode_cabang = {
-        [Op.startsWith]: cabang,
+        [Op.or]: cabangValues.map((value) => ({
+          [Op.like]: `${value} -%`,
+        })),
       };
     }
 
@@ -2067,7 +2082,13 @@ exports.get_review_reimbursement = async (req, res) => {
     }
 
     if (cabang) {
-      whereClause.kode_cabang = cabang;
+      const cabangValues = cabang.split(",");
+
+      whereClause.kode_cabang = {
+        [Op.or]: cabangValues.map((value) => ({
+          [Op.like]: `${value} -%`,
+        })),
+      };
     }
 
     // Admin already accepted
@@ -2760,7 +2781,13 @@ exports.get_reimbursement_remark = async (req, res) => {
 
     // Cabang
     if (cabang) {
-      whereClause.kode_cabang = cabang;
+      const cabangValues = cabang.split(",");
+
+      whereClause.kode_cabang = {
+        [Op.or]: cabangValues.map((value) => ({
+          [Op.like]: `${value} -%`,
+        })),
+      };
     }
 
     // Tipe Pembayaran
