@@ -270,6 +270,7 @@ exports.reimbursement = async (req, res) => {
       kdsp: kdsp || "",
       bukti_attachment: uploadedBuktiAttachment || "",
       bukti_file_info: bukti_file_info,
+      remarked: false,
     })
       .then(async (data) => {
         // Handle Invoice
