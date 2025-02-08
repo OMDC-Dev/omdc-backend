@@ -329,7 +329,13 @@ exports.get_pengajuan = async (req, res) => {
     }
 
     if (cabang) {
-      whereClause.kode_cabang = cabang;
+      const cabangValues = cabang.split(",");
+
+      whereClause.kode_cabang = {
+        [Op.or]: cabangValues.map((value) => ({
+          [Op.like]: `${value} -%`,
+        })),
+      };
     }
 
     if (periodeStart && periodeEnd) {
@@ -608,7 +614,13 @@ exports.get_pengajuan_finance = async (req, res) => {
     }
 
     if (cabang) {
-      whereClause.kode_cabang = cabang;
+      const cabangValues = cabang.split(",");
+
+      whereClause.kode_cabang = {
+        [Op.or]: cabangValues.map((value) => ({
+          [Op.like]: `${value} -%`,
+        })),
+      };
     }
 
     const getStatusFinanceChildCondition = (statusCA) =>
@@ -872,6 +884,18 @@ exports.deleteAdmin = async (req, res) => {
         iduser: iduser,
       },
     });
+
+    await User.update(
+      {
+        isAdmin: 0,
+        type: "USER",
+      },
+      {
+        where: {
+          iduser: iduser,
+        },
+      }
+    );
 
     Responder(res, "OK", null, { message: "Admin berhasil dihapus!" }, 200);
     return;

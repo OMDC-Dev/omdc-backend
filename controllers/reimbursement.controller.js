@@ -62,6 +62,9 @@ exports.reimbursement = async (req, res) => {
     tipePembayaran,
     uploadedFile,
     kdsp,
+    need_bukti,
+    bukti_attachment,
+    bukti_file_info,
   } = req.body;
   try {
     if (
@@ -211,6 +214,20 @@ exports.reimbursement = async (req, res) => {
       uploadAttachment = uploadedFile;
     }
 
+    let uploadedBuktiAttachment;
+
+    if (need_bukti) {
+      if (bukti_file_info.type !== "application/pdf") {
+        console.log("IMAGE FILE");
+        const upload = await uploadImagesCloudinary(bukti_attachment);
+        uploadedBuktiAttachment = upload.secure_url;
+      } else {
+        console.log("PDF File");
+        const upload = await uploadToDrive(bukti_attachment, file.name);
+        uploadedBuktiAttachment = upload;
+      }
+    }
+
     await Reimbursement.create({
       no_doc: doc_no,
       jenis_reimbursement: getType() || "-",
@@ -251,6 +268,9 @@ exports.reimbursement = async (req, res) => {
       extraAcceptance: {},
       extraAcceptanceStatus: "IDLE",
       kdsp: kdsp || "",
+      bukti_attachment: uploadedBuktiAttachment || "",
+      bukti_file_info: bukti_file_info,
+      remarked: false,
     })
       .then(async (data) => {
         // Handle Invoice
@@ -295,7 +315,6 @@ exports.reimbursement = async (req, res) => {
 };
 
 exports.get_reimbursement = async (req, res) => {
-  console.log("CALLEDS");
   const { authorization } = req.headers;
   const {
     page = 1,
@@ -375,7 +394,13 @@ exports.get_reimbursement = async (req, res) => {
 
     // Cabang
     if (cabang) {
-      whereClause.kode_cabang = cabang;
+      const cabangValues = cabang.split(",");
+
+      whereClause.kode_cabang = {
+        [Op.or]: cabangValues.map((value) => ({
+          [Op.like]: `${value} -%`,
+        })),
+      };
     }
 
     // Tipe Pembayaran
@@ -528,7 +553,7 @@ exports.get_reimbursement = async (req, res) => {
 
 exports.acceptance = async (req, res) => {
   const { id } = req.params;
-  const { fowarder_id, status, nominal, note, coa } = req.body;
+  const { fowarder_id, status, nominal, note, coa, cabang } = req.body;
   const { authorization } = req.headers;
 
   try {
@@ -549,6 +574,24 @@ exports.acceptance = async (req, res) => {
     const childId = r_datas["childId"];
     const extNote = r_datas.note;
     const items = r_datas.item;
+
+    // Update cabang if cabang updated
+    if (cabang && status == "APPROVED") {
+      // get cabang
+      const getCabang = await M_Cabang.findOne({ where: { kd_induk: cabang } });
+      const cabangData = getCabang["dataValues"];
+
+      await Reimbursement.update(
+        {
+          kode_cabang: `${cabangData["kd_induk"]} - ${cabangData["nm_induk"]}`,
+        },
+        {
+          where: {
+            id: id,
+          },
+        }
+      );
+    }
 
     const currentDate = moment().format("DD-MM-YYYY");
 
@@ -756,6 +799,9 @@ exports.get_status = async (req, res) => {
         "file_info",
         "nm_reviewer_approve",
         "nm_maker_approve",
+        "kode_cabang",
+        "bukti_attachment",
+        "bukti_file_info",
       ],
     });
 
@@ -906,7 +952,7 @@ exports.finance_acceptance = async (req, res) => {
   const { id } = req.params;
   const { status } = req.query;
   const { authorization } = req.headers;
-  const { nominal, note, coa, bank, extra } = req.body;
+  const { nominal, note, coa, bank, extra, cabang } = req.body;
   try {
     const userData = decodeToken(getToken(authorization));
 
@@ -1043,6 +1089,26 @@ exports.finance_acceptance = async (req, res) => {
         }
       );
 
+      // Update cabang if cabang updated
+      if (cabang && status == "DONE") {
+        // get cabang
+        const getCabang = await M_Cabang.findOne({
+          where: { kd_induk: cabang },
+        });
+        const cabangData = getCabang["dataValues"];
+
+        await Reimbursement.update(
+          {
+            kode_cabang: `${cabangData["kd_induk"]} - ${cabangData["nm_induk"]}`,
+          },
+          {
+            where: {
+              id: id,
+            },
+          }
+        );
+      }
+
       return Responder(
         res,
         "OK",
@@ -1052,6 +1118,24 @@ exports.finance_acceptance = async (req, res) => {
           message: "Pengajuan telah diteruskan untuk disetujui lebih lanjut!",
         },
         200
+      );
+    }
+
+    // Update cabang if cabang updated
+    if (cabang && status == "DONE") {
+      // get cabang
+      const getCabang = await M_Cabang.findOne({ where: { kd_induk: cabang } });
+      const cabangData = getCabang["dataValues"];
+
+      await Reimbursement.update(
+        {
+          kode_cabang: `${cabangData["kd_induk"]} - ${cabangData["nm_induk"]}`,
+        },
+        {
+          where: {
+            id: id,
+          },
+        }
       );
     }
 
@@ -1456,7 +1540,13 @@ exports.get_super_reimbursement = async (req, res) => {
 
     // Cabang
     if (cabang) {
-      whereClause.kode_cabang = cabang;
+      const cabangValues = cabang.split(",");
+
+      whereClause.kode_cabang = {
+        [Op.or]: cabangValues.map((value) => ({
+          [Op.like]: `${value} -%`,
+        })),
+      };
     }
 
     if (coa) {
@@ -1634,8 +1724,12 @@ exports.get_super_reimbursement_report = async (req, res) => {
     }
 
     if (cabang) {
+      const cabangValues = cabang.split(",");
+
       whereClause.kode_cabang = {
-        [Op.startsWith]: cabang,
+        [Op.or]: cabangValues.map((value) => ({
+          [Op.like]: `${value} -%`,
+        })),
       };
     }
 
@@ -1707,6 +1801,8 @@ exports.get_super_reimbursement_report = async (req, res) => {
         "childDoc",
         "finance_note",
         "maker_note",
+        "bukti_attachment",
+        "remarked",
       ],
     });
 
@@ -1987,7 +2083,13 @@ exports.get_review_reimbursement = async (req, res) => {
     }
 
     if (cabang) {
-      whereClause.kode_cabang = cabang;
+      const cabangValues = cabang.split(",");
+
+      whereClause.kode_cabang = {
+        [Op.or]: cabangValues.map((value) => ({
+          [Op.like]: `${value} -%`,
+        })),
+      };
     }
 
     // Admin already accepted
@@ -2053,7 +2155,7 @@ exports.get_review_reimbursement = async (req, res) => {
 
 exports.acceptReviewReimbursementData = async (req, res) => {
   const { id } = req.params;
-  const { coa, note, status } = req.body;
+  const { coa, note, status, cabang } = req.body;
   const { authorization } = req.headers;
 
   try {
@@ -2148,6 +2250,24 @@ exports.acceptReviewReimbursementData = async (req, res) => {
       }
     }
 
+    // Update cabang if cabang updated
+    if (cabang && status == "APPROVED") {
+      // get cabang
+      const getCabang = await M_Cabang.findOne({ where: { kd_induk: cabang } });
+      const cabangData = getCabang["dataValues"];
+
+      await Reimbursement.update(
+        {
+          kode_cabang: `${cabangData["kd_induk"]} - ${cabangData["nm_induk"]}`,
+        },
+        {
+          where: {
+            id: id,
+          },
+        }
+      );
+    }
+
     await Reimbursement.update(
       {
         coa: coa,
@@ -2237,7 +2357,7 @@ exports.acceptReviewReimbursementDataMulti = async (req, res) => {
 
 exports.acceptExtraReimbursement = async (req, res) => {
   const { id } = req.params;
-  const { note, status } = req.body;
+  const { note, status, cabang } = req.body;
 
   try {
     const getReimburse = await Reimbursement.findOne({
@@ -2311,6 +2431,24 @@ exports.acceptExtraReimbursement = async (req, res) => {
           }, dan menunggu untuk diselesaikan.`,
         });
       }
+    }
+
+    // Update cabang if cabang updated
+    if (cabang && status == "APPROVED") {
+      // get cabang
+      const getCabang = await M_Cabang.findOne({ where: { kd_induk: cabang } });
+      const cabangData = getCabang["dataValues"];
+
+      await Reimbursement.update(
+        {
+          kode_cabang: `${cabangData["kd_induk"]} - ${cabangData["nm_induk"]}`,
+        },
+        {
+          where: {
+            id: id,
+          },
+        }
+      );
     }
 
     Responder(
@@ -2579,6 +2717,216 @@ exports.acceptance_multi = async (req, res) => {
     return;
   } catch (error) {
     console.log(error);
+    Responder(res, "ERROR", null, null, 500);
+    return;
+  }
+};
+
+exports.get_reimbursement_remark = async (req, res) => {
+  console.log("REMARK REIMBURSE");
+  const {
+    page = 1,
+    limit = 10,
+    monthyear,
+    cari,
+    type,
+    statusCA,
+    periodeStart,
+    periodeEnd,
+    cabang,
+  } = req.query;
+
+  try {
+    const whereClause = {
+      jenis_reimbursement: "Cash Advance",
+      status_finance: "DONE",
+      childId: {
+        [Op.ne]: null,
+      },
+    };
+
+    if (monthyear) {
+      const my = monthyear.split("-");
+      const month = my[0];
+      const year = my[1];
+
+      const startDate = new Date(year, month - 1, 1);
+      const endDate = new Date(year, month, 0, 23, 59, 59, 999);
+      whereClause.createdAt = {
+        [Op.between]: [startDate, endDate],
+      };
+    }
+
+    if (periodeStart && periodeEnd) {
+      whereClause.createdAt = {
+        [Op.between]: [periodeStart, periodeEnd],
+      };
+    }
+
+    // status CA
+    if (statusCA) {
+      if (statusCA == "DONE") {
+        whereClause[Op.and] = [
+          { status_finance: "DONE" },
+          { jenis_reimbursement: "Cash Advance" },
+          { status_finance_child: "DONE" },
+        ];
+      } else {
+        whereClause[Op.and] = [
+          { status_finance: "DONE" },
+          { jenis_reimbursement: "Cash Advance" },
+          { status_finance_child: { [Op.ne]: "DONE" } },
+        ];
+      }
+    }
+
+    // Cabang
+    if (cabang) {
+      const cabangValues = cabang.split(",");
+
+      whereClause.kode_cabang = {
+        [Op.or]: cabangValues.map((value) => ({
+          [Op.like]: `${value} -%`,
+        })),
+      };
+    }
+
+    // Tipe Pembayaran
+    if (type) {
+      if (type == "CASH") {
+        whereClause.payment_type = "CASH";
+      } else if (type == "TRANSFER") {
+        whereClause.payment_type = "TRANSFER";
+      }
+    }
+
+    if (cari && cari.length > 0) {
+      const searchSplit = cari.split(" ");
+      const searchConditions = searchSplit.map((item) => ({
+        [Op.or]: [
+          Sequelize.fn(
+            "JSON_CONTAINS",
+            Sequelize.col("item"),
+            `[{"invoice": "${item}"}]`
+          ),
+          {
+            jenis_reimbursement: {
+              [Op.like]: `%${item}%`,
+            },
+          },
+          {
+            kode_cabang: {
+              [Op.like]: `%${item}%`,
+            },
+          },
+          {
+            coa: {
+              [Op.like]: `%${item}%`,
+            },
+          },
+          {
+            requester_name: {
+              [Op.like]: `%${item}%`,
+            },
+          },
+          {
+            tipePembayaran: {
+              [Op.like]: `%${item}%`,
+            },
+          },
+          {
+            no_doc: {
+              [Op.like]: `%${item}%`,
+            },
+          },
+          {
+            name: {
+              [Op.like]: `%${item}%`,
+            },
+          },
+        ],
+      }));
+
+      whereClause[Op.and] = searchConditions;
+    }
+
+    // Menambahkan pengurutan berdasarkan tipePembayaran
+    const orderClause = [
+      ["remarked", "ASC"],
+      ["tipePembayaran", "DESC"], // Mengurutkan dari Urgent ke Regular
+      ["createdAt", "DESC"], // Mengurutkan berdasarkan createdAt secara descending
+    ];
+
+    // Menghitung offset berdasarkan halaman dan batasan
+    const offset = (page - 1) * limit;
+
+    const requested = await Reimbursement.findAndCountAll({
+      where: whereClause,
+      limit: parseInt(limit), // Mengubah batasan menjadi tipe numerik
+      offset: offset, // Menetapkan offset untuk penampilan halaman
+      order: orderClause,
+      include: [
+        {
+          model: Suplier,
+          as: "suplierDetail",
+          required: false, // left join
+        },
+      ],
+    });
+
+    // result count
+    const resultCount = requested?.count;
+
+    const totalPage = resultCount / limit;
+    const totalPageFormatted =
+      Math.round(totalPage) == 0 ? 1 : Math.ceil(totalPage);
+
+    if (requested?.rows.length) {
+      Responder(
+        res,
+        "OK",
+        null,
+        {
+          rows: requested.rows,
+          pageInfo: {
+            pageNumber: parseInt(page),
+            pageLimit: parseInt(limit),
+            pageCount: totalPageFormatted,
+            pageSize: resultCount,
+          },
+        },
+        200
+      );
+      return;
+    } else {
+      Responder(res, "OK", null, [], 200);
+      return;
+    }
+  } catch (error) {
+    console.error(error);
+    Responder(res, "ERROR", null, null, 500);
+    return;
+  }
+};
+
+exports.reviewer_check_remark = async (req, res) => {
+  const { id } = req.params;
+  const { check } = req.query;
+  try {
+    await Reimbursement.update(
+      {
+        remarked: check,
+      },
+      {
+        where: {
+          id: id,
+        },
+      }
+    );
+
+    Responder(res, "OK", null, { success: true }, 200);
+    return;
+  } catch (error) {
     Responder(res, "ERROR", null, null, 500);
     return;
   }

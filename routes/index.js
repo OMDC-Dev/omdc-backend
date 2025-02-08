@@ -43,6 +43,7 @@ router.post("/user/update-password", ruser.updatePw);
 router.post("/user/logout", ruser.logout);
 router.get("/user/kodeakses/:iduser", ruser.get_kodeakses_by_id);
 router.get("/user/status/:iduser", ruser.get_status_user);
+router.get("/user/session/:iduser", ruser.get_user_session_by_id);
 
 // Reimbursement
 router.get("/cabang", reimbursement.cabang);
@@ -62,6 +63,11 @@ router.post(
 router.post(
   "/reimbursement/reupload",
   reimbursement.reupload_by_doc_attachment
+);
+router.get("/reviewer/remarked", reimbursement.get_reimbursement_remark);
+router.post(
+  "/reviewer/remarked/check/:id",
+  reimbursement.reviewer_check_remark
 );
 
 // Bank
