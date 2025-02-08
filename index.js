@@ -13,7 +13,7 @@ const { Responder } = require("./utils/responder");
 
 const app = express();
 
-const CODE_VERSION = "9.5.1";
+const CODE_VERSION = "9.6";
 
 // var corsOptions = {
 //   origin: "http://localhost:5173",
@@ -76,8 +76,7 @@ app.use((err, req, res, next) => {
 // simple route
 app.get("/", (req, res) => {
   res.json({
-    message:
-      "Reimbursement Apps Service v.0.9.5 rev 11 - 28 Jan 2025 ( Add Report )",
+    message: "Reimbursement Apps Service v.0.9.6 - 8 Feb 2025 ( Update )",
   });
 });
 
