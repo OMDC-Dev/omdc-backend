@@ -13,7 +13,7 @@ const { Responder } = require("./utils/responder");
 
 const app = express();
 
-const CODE_VERSION = "9.6";
+const CODE_VERSION = "9.6.0";
 
 // var corsOptions = {
 //   origin: "http://localhost:5173",
