@@ -201,16 +201,16 @@ exports.get_pengajuan = async (req, res) => {
                 `[{"iduser": "${userData?.iduser}"}]`
               ),
               { status: "WAITING" },
+              { status_finance: { [Op.ne]: "DONE" } }, // Tambahkan kondisi status_finance !== "DONE"
               ...(kategori ? [{ tipePembayaran: kategori }] : []),
-              // Jika param kategori ada maka tambahkan kondisi { tipePembayaran: kategori }
             ],
           },
           {
             [Op.and]: [
               { needExtraAcceptance: true },
               { "extraAcceptance.iduser": userData.iduser },
+              { status_finance: { [Op.ne]: "DONE" } }, // Tambahkan kondisi status_finance !== "DONE"
               ...(kategori ? [{ tipePembayaran: kategori }] : []),
-              // Jika param kategori ada maka tambahkan kondisi { tipePembayaran: kategori }
             ],
           },
         ];
@@ -220,18 +220,35 @@ exports.get_pengajuan = async (req, res) => {
           ["createdAt", "ASC"],
         ];
       } else if (statusType == "done") {
-        whereClause[Op.and] = [
-          Sequelize.fn(
-            "JSON_CONTAINS",
-            Sequelize.col("accepted_by"),
-            `[{"iduser": "${userData?.iduser}"}]`
-          ),
+        whereClause[Op.or] = [
           {
-            status: {
-              [Op.ne]: ["WAITING"],
-            },
+            [Op.and]: [
+              Sequelize.fn(
+                "JSON_CONTAINS",
+                Sequelize.col("accepted_by"),
+                `[{"iduser": "${userData?.iduser}"}]`
+              ),
+              {
+                status: {
+                  [Op.ne]: ["WAITING"],
+                },
+              },
+              ...(kategori ? [{ tipePembayaran: kategori }] : []),
+            ],
           },
-          ...(kategori ? [{ tipePembayaran: kategori }] : []),
+          {
+            [Op.and]: [
+              {
+                needExtraAcceptance: true,
+                extraAcceptanceStatus: {
+                  [Op.ne]: ["IDLE"],
+                },
+              },
+              { "extraAcceptance.iduser": userData.iduser },
+              //{ status_finance: { [Op.ne]: "DONE" } }, // Tambahkan kondisi status_finance !== "DONE"
+              ...(kategori ? [{ tipePembayaran: kategori }] : []),
+            ],
+          },
         ];
         order = [["createdAt", "DESC"]];
       } else {
