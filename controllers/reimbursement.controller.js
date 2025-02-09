@@ -85,10 +85,27 @@ exports.reimbursement = async (req, res) => {
 
     const userData = decodeToken(getToken(authorization));
 
-    const doc_no = `RR-${getFormattedDate()}-${generateRandomNumber(
-      1000,
-      9999
-    )}`;
+    let no_dok = "";
+
+    do {
+      // Generate nomor dokumen baru
+      const doc_no_gen = `RR-${getFormattedDate()}-${generateRandomNumber(
+        1000000,
+        9999999
+      )}`;
+
+      // Cek apakah nomor dokumen sudah ada di database
+      const checkDoc = await Reimbursement.findOne({
+        where: {
+          no_doc: doc_no_gen,
+        },
+      });
+
+      // Jika tidak ditemukan, gunakan nomor dokumen ini
+      if (!checkDoc) {
+        no_dok = doc_no_gen;
+      }
+    } while (!no_dok);
 
     const getUser = await User.findOne({ where: { iduser: userData.iduser } });
     const userDetail = await getUser["dataValues"];
@@ -229,7 +246,7 @@ exports.reimbursement = async (req, res) => {
     }
 
     await Reimbursement.create({
-      no_doc: doc_no,
+      no_doc: no_dok,
       jenis_reimbursement: getType() || "-",
       tanggal_reimbursement: date || "-",
       kode_cabang: `${cabangData["kd_induk"]} - ${cabangData["nm_induk"]}`,
