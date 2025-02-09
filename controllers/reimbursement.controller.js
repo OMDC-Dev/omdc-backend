@@ -1719,6 +1719,7 @@ exports.get_super_reimbursement_report = async (req, res) => {
             literal(
               `STR_TO_DATE(maker_approve, '%d-%m-%Y') <= STR_TO_DATE('${endDateStr}', '%d-%m-%Y')`
             ),
+            { makerStatus: "APPROVED" },
           ],
         };
       }
