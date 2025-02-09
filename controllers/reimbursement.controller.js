@@ -1711,17 +1711,32 @@ exports.get_super_reimbursement_report = async (req, res) => {
         // Konversi startDate dan endDate menjadi string dalam format "DD-MM-YYYY"
         const startDateStr = moment(startDate).format("DD-MM-YYYY");
         const endDateStr = moment(endDate).format("DD-MM-YYYY");
-        whereClause.maker_approve = {
-          [Op.and]: [
-            literal(
-              `STR_TO_DATE(maker_approve, '%d-%m-%Y') >= STR_TO_DATE('${startDateStr}', '%d-%m-%Y')`
-            ),
-            literal(
-              `STR_TO_DATE(maker_approve, '%d-%m-%Y') <= STR_TO_DATE('${endDateStr}', '%d-%m-%Y')`
-            ),
-            { makerStatus: "APPROVED" },
-          ],
-        };
+        // whereClause.maker_approve = {
+        //   [Op.and]: [
+        //     literal(
+        //       `STR_TO_DATE(maker_approve, '%d-%m-%Y') >= STR_TO_DATE('${startDateStr}', '%d-%m-%Y')`
+        //     ),
+        //     literal(
+        //       `STR_TO_DATE(maker_approve, '%d-%m-%Y') <= STR_TO_DATE('${endDateStr}', '%d-%m-%Y')`
+        //     ),
+        //     { makerStatus: "APPROVED" },
+        //   ],
+        // };
+        whereClause[Op.and] = [
+          {
+            maker_approve: {
+              [Op.and]: [
+                literal(
+                  `STR_TO_DATE(maker_approve, '%d-%m-%Y') >= STR_TO_DATE('${startDateStr}', '%d-%m-%Y')`
+                ),
+                literal(
+                  `STR_TO_DATE(maker_approve, '%d-%m-%Y') <= STR_TO_DATE('${endDateStr}', '%d-%m-%Y')`
+                ),
+              ],
+            },
+          },
+          { makerStatus: "APPROVED" }, // Tambahkan kondisi makerStatus di level Op.and utama
+        ];
       }
     } else {
       whereClause.createdAt = {
