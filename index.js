@@ -76,7 +76,8 @@ app.use((err, req, res, next) => {
 // simple route
 app.get("/", (req, res) => {
   res.json({
-    message: "Reimbursement Apps Service v.0.9.6 - 9 Feb 2025 ( Update )",
+    message:
+      "Reimbursement Apps Service v.0.9.6 - 9 Feb 2025 ( Update No Doc )",
   });
 });
 
