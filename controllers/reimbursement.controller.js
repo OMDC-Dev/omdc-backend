@@ -1683,6 +1683,7 @@ exports.get_super_reimbursement_report = async (req, res) => {
     tipe,
     finance,
     tipePeriode,
+    rop,
   } = req.query;
 
   try {
@@ -1695,7 +1696,11 @@ exports.get_super_reimbursement_report = async (req, res) => {
 
     console.log(endDate, startDate);
 
-    const whereClause = {};
+    const whereClause = {
+      status: {
+        [Op.ne]: ["REJECTED"],
+      },
+    };
 
     if (tipePeriode) {
       if (tipePeriode == "USER") {
@@ -1731,6 +1736,10 @@ exports.get_super_reimbursement_report = async (req, res) => {
           [Op.like]: `${value} -%`,
         })),
       };
+    }
+
+    if (rop) {
+      whereClause.jenis_reimbursement = rop;
     }
 
     if (bank) {

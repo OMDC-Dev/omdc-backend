@@ -1,3 +1,7 @@
+const moment = require("moment");
+require("moment/locale/id");
+moment.locale("id");
+
 module.exports = (sequelize, Sequelize) => {
   const Reimbursement = sequelize.define("omdc_reimbursement", {
     no_doc: {
@@ -8,6 +12,12 @@ module.exports = (sequelize, Sequelize) => {
     },
     tanggal_reimbursement: {
       type: Sequelize.TEXT,
+      get() {
+        const rawValue = this.getDataValue("tanggal_reimbursement");
+        return rawValue
+          ? moment(rawValue, ["DD-MM-YYYY", "YYYY-MM-DD"]).format("DD-MM-YYYY")
+          : null;
+      },
     },
     kode_cabang: {
       type: Sequelize.STRING,
