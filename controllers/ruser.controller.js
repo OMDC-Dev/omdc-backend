@@ -480,7 +480,7 @@ exports.get_status_user = async (req, res) => {
       where: {
         iduser: iduser,
       },
-      attributes: ["isAdmin"],
+      attributes: ["isAdmin", "type"],
     });
 
     const userStatus = await getUser["dataValues"];
