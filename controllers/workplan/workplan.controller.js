@@ -13,6 +13,7 @@ const WORKPLAN_DB = db.workplan;
 const CABANG_DB = db.cabang;
 const USER_SESSION_DB = db.ruser;
 const WORKPLAN_DATE_HISTORY_DB = db.workplan_date_history;
+const WORKPLAN_COMMENT_DB = db.workplan_comment;
 
 // --  Create work plan
 exports.create_workplan = async (req, res) => {
@@ -72,7 +73,7 @@ exports.create_workplan = async (req, res) => {
 
 // -- Get Workplan
 exports.get_workplan = async (req, res) => {
-  const { page = 1, limit = 10, status, admin, search, cc } = req.query;
+  const { page = 1, limit = 10, status, admin, search, cc, id } = req.query;
   const { authorization } = req.headers;
   try {
     const userData = getUserDatabyToken(authorization);
@@ -88,12 +89,12 @@ exports.get_workplan = async (req, res) => {
     let whereCluse = {};
 
     // -- handle if user
-    if (!admin && !cc) {
+    if (!admin && !cc && !id) {
       whereCluse.iduser = userData.iduser;
       whereCluse.status = status;
     }
 
-    if (cc && !admin) {
+    if (cc && !admin && !id) {
       whereCluse[Op.and] = [
         Sequelize.fn(
           "JSON_CONTAINS",
@@ -114,30 +115,55 @@ exports.get_workplan = async (req, res) => {
       ];
     }
 
+    let LEFT_JOIN_TABLE = [
+      {
+        model: CABANG_DB,
+        as: "cabang_detail",
+        required: false, // left join
+        attributes: ["kd_induk", "nm_induk"],
+      },
+      {
+        model: USER_SESSION_DB,
+        as: "user_detail",
+        required: false, // left join
+        attributes: ["nm_user", "fcmToken"],
+      },
+      {
+        model: WORKPLAN_DATE_HISTORY_DB,
+        as: "workplant_date_history",
+        attributes: ["date"],
+      },
+    ];
+
+    if (id) {
+      whereCluse.iduser = userData.iduser;
+      whereCluse.id = id;
+
+      LEFT_JOIN_TABLE.push({
+        model: WORKPLAN_DATE_HISTORY_DB,
+        as: "workplant_date_history",
+        attributes: ["date"],
+      });
+
+      LEFT_JOIN_TABLE.push({
+        where: { replies_to: null },
+        model: WORKPLAN_COMMENT_DB,
+        as: "workplant_comment",
+        include: [
+          {
+            model: WORKPLAN_COMMENT_DB,
+            as: "replies", // Ambil reply-nya juga
+          },
+        ],
+      });
+    }
+
     const requested = await WORKPLAN_DB.findAndCountAll({
       where: whereCluse,
       limit: parseInt(limit), // Mengubah batasan menjadi tipe numerik
       offset: offset, // Menetapkan offset untuk penampilan halaman
       order: [],
-      include: [
-        {
-          model: CABANG_DB,
-          as: "cabang_detail",
-          required: false, // left join
-          attributes: ["kd_induk", "nm_induk"],
-        },
-        {
-          model: USER_SESSION_DB,
-          as: "user_detail",
-          required: false, // left join
-          attributes: ["nm_user", "fcmToken"],
-        },
-        {
-          model: WORKPLAN_DATE_HISTORY_DB,
-          as: "workplant_date_history",
-          attributes: ["date"],
-        },
-      ],
+      include: LEFT_JOIN_TABLE,
     });
 
     // result count
@@ -147,19 +173,23 @@ exports.get_workplan = async (req, res) => {
     const totalPageFormatted =
       Math.round(totalPage) == 0 ? 1 : Math.ceil(totalPage);
 
+    const singleResult = requested.rows[0] ?? [];
+
     Responder(
       res,
       "OK",
       null,
-      {
-        rows: requested.rows,
-        pageInfo: {
-          pageNumber: parseInt(page),
-          pageLimit: parseInt(limit),
-          pageCount: totalPageFormatted,
-          pageSize: resultCount,
-        },
-      },
+      id
+        ? singleResult
+        : {
+            rows: requested.rows,
+            pageInfo: {
+              pageNumber: parseInt(page),
+              pageLimit: parseInt(limit),
+              pageCount: totalPageFormatted,
+              pageSize: resultCount,
+            },
+          },
       200
     );
   } catch (error) {

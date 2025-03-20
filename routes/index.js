@@ -25,6 +25,7 @@ const masterbarang = require("../controllers/v4/masterbarang.controller");
 const invoice = require("../controllers/v4/invoice.controller");
 const workplan = require("../controllers/workplan/workplan.controller");
 const workplanprogress = require("../controllers/workplan/workplanProgress.controller");
+const workplancomment = require("../controllers/workplan/workplanComment.controller");
 const { authenticateToken } = require("../utils/jwt");
 
 // routes
@@ -190,5 +191,9 @@ router.post("/workplan/status/:id", workplan.update_status);
 router.post("/workplan/progress", workplanprogress.create_wp_progress);
 router.get("/workplan/progress/:wp_id", workplanprogress.get_wp_progress);
 router.delete("/workplan/progress/:id", workplanprogress.delete_wp_progress);
+
+// Workplan Comment
+router.post("/workplan/comment/:id", workplancomment.create_comment);
+router.get("/workplan/comment/:id", workplancomment.get_workplan_comment);
 
 module.exports = { router };
