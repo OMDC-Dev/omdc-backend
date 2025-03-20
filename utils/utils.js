@@ -77,6 +77,10 @@ function checkUserAuth(token) {
   return { error: false, message: "" };
 }
 
+function getCurrentDate() {
+  return moment().format();
+}
+
 module.exports = {
   generateRandomNumber,
   getFormattedDate,
@@ -86,4 +90,5 @@ module.exports = {
   isValidUrl,
   getUserDatabyToken,
   checkUserAuth,
+  getCurrentDate,
 };

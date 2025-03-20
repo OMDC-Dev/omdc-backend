@@ -41,6 +41,12 @@ module.exports = (sequelize, Sequelize) => {
       approved_date: {
         type: Sequelize.STRING,
       },
+      approved_by: {
+        type: Sequelize.STRING,
+      },
+      revise_message: {
+        type: Sequelize.TEXT,
+      },
     },
     {
       tableName: "omdc_workplan",
@@ -57,6 +63,16 @@ module.exports = (sequelize, Sequelize) => {
     Workplan.belongsTo(models.cabang, {
       foreignKey: "kd_induk",
       as: "cabang_detail",
+    });
+
+    Workplan.hasMany(models.workplan_date_history, {
+      foreignKey: "wp_id",
+      as: "workplant_date_history",
+    });
+
+    Workplan.hasMany(models.workplan_comment, {
+      foreignKey: "wp_id",
+      as: "workplant_comment",
     });
   };
 

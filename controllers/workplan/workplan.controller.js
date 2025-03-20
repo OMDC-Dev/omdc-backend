@@ -7,10 +7,12 @@ const {
   getUserDatabyToken,
   getFormattedDate,
   generateRandomNumber,
+  getCurrentDate,
 } = require("../../utils/utils");
 const WORKPLAN_DB = db.workplan;
 const CABANG_DB = db.cabang;
 const USER_SESSION_DB = db.ruser;
+const WORKPLAN_DATE_HISTORY_DB = db.workplan_date_history;
 
 // --  Create work plan
 exports.create_workplan = async (req, res) => {
@@ -52,6 +54,11 @@ exports.create_workplan = async (req, res) => {
       attachment_before,
       attachment_after,
       status: WORKPLAN_STATUS.ON_PROGRESS,
+    }).then(async (data) => {
+      await WORKPLAN_DATE_HISTORY_DB.create({
+        wp_id: data.id,
+        date: tanggal_selesai,
+      });
     });
 
     Responder(res, "OK", null, { success: true }, 200);
@@ -65,7 +72,7 @@ exports.create_workplan = async (req, res) => {
 
 // -- Get Workplan
 exports.get_workplan = async (req, res) => {
-  const { page = 1, limit = 10, status, admin, search } = req.query;
+  const { page = 1, limit = 10, status, admin, search, cc } = req.query;
   const { authorization } = req.headers;
   try {
     const userData = getUserDatabyToken(authorization);
@@ -81,9 +88,19 @@ exports.get_workplan = async (req, res) => {
     let whereCluse = {};
 
     // -- handle if user
-    if (!admin) {
+    if (!admin && !cc) {
       whereCluse.iduser = userData.iduser;
       whereCluse.status = status;
+    }
+
+    if (cc && !admin) {
+      whereCluse[Op.and] = [
+        Sequelize.fn(
+          "JSON_CONTAINS",
+          Sequelize.col("user_cc"),
+          `[{"iduser": "${cc}"}]`
+        ),
+      ];
     }
 
     // -- search
@@ -115,6 +132,11 @@ exports.get_workplan = async (req, res) => {
           required: false, // left join
           attributes: ["nm_user", "fcmToken"],
         },
+        {
+          model: WORKPLAN_DATE_HISTORY_DB,
+          as: "workplant_date_history",
+          attributes: ["date"],
+        },
       ],
     });
 
@@ -142,6 +164,114 @@ exports.get_workplan = async (req, res) => {
     );
   } catch (error) {
     console.log(error);
+    Responder(res, "ERROR", null, null, 400);
+    return;
+  }
+};
+
+// -- Update CC
+exports.update_workplan = async (req, res) => {
+  const { user_cc, attachment_after, tanggal_selesai } = req.body;
+  const { id } = req.params;
+  const { authorization } = req.headers;
+  try {
+    const userData = getUserDatabyToken(authorization);
+    const userAuth = checkUserAuth(userData);
+
+    if (userAuth.error) {
+      return Responder(res, "ERROR", userAuth.message, null, 401);
+    }
+
+    await WORKPLAN_DB.update(
+      {
+        user_cc: user_cc,
+        attachment_after: attachment_after,
+        tanggal_selesai: tanggal_selesai,
+      },
+      {
+        where: {
+          id: id,
+        },
+      }
+    );
+
+    if (tanggal_selesai) {
+      await WORKPLAN_DATE_HISTORY_DB.create({
+        date: tanggal_selesai,
+        wp_id: id,
+      });
+    }
+
+    Responder(res, "OK", null, { success: true }, 200);
+    return;
+  } catch (error) {
+    console.log(error);
+    Responder(res, "ERROR", null, null, 400);
+    return;
+  }
+};
+
+// -- Update After Image
+// exports.update_attachment_after = async (req, res) => {
+//   const { attachment_after } = req.body;
+//   const { id } = req.params;
+//   const { authorization } = req.headers;
+//   try {
+//     const userData = getUserDatabyToken(authorization);
+//     const userAuth = checkUserAuth(userData);
+
+//     if (userAuth.error) {
+//       return Responder(res, "ERROR", userAuth.message, null, 401);
+//     }
+
+//     await WORKPLAN_DB.update(
+//       { attachment_after: attachment_after },
+//       {
+//         where: {
+//           id: id,
+//         },
+//       }
+//     );
+
+//     Responder(res, "OK", null, { success: true }, 200);
+//     return;
+//   } catch (error) {
+//     console.log(error);
+//     Responder(res, "ERROR", null, null, 400);
+//     return;
+//   }
+// };
+
+exports.update_status = async (req, res) => {
+  const { status } = req.body;
+  const { id } = req.params;
+  const { authorization } = req.headers;
+  try {
+    const userData = getUserDatabyToken(authorization);
+    const userAuth = checkUserAuth(userData);
+
+    if (userAuth.error) {
+      return Responder(res, "ERROR", userAuth.message, null, 401);
+    }
+
+    await WORKPLAN_DB.update(
+      {
+        approved_date:
+          status != WORKPLAN_STATUS.PENDING && status != WORKPLAN_STATUS.REVISON
+            ? getCurrentDate()
+            : null,
+        status: status,
+      },
+      {
+        where: {
+          id: id,
+        },
+      }
+    );
+
+    Responder(res, "OK", null, { success: true }, 200);
+    return;
+  } catch (error) {
     Responder(res, "ERROR", null, null, 400);
     return;
   }

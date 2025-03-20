@@ -81,6 +81,16 @@ db_user.workplan = require("../models/workplan/workplan.model")(
   Sequelize
 );
 
+db_user.workplan_date_history = require("../models/workplan/datehistory.model")(
+  sequelize,
+  Sequelize
+);
+
+db_user.workplan_comment = require("../models/workplan/comment.model")(
+  sequelize,
+  Sequelize
+);
+
 db_user.workplan_progress = require("../models/workplan/progress.model")(
   sequelize,
   Sequelize

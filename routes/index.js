@@ -182,6 +182,9 @@ router.get("/invoice", invoice.cekInvoice);
 // Workplan
 router.post("/workplan", workplan.create_workplan);
 router.get("/workplan", workplan.get_workplan);
+router.post("/workplan/update/:id", workplan.update_workplan);
+//router.post("/workplan/after/:id", workplan.update_attachment_after);
+router.post("/workplan/status/:id", workplan.update_status);
 
 // Workplan Progress
 router.post("/workplan/progress", workplanprogress.create_wp_progress);
