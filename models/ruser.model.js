@@ -68,6 +68,12 @@ module.exports = (sequelize, Sequelize) => {
   );
 
   R_User.removeAttribute("id");
+  R_User.associate = (models) => {
+    R_User.hasMany(models.workplan, {
+      foreignKey: "iduser",
+      as: "workplants",
+    });
+  };
 
   return R_User;
 };

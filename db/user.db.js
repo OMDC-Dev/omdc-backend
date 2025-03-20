@@ -75,6 +75,17 @@ db_user.invoice = require("../models/v4/invoice.model.js")(
   Sequelize
 );
 
+// workplan model
+db_user.workplan = require("../models/workplan/workplan.model")(
+  sequelize,
+  Sequelize
+);
+
+db_user.workplan_progress = require("../models/workplan/progress.model")(
+  sequelize,
+  Sequelize
+);
+
 // Setup associations
 Object.keys(db_user).forEach((modelName) => {
   //console.log(modelName);

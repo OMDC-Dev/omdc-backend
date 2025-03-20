@@ -23,6 +23,8 @@ const kemasan = require("../controllers/v4/kemasan.controller");
 const satuan = require("../controllers/v4/satuan.controller");
 const masterbarang = require("../controllers/v4/masterbarang.controller");
 const invoice = require("../controllers/v4/invoice.controller");
+const workplan = require("../controllers/workplan/workplan.controller");
+const workplanprogress = require("../controllers/workplan/workplanProgress.controller");
 const { authenticateToken } = require("../utils/jwt");
 
 // routes
@@ -176,5 +178,14 @@ router.post("/barang/update/:kode_barang", masterbarang.update_barang);
 
 // Invoice
 router.get("/invoice", invoice.cekInvoice);
+
+// Workplan
+router.post("/workplan", workplan.create_workplan);
+router.get("/workplan", workplan.get_workplan);
+
+// Workplan Progress
+router.post("/workplan/progress", workplanprogress.create_wp_progress);
+router.get("/workplan/progress/:wp_id", workplanprogress.get_wp_progress);
+router.delete("/workplan/progress/:id", workplanprogress.delete_wp_progress);
 
 module.exports = { router };
