@@ -306,3 +306,26 @@ exports.update_status = async (req, res) => {
     return;
   }
 };
+
+// -- Get CC User
+exports.get_cc_user = async (req, res) => {
+  const { authorization } = req.headers;
+  try {
+    const userData = getUserDatabyToken(authorization);
+    const userAuth = checkUserAuth(userData);
+
+    if (userAuth.error) {
+      return Responder(res, "ERROR", userAuth.message, null, 401);
+    }
+
+    const data = await USER_SESSION_DB.findAll({
+      where: Sequelize.literal("JSON_SEARCH(kodeAkses, 'one', '1170') IS NULL"),
+    });
+
+    Responder(res, "OK", null, data, 200);
+    return;
+  } catch (error) {
+    Responder(res, "ERROR", null, null, 400);
+    return;
+  }
+};
