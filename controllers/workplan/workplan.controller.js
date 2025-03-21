@@ -9,6 +9,8 @@ const {
   generateRandomNumber,
   getCurrentDate,
 } = require("../../utils/utils");
+const { uploadImagesCloudinary } = require("../../utils/cloudinary");
+const { uploadToDrive } = require("../../utils/uploadToDrive");
 const WORKPLAN_DB = db.workplan;
 const CABANG_DB = db.cabang;
 const USER_SESSION_DB = db.ruser;
@@ -26,7 +28,6 @@ exports.create_workplan = async (req, res) => {
     kategori,
     user_cc,
     attachment_before,
-    attachment_after,
   } = req.body;
   const { authorization } = req.headers;
   try {
@@ -42,6 +43,12 @@ exports.create_workplan = async (req, res) => {
       9999999
     )}`;
 
+    let UPLOAD_IMAGE_BEFORE;
+
+    if (attachment_before) {
+      UPLOAD_IMAGE_BEFORE = await uploadImagesCloudinary(attachment_before);
+    }
+
     await WORKPLAN_DB.create({
       workplan_id: WORKPLAN_ID,
       jenis_workplan,
@@ -52,8 +59,7 @@ exports.create_workplan = async (req, res) => {
       kategori: kategori.toUpperCase(),
       iduser: userData.iduser,
       user_cc,
-      attachment_before,
-      attachment_after,
+      attachment_before: UPLOAD_IMAGE_BEFORE?.secure_url ?? "",
       status: WORKPLAN_STATUS.ON_PROGRESS,
     }).then(async (data) => {
       await WORKPLAN_DATE_HISTORY_DB.create({
@@ -91,6 +97,9 @@ exports.get_workplan = async (req, res) => {
     // -- handle if user
     if (!admin && !cc && !id) {
       whereCluse.iduser = userData.iduser;
+    }
+
+    if (status) {
       whereCluse.status = status;
     }
 
@@ -128,11 +137,6 @@ exports.get_workplan = async (req, res) => {
         required: false, // left join
         attributes: ["nm_user", "fcmToken"],
       },
-      {
-        model: WORKPLAN_DATE_HISTORY_DB,
-        as: "workplant_date_history",
-        attributes: ["date"],
-      },
     ];
 
     if (id) {
@@ -142,17 +146,19 @@ exports.get_workplan = async (req, res) => {
       LEFT_JOIN_TABLE.push({
         model: WORKPLAN_DATE_HISTORY_DB,
         as: "workplant_date_history",
-        attributes: ["date"],
+        attributes: ["date", "createdAt"],
       });
 
       LEFT_JOIN_TABLE.push({
-        where: { replies_to: null },
         model: WORKPLAN_COMMENT_DB,
         as: "workplant_comment",
+        required: false,
+        where: { replies_to: null },
         include: [
           {
             model: WORKPLAN_COMMENT_DB,
-            as: "replies", // Ambil reply-nya juga
+            as: "replies",
+            required: false,
           },
         ],
       });
@@ -310,6 +316,7 @@ exports.update_status = async (req, res) => {
 // -- Get CC User
 exports.get_cc_user = async (req, res) => {
   const { authorization } = req.headers;
+  const { selectedList } = req.body;
   try {
     const userData = getUserDatabyToken(authorization);
     const userAuth = checkUserAuth(userData);
@@ -318,9 +325,19 @@ exports.get_cc_user = async (req, res) => {
       return Responder(res, "ERROR", userAuth.message, null, 401);
     }
 
-    const data = await USER_SESSION_DB.findAll({
-      where: Sequelize.literal("JSON_SEARCH(kodeAkses, 'one', '1170') IS NULL"),
-    });
+    const whereCondition = {
+      [Op.and]: [
+        Sequelize.literal("JSON_SEARCH(kodeAkses, 'one', '1200') IS NULL"),
+        { iduser: { [Op.ne]: userData.iduser } },
+      ],
+    };
+
+    // Jika selectedList ada dan berbentuk array, tambahkan filter untuk mengecualikan iduser yang ada di dalamnya
+    if (Array.isArray(selectedList) && selectedList.length > 0) {
+      whereCondition[Op.and].push({ iduser: { [Op.notIn]: selectedList } });
+    }
+
+    const data = await USER_SESSION_DB.findAll({ where: whereCondition });
 
     Responder(res, "OK", null, data, 200);
     return;

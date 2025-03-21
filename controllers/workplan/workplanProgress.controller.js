@@ -3,7 +3,8 @@ const { Responder } = require("../../utils/responder");
 const WORKPLAN_PROGRESS_DB = db.workplan_progress;
 
 exports.create_wp_progress = async (req, res) => {
-  const { progress, wp_id } = req.body;
+  const { progress } = req.body;
+  const { wp_id } = req.params;
   const { authorization } = req.headers;
   try {
     const userData = getUserDatabyToken(authorization);

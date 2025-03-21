@@ -186,10 +186,10 @@ router.get("/workplan", workplan.get_workplan);
 router.post("/workplan/update/:id", workplan.update_workplan);
 //router.post("/workplan/after/:id", workplan.update_attachment_after);
 router.post("/workplan/status/:id", workplan.update_status);
-router.get("/workplan/cc", workplan.get_cc_user);
+router.post("/workplan/cc", workplan.get_cc_user);
 
 // Workplan Progress
-router.post("/workplan/progress", workplanprogress.create_wp_progress);
+router.post("/workplan/progress/:wp_id", workplanprogress.create_wp_progress);
 router.get("/workplan/progress/:wp_id", workplanprogress.get_wp_progress);
 router.delete("/workplan/progress/:id", workplanprogress.delete_wp_progress);
 
