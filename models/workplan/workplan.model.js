@@ -28,9 +28,6 @@ module.exports = (sequelize, Sequelize) => {
         type: Sequelize.STRING(10),
         allowNull: false,
       },
-      user_cc: {
-        type: Sequelize.JSON,
-      },
       attachment_before: {
         type: Sequelize.STRING,
       },
@@ -75,6 +72,13 @@ module.exports = (sequelize, Sequelize) => {
     Workplan.hasMany(models.workplan_comment, {
       foreignKey: "wp_id",
       as: "workplant_comment",
+    });
+
+    Workplan.belongsToMany(models.ruser, {
+      through: "workplan_cc_users",
+      foreignKey: "workplan_id",
+      otherKey: "user_id",
+      as: "cc_users",
     });
   };
 

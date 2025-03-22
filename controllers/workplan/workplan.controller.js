@@ -10,12 +10,12 @@ const {
   getCurrentDate,
 } = require("../../utils/utils");
 const { uploadImagesCloudinary } = require("../../utils/cloudinary");
-const { uploadToDrive } = require("../../utils/uploadToDrive");
 const WORKPLAN_DB = db.workplan;
 const CABANG_DB = db.cabang;
 const USER_SESSION_DB = db.ruser;
 const WORKPLAN_DATE_HISTORY_DB = db.workplan_date_history;
 const WORKPLAN_COMMENT_DB = db.workplan_comment;
+const WORKPLAN_CC_DB = db.workplan_cc_users;
 
 // --  Create work plan
 exports.create_workplan = async (req, res) => {
@@ -49,7 +49,8 @@ exports.create_workplan = async (req, res) => {
       UPLOAD_IMAGE_BEFORE = await uploadImagesCloudinary(attachment_before);
     }
 
-    await WORKPLAN_DB.create({
+    // 1. Buat Workplan
+    const workplan = await WORKPLAN_DB.create({
       workplan_id: WORKPLAN_ID,
       jenis_workplan,
       tanggal_mulai,
@@ -58,15 +59,58 @@ exports.create_workplan = async (req, res) => {
       perihal: perihal.toUpperCase(),
       kategori: kategori.toUpperCase(),
       iduser: userData.iduser,
-      user_cc,
       attachment_before: UPLOAD_IMAGE_BEFORE?.secure_url ?? "",
       status: WORKPLAN_STATUS.ON_PROGRESS,
-    }).then(async (data) => {
-      await WORKPLAN_DATE_HISTORY_DB.create({
-        wp_id: data.id,
-        date: tanggal_selesai,
-      });
     });
+
+    // 2. Simpan riwayat tanggal selesai workplan
+    await WORKPLAN_DATE_HISTORY_DB.create({
+      wp_id: workplan.id,
+      date: tanggal_selesai,
+    });
+
+    // 3. Tambahkan user_cc ke tabel workplan_cc_users jika ada
+    let fcmTokens = [];
+    if (user_cc && user_cc.length > 0) {
+      const ccUsers = user_cc.map((userId) => ({
+        workplan_id: workplan.id,
+        user_id: userId,
+      }));
+
+      await WORKPLAN_CC_DB.bulkCreate(ccUsers);
+
+      // 4. Ambil FCM Token dari tabel session berdasarkan iduser
+      const usersWithToken = await USER_SESSION_DB.findAll({
+        attributes: ["fcmToken"],
+        where: { iduser: user_cc }, // Ambil semua user yang ada dalam CC
+        raw: true,
+      });
+
+      // 5. Ambil hanya token yang valid
+      fcmTokens = usersWithToken.map((user) => user.fcmToken).filter(Boolean);
+    }
+
+    // 6. Kirim Notifikasi jika ada FCM Token
+    // if (fcmTokens.length > 0) {
+    //   const message = {
+    //     notification: {
+    //       title: "Workplan Updated",
+    //       body: `Workplan dengan ID ${id} telah diperbarui.`,
+    //     },
+    //     tokens: fcmTokens, // Mengirim ke banyak token sekaligus
+    //   };
+
+    //   // Kirim notifikasi ke semua token
+    //   admin
+    //     .messaging()
+    //     .sendMulticast(message)
+    //     .then((response) => {
+    //       console.log("Notifikasi terkirim:", response);
+    //     })
+    //     .catch((error) => {
+    //       console.error("Gagal mengirim notifikasi:", error);
+    //     });
+    // }
 
     Responder(res, "OK", null, { success: true }, 200);
     return;
@@ -162,6 +206,13 @@ exports.get_workplan = async (req, res) => {
           },
         ],
       });
+
+      LEFT_JOIN_TABLE.push({
+        model: USER_SESSION_DB,
+        as: "cc_users",
+        required: true,
+        attributes: ["nm_user", "fcmToken", "iduser"],
+      });
     }
 
     const requested = await WORKPLAN_DB.findAndCountAll({
@@ -224,25 +275,83 @@ exports.update_workplan = async (req, res) => {
       UPLOAD_IMAGE_AFTER = await uploadImagesCloudinary(attachment_after);
     }
 
+    // 1. Ambil User CC Lama dari Database
+    const oldCCUsers = await WORKPLAN_CC_DB.findAll({
+      attributes: ["user_id"],
+      where: { workplan_id: id },
+      raw: true,
+    });
+    const oldUserCC = oldCCUsers.map((user) => user.user_id); // Array ID user lama
+
+    // 2. Update Workplan
     await WORKPLAN_DB.update(
       {
-        user_cc: user_cc,
         attachment_after: UPLOAD_IMAGE_AFTER?.secure_url ?? "",
         tanggal_selesai: tanggal_selesai,
       },
-      {
-        where: {
-          id: id,
-        },
-      }
+      { where: { id: id } }
     );
 
+    // 3. Tambahkan ke history jika tanggal_selesai diubah
     if (tanggal_selesai) {
       await WORKPLAN_DATE_HISTORY_DB.create({
         date: tanggal_selesai,
         wp_id: id,
       });
     }
+
+    // 4. Update User CC
+    let newCCUsers = [];
+    let fcmTokens = [];
+    if (user_cc && Array.isArray(user_cc)) {
+      // Hapus semua user CC lama dari database
+      await WORKPLAN_CC_DB.destroy({ where: { workplan_id: id } });
+
+      // Simpan user CC baru
+      newCCUsers = user_cc.map((userId) => ({
+        workplan_id: id,
+        user_id: userId,
+      }));
+      await WORKPLAN_CC_DB.bulkCreate(newCCUsers);
+
+      // 5. Cari user yang baru ditambahkan (tidak ada di oldUserCC)
+      const newlyAddedUsers = user_cc.filter(
+        (userId) => !oldUserCC.includes(userId)
+      );
+
+      if (newlyAddedUsers.length > 0) {
+        // 6. Ambil FCM Token dari session untuk user baru saja
+        const usersWithToken = await SESSION_DB.findAll({
+          attributes: ["fcmToken"],
+          where: { iduser: newlyAddedUsers }, // Hanya ambil user baru
+          raw: true,
+        });
+
+        // 7. Ambil hanya token yang valid
+        fcmTokens = usersWithToken.map((user) => user.fcmToken).filter(Boolean);
+      }
+    }
+
+    // 8. Kirim Notifikasi hanya ke user yang baru ditambahkan
+    // if (fcmTokens.length > 0) {
+    //   const message = {
+    //     notification: {
+    //       title: "Anda Ditambahkan ke Workplan!",
+    //       body: `Anda baru saja ditambahkan ke Workplan ID ${id}.`,
+    //     },
+    //     tokens: fcmTokens, // Hanya mengirim ke user yang baru ditambahkan
+    //   };
+
+    //   admin
+    //     .messaging()
+    //     .sendMulticast(message)
+    //     .then((response) => {
+    //       console.log("Notifikasi terkirim:", response);
+    //     })
+    //     .catch((error) => {
+    //       console.error("Gagal mengirim notifikasi:", error);
+    //     });
+    // }
 
     Responder(res, "OK", null, { success: true }, 200);
     return;
@@ -252,37 +361,6 @@ exports.update_workplan = async (req, res) => {
     return;
   }
 };
-
-// -- Update After Image
-// exports.update_attachment_after = async (req, res) => {
-//   const { attachment_after } = req.body;
-//   const { id } = req.params;
-//   const { authorization } = req.headers;
-//   try {
-//     const userData = getUserDatabyToken(authorization);
-//     const userAuth = checkUserAuth(userData);
-
-//     if (userAuth.error) {
-//       return Responder(res, "ERROR", userAuth.message, null, 401);
-//     }
-
-//     await WORKPLAN_DB.update(
-//       { attachment_after: attachment_after },
-//       {
-//         where: {
-//           id: id,
-//         },
-//       }
-//     );
-
-//     Responder(res, "OK", null, { success: true }, 200);
-//     return;
-//   } catch (error) {
-//     console.log(error);
-//     Responder(res, "ERROR", null, null, 400);
-//     return;
-//   }
-// };
 
 exports.update_status = async (req, res) => {
   const { status } = req.body;

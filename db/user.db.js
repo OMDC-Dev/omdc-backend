@@ -96,6 +96,11 @@ db_user.workplan_progress = require("../models/workplan/progress.model")(
   Sequelize
 );
 
+db_user.workplan_cc_users = require("../models/workplan/usercc.model.js")(
+  sequelize,
+  Sequelize
+);
+
 // Setup associations
 Object.keys(db_user).forEach((modelName) => {
   //console.log(modelName);
