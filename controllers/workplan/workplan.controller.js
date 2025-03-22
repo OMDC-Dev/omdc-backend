@@ -218,10 +218,16 @@ exports.update_workplan = async (req, res) => {
       return Responder(res, "ERROR", userAuth.message, null, 401);
     }
 
+    let UPLOAD_IMAGE_AFTER;
+
+    if (attachment_after) {
+      UPLOAD_IMAGE_AFTER = await uploadImagesCloudinary(attachment_after);
+    }
+
     await WORKPLAN_DB.update(
       {
         user_cc: user_cc,
-        attachment_after: attachment_after,
+        attachment_after: UPLOAD_IMAGE_AFTER?.secure_url ?? "",
         tanggal_selesai: tanggal_selesai,
       },
       {

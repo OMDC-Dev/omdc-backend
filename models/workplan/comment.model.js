@@ -11,6 +11,9 @@ module.exports = (sequelize, Sequelize) => {
       create_by: {
         type: Sequelize.STRING,
       },
+      attachment: {
+        type: Sequelize.STRING,
+      },
       wp_id: {
         type: Sequelize.INTEGER,
       },

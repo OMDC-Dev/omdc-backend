@@ -15,7 +15,8 @@ module.exports = (sequelize, Sequelize) => {
         type: Sequelize.STRING,
       },
       kd_induk: {
-        type: Sequelize.STRING,
+        type: Sequelize.STRING(20),
+        allowNull: false,
       },
       perihal: {
         type: Sequelize.STRING,
@@ -24,7 +25,8 @@ module.exports = (sequelize, Sequelize) => {
         type: Sequelize.STRING,
       },
       iduser: {
-        type: Sequelize.STRING,
+        type: Sequelize.STRING(10),
+        allowNull: false,
       },
       user_cc: {
         type: Sequelize.JSON,
