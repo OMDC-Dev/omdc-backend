@@ -1,11 +1,12 @@
 const db = require("../../db/user.db");
+const { uploadImagesCloudinary } = require("../../utils/cloudinary");
 const { Responder } = require("../../utils/responder");
 const { getUserDatabyToken, checkUserAuth } = require("../../utils/utils");
 const WORKPLAN_COMMENT_DB = db.workplan_comment;
 
 exports.create_comment = async (req, res) => {
   const { id } = req.params;
-  const { message, comment_id } = req.body;
+  const { message, comment_id, attachment } = req.body;
   const { authorization } = req.headers;
   try {
     const userData = getUserDatabyToken(authorization);
@@ -15,10 +16,18 @@ exports.create_comment = async (req, res) => {
       return Responder(res, "ERROR", userAuth.message, null, 401);
     }
 
+    let UPLOAD_IMAGE;
+
+    if (attachment) {
+      UPLOAD_IMAGE = await uploadImagesCloudinary(attachment);
+    }
+
     await WORKPLAN_COMMENT_DB.create({
       replies_to: comment_id,
-      messsage: message,
+      message: message,
       create_by: userData.nm_user,
+      iduser: userData.iduser,
+      attachment: UPLOAD_IMAGE?.secure_url ?? "",
       wp_id: id,
     });
 

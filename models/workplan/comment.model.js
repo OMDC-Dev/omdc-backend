@@ -4,11 +4,15 @@ module.exports = (sequelize, Sequelize) => {
     {
       replies_to: {
         type: Sequelize.INTEGER,
+        allowNull: true,
       },
-      messsage: {
+      message: {
         type: Sequelize.TEXT,
       },
       create_by: {
+        type: Sequelize.STRING,
+      },
+      iduser: {
         type: Sequelize.STRING,
       },
       attachment: {
@@ -39,6 +43,7 @@ module.exports = (sequelize, Sequelize) => {
     WorkplanComment.belongsTo(models.workplan_comment, {
       foreignKey: "replies_to",
       as: "parent", // Alias untuk mengakses parent comment
+      onDelete: "SET NULL",
     });
   };
 
