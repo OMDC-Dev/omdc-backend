@@ -183,6 +183,7 @@ router.get("/invoice", invoice.cekInvoice);
 // Workplan
 router.post("/workplan", workplan.create_workplan);
 router.get("/workplan", workplan.get_workplan);
+router.delete("/workplan/:id", workplan.delete_workplan);
 router.post("/workplan/update/:id", workplan.update_workplan);
 //router.post("/workplan/after/:id", workplan.update_attachment_after);
 router.post("/workplan/status/:id", workplan.update_status);
@@ -192,6 +193,7 @@ router.post("/workplan/cc", workplan.get_cc_user);
 router.post("/workplan/progress/:wp_id", workplanprogress.create_wp_progress);
 router.get("/workplan/progress/:wp_id", workplanprogress.get_wp_progress);
 router.delete("/workplan/progress/:id", workplanprogress.delete_wp_progress);
+router.put("/workplan/progress/:id", workplanprogress.update_wp_progress);
 
 // Workplan Comment
 router.post("/workplan/comment/:id", workplancomment.create_comment);

@@ -16,6 +16,7 @@ const USER_SESSION_DB = db.ruser;
 const WORKPLAN_DATE_HISTORY_DB = db.workplan_date_history;
 const WORKPLAN_COMMENT_DB = db.workplan_comment;
 const WORKPLAN_CC_DB = db.workplan_cc_users;
+const WORKPLAN_PROGRESS_DB = db.workplan_progress;
 
 // --  Create work plan
 exports.create_workplan = async (req, res) => {
@@ -144,7 +145,15 @@ exports.get_workplan = async (req, res) => {
     }
 
     if (status) {
-      whereCluse.status = status;
+      console.log("STATUS", status);
+      if (admin && status == WORKPLAN_STATUS.FINISH) {
+        console.log("ADMIN  FINISH");
+        whereCluse.status = {
+          [Op.or]: [WORKPLAN_STATUS.FINISH, WORKPLAN_STATUS.REJECTED],
+        };
+      } else {
+        whereCluse.status = status;
+      }
     }
 
     if (cc && !admin && !id) {
@@ -184,7 +193,10 @@ exports.get_workplan = async (req, res) => {
     ];
 
     if (id) {
-      whereCluse.iduser = userData.iduser;
+      // if (!admin) {
+      //   whereCluse.iduser = userData.iduser;
+      // }
+
       whereCluse.id = id;
 
       LEFT_JOIN_TABLE.push({
@@ -210,7 +222,7 @@ exports.get_workplan = async (req, res) => {
       LEFT_JOIN_TABLE.push({
         model: USER_SESSION_DB,
         as: "cc_users",
-        required: true,
+        required: false,
         attributes: ["nm_user", "fcmToken", "iduser"],
       });
     }
@@ -219,7 +231,11 @@ exports.get_workplan = async (req, res) => {
       where: whereCluse,
       limit: parseInt(limit), // Mengubah batasan menjadi tipe numerik
       offset: offset, // Menetapkan offset untuk penampilan halaman
-      order: [],
+      order: [
+        ["updatedAt", "DESC"],
+        ["createdAt", "DESC"],
+        ["status", "DESC"],
+      ],
       include: LEFT_JOIN_TABLE,
     });
 
@@ -258,7 +274,13 @@ exports.get_workplan = async (req, res) => {
 
 // -- Update CC
 exports.update_workplan = async (req, res) => {
-  const { user_cc, attachment_after, tanggal_selesai } = req.body;
+  const {
+    user_cc,
+    attachment_after,
+    attachment_before,
+    tanggal_selesai,
+    isUpdateAfter,
+  } = req.body;
   const { id } = req.params;
   const { authorization } = req.headers;
   try {
@@ -270,9 +292,23 @@ exports.update_workplan = async (req, res) => {
     }
 
     let UPLOAD_IMAGE_AFTER;
+    let UPLOAD_IMAGE_BEFORE;
 
-    if (attachment_after) {
+    const getExt = await WORKPLAN_DB.findOne({
+      where: {
+        id: id,
+      },
+    });
+
+    const getExtData = await getExt["dataValues"];
+
+    // Upload attachment_after jika memenuhi syarat
+    if (attachment_after && (isUpdateAfter || !getExtData.attachment_after)) {
       UPLOAD_IMAGE_AFTER = await uploadImagesCloudinary(attachment_after);
+    }
+
+    if (attachment_before && !getExtData.attachment_before) {
+      UPLOAD_IMAGE_BEFORE = await uploadImagesCloudinary(attachment_before);
     }
 
     // 1. Ambil User CC Lama dari Database
@@ -286,8 +322,15 @@ exports.update_workplan = async (req, res) => {
     // 2. Update Workplan
     await WORKPLAN_DB.update(
       {
-        attachment_after: UPLOAD_IMAGE_AFTER?.secure_url ?? "",
+        attachment_after:
+          UPLOAD_IMAGE_AFTER?.secure_url ?? getExtData.attachment_after ?? "",
+        attachment_before:
+          UPLOAD_IMAGE_BEFORE?.secure_url ?? getExtData.attachment_before ?? "",
         tanggal_selesai: tanggal_selesai,
+        status:
+          getExtData.status == WORKPLAN_STATUS.REVISON
+            ? WORKPLAN_STATUS.ON_PROGRESS
+            : getExtData.status,
       },
       { where: { id: id } }
     );
@@ -321,7 +364,7 @@ exports.update_workplan = async (req, res) => {
 
       if (newlyAddedUsers.length > 0) {
         // 6. Ambil FCM Token dari session untuk user baru saja
-        const usersWithToken = await SESSION_DB.findAll({
+        const usersWithToken = await USER_SESSION_DB.findAll({
           attributes: ["fcmToken"],
           where: { iduser: newlyAddedUsers }, // Hanya ambil user baru
           raw: true,
@@ -377,7 +420,9 @@ exports.update_status = async (req, res) => {
     await WORKPLAN_DB.update(
       {
         approved_date:
-          status != WORKPLAN_STATUS.PENDING && status != WORKPLAN_STATUS.REVISON
+          status != WORKPLAN_STATUS.PENDING &&
+          status != WORKPLAN_STATUS.REVISON &&
+          status != WORKPLAN_STATUS.ON_PROGRESS
             ? getCurrentDate()
             : null,
         status: status,
@@ -424,6 +469,37 @@ exports.get_cc_user = async (req, res) => {
     const data = await USER_SESSION_DB.findAll({ where: whereCondition });
 
     Responder(res, "OK", null, data, 200);
+    return;
+  } catch (error) {
+    Responder(res, "ERROR", null, null, 400);
+    return;
+  }
+};
+
+exports.delete_workplan = async (req, res) => {
+  const { id } = req.params;
+  const { authorization } = req.headers;
+  try {
+    const userData = getUserDatabyToken(authorization);
+    const userAuth = checkUserAuth(userData);
+
+    if (userAuth.error) {
+      return Responder(res, "ERROR", userAuth.message, null, 401);
+    }
+
+    await WORKPLAN_DB.destroy({
+      where: {
+        id: id,
+      },
+    });
+
+    await WORKPLAN_PROGRESS_DB.destroy({
+      where: {
+        wp_id: id,
+      },
+    });
+
+    Responder(res, "OK", null, { success: true }, 200);
     return;
   } catch (error) {
     Responder(res, "ERROR", null, null, 400);
