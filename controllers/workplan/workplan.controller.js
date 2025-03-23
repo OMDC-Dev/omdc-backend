@@ -145,7 +145,6 @@ exports.get_workplan = async (req, res) => {
     }
 
     if (status) {
-      console.log("STATUS", status);
       if (admin && status == WORKPLAN_STATUS.FINISH) {
         console.log("ADMIN  FINISH");
         whereCluse.status = {
@@ -156,15 +155,15 @@ exports.get_workplan = async (req, res) => {
       }
     }
 
-    if (cc && !admin && !id) {
-      whereCluse[Op.and] = [
-        Sequelize.fn(
-          "JSON_CONTAINS",
-          Sequelize.col("user_cc"),
-          `[{"iduser": "${cc}"}]`
-        ),
-      ];
-    }
+    // if (cc && !admin && !id) {
+    //   whereCluse[Op.and] = [
+    //     Sequelize.fn(
+    //       "JSON_CONTAINS",
+    //       Sequelize.col("user_cc"),
+    //       `[{"iduser": "${cc}"}]`
+    //     ),
+    //   ];
+    // }
 
     // -- search
     if (search) {
@@ -172,8 +171,10 @@ exports.get_workplan = async (req, res) => {
         { workplan_id: { [Op.like]: `%${search}%` } },
         { perihal: { [Op.like]: `%${search}%` } },
         { kd_induk: { [Op.like]: `%${search}%` } },
-        { "$cabang_detail.nm_induk$": { [Op.like]: `%${search}%` } },
-        { "$user_detail.nm_user$": { [Op.like]: `%${search}%` } },
+        // { "$cabang_detail.nm_induk$": { [Op.like]: `%${search}%` } },
+        // { "$user_detail.nm_user$": { [Op.like]: `%${search}%` } },
+        Sequelize.literal(`cabang_detail.nm_induk LIKE '%${search}%'`),
+        Sequelize.literal(`user_detail.nm_user LIKE '%${search}%'`),
       ];
     }
 
@@ -181,13 +182,13 @@ exports.get_workplan = async (req, res) => {
       {
         model: CABANG_DB,
         as: "cabang_detail",
-        required: false, // left join
+        required: !!search, // left join
         attributes: ["kd_induk", "nm_induk"],
       },
       {
         model: USER_SESSION_DB,
         as: "user_detail",
-        required: false, // left join
+        required: !!search, // left join
         attributes: ["nm_user", "fcmToken"],
       },
     ];
@@ -223,6 +224,18 @@ exports.get_workplan = async (req, res) => {
         model: USER_SESSION_DB,
         as: "cc_users",
         required: false,
+        attributes: ["nm_user", "fcmToken", "iduser"],
+      });
+    }
+
+    if (cc) {
+      LEFT_JOIN_TABLE.push({
+        model: USER_SESSION_DB,
+        as: "cc_users",
+        required: true, // INNER JOIN, jadi hanya workplan yang memiliki CC cocok yang muncul
+        where: {
+          iduser: userData.iduser, // Hanya workplan di mana user termasuk CC
+        },
         attributes: ["nm_user", "fcmToken", "iduser"],
       });
     }
