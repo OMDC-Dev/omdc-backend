@@ -147,7 +147,8 @@ module.exports = (sequelize, Sequelize) => {
       type: Sequelize.STRING(255),
     },
     kdsp: {
-      type: Sequelize.STRING(255),
+      type: Sequelize.STRING(20),
+      allowNull: true, // Pastikan ini ada
     },
     bukti_attachment: {
       type: Sequelize.TEXT("long"),

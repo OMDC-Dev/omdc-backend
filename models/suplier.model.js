@@ -5,7 +5,7 @@ module.exports = (sequelize, Sequelize) => {
       kdsp: {
         type: Sequelize.STRING(20),
         primaryKey: true,
-        allowNull: false,
+        allowNull: true,
       },
       nmsp: {
         type: Sequelize.STRING(60),
