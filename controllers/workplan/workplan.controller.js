@@ -151,7 +151,14 @@ exports.get_workplan = async (req, res) => {
           [Op.or]: [WORKPLAN_STATUS.FINISH, WORKPLAN_STATUS.REJECTED],
         };
       } else {
-        whereCluse.status = status;
+        console.log("TO", status.split(",").length);
+        if (status.split(",").length > 1) {
+          whereCluse.status = {
+            [Op.or]: status.split(","),
+          };
+        } else {
+          whereCluse.status = status;
+        }
       }
     }
 
@@ -171,10 +178,10 @@ exports.get_workplan = async (req, res) => {
         { workplan_id: { [Op.like]: `%${search}%` } },
         { perihal: { [Op.like]: `%${search}%` } },
         { kd_induk: { [Op.like]: `%${search}%` } },
-        // { "$cabang_detail.nm_induk$": { [Op.like]: `%${search}%` } },
-        // { "$user_detail.nm_user$": { [Op.like]: `%${search}%` } },
-        Sequelize.literal(`cabang_detail.nm_induk LIKE '%${search}%'`),
-        Sequelize.literal(`user_detail.nm_user LIKE '%${search}%'`),
+        { "$cabang_detail.nm_induk$": { [Op.like]: `%${search}%` } },
+        { "$user_detail.nm_user$": { [Op.like]: `%${search}%` } },
+        //Sequelize.literal(`cabang_detail.nm_induk LIKE '%${search}%'`),
+        //Sequelize.literal(`user_detail.nm_user LIKE '%${search}%'`),
       ];
     }
 
