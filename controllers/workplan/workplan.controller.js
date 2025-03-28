@@ -124,7 +124,19 @@ exports.create_workplan = async (req, res) => {
 
 // -- Get Workplan
 exports.get_workplan = async (req, res) => {
-  const { page = 1, limit = 10, status, admin, search, cc, id } = req.query;
+  const {
+    page = 1,
+    limit = 10,
+    status,
+    admin,
+    search,
+    cc,
+    id,
+    fKategori,
+    fType,
+    fCabang,
+    fStatus,
+  } = req.query;
   const { authorization } = req.headers;
   try {
     const userData = getUserDatabyToken(authorization);
@@ -162,6 +174,32 @@ exports.get_workplan = async (req, res) => {
       }
     }
 
+    if (fCabang || fStatus || fKategori || fType) {
+      let filter = [];
+
+      if (fCabang) {
+        filter.push({ kd_induk: fCabang });
+      }
+
+      if (fStatus) {
+        filter.push({ status: fStatus });
+      }
+
+      if (fKategori) {
+        filter.push({
+          kategori: fKategori,
+        });
+      }
+
+      if (fType) {
+        filter.push({
+          jenis_workplan: fType,
+        });
+      }
+
+      whereCluse[Op.and] = filter;
+    }
+
     // if (cc && !admin && !id) {
     //   whereCluse[Op.and] = [
     //     Sequelize.fn(
@@ -178,6 +216,8 @@ exports.get_workplan = async (req, res) => {
         { workplan_id: { [Op.like]: `%${search}%` } },
         { perihal: { [Op.like]: `%${search}%` } },
         { kd_induk: { [Op.like]: `%${search}%` } },
+        { tanggal_selesai: { [Op.like]: `%${search}%` } },
+        { tanggal_mulai: { [Op.like]: `%${search}%` } },
         { "$cabang_detail.nm_induk$": { [Op.like]: `%${search}%` } },
         { "$user_detail.nm_user$": { [Op.like]: `%${search}%` } },
         //Sequelize.literal(`cabang_detail.nm_induk LIKE '%${search}%'`),
@@ -252,9 +292,10 @@ exports.get_workplan = async (req, res) => {
       limit: parseInt(limit), // Mengubah batasan menjadi tipe numerik
       offset: offset, // Menetapkan offset untuk penampilan halaman
       order: [
+        ["kategori", "DESC"],
         ["updatedAt", "DESC"],
         ["createdAt", "DESC"],
-        ["status", "DESC"],
+        ["status", "ASC"],
       ],
       include: LEFT_JOIN_TABLE,
     });
