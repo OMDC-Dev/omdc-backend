@@ -9,13 +9,14 @@ const sendMessaging = () => {
   }
 };
 
-const sendSingleMessage = (token, notification) => {
+const sendSingleMessage = (token, notification, data = {}) => {
   if (!token) return;
   return admin
     .messaging()
     .send({
       token: token,
       notification: notification,
+      data: data,
       apns: {
         payload: {
           aps: {
@@ -38,13 +39,17 @@ const sendSingleMessage = (token, notification) => {
     });
 };
 
-const sendMulticastMessage = (tokens, notification) => {
+const sendMulticastMessage = (tokens, notification, data = {}) => {
   if (!tokens) return;
+
+  console.log("Send Notif");
+
   return admin
     .messaging()
     .sendEachForMulticast({
       tokens: tokens,
       notification: notification,
+      data: data,
       apns: {
         payload: {
           aps: {
@@ -61,6 +66,7 @@ const sendMulticastMessage = (tokens, notification) => {
     })
     .then((data) => {
       console.log("Send notification success with ", data);
+      console.log(data.responses[0].error);
     })
     .catch((err) => {
       console.log("Send notification error with ", err);

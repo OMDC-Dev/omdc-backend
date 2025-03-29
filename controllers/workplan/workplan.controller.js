@@ -10,6 +10,10 @@ const {
   getCurrentDate,
 } = require("../../utils/utils");
 const { uploadImagesCloudinary } = require("../../utils/cloudinary");
+const {
+  sendMulticastMessage,
+  sendSingleMessage,
+} = require("../../utils/firebase");
 const WORKPLAN_DB = db.workplan;
 const CABANG_DB = db.cabang;
 const USER_SESSION_DB = db.ruser;
@@ -92,26 +96,23 @@ exports.create_workplan = async (req, res) => {
     }
 
     // 6. Kirim Notifikasi jika ada FCM Token
-    // if (fcmTokens.length > 0) {
-    //   const message = {
-    //     notification: {
-    //       title: "Workplan Updated",
-    //       body: `Workplan dengan ID ${id} telah diperbarui.`,
-    //     },
-    //     tokens: fcmTokens, // Mengirim ke banyak token sekaligus
-    //   };
-
-    //   // Kirim notifikasi ke semua token
-    //   admin
-    //     .messaging()
-    //     .sendMulticast(message)
-    //     .then((response) => {
-    //       console.log("Notifikasi terkirim:", response);
-    //     })
-    //     .catch((error) => {
-    //       console.error("Gagal mengirim notifikasi:", error);
-    //     });
-    // }
+    if (fcmTokens.length > 0) {
+      sendMulticastMessage(
+        fcmTokens,
+        {
+          title: `Anda ditambahkan ke Workplan!`,
+          body: `Anda baru saja ditambahkan ke cc workplan oleh ${userData.nm_user}.`,
+        },
+        {
+          name: "WorkplanStack",
+          screen: "WorkplanDetail",
+          params: JSON.stringify({
+            id: workplan.id.toString(),
+            cc: "1",
+          }),
+        }
+      );
+    }
 
     Responder(res, "OK", null, { success: true }, 200);
     return;
@@ -187,13 +188,13 @@ exports.get_workplan = async (req, res) => {
 
       if (fKategori) {
         filter.push({
-          kategori: fKategori,
+          kategori: fKategori.toUpperCase(),
         });
       }
 
       if (fType) {
         filter.push({
-          jenis_workplan: fType,
+          jenis_workplan: fType.toUpperCase(),
         });
       }
 
@@ -437,25 +438,23 @@ exports.update_workplan = async (req, res) => {
     }
 
     // 8. Kirim Notifikasi hanya ke user yang baru ditambahkan
-    // if (fcmTokens.length > 0) {
-    //   const message = {
-    //     notification: {
-    //       title: "Anda Ditambahkan ke Workplan!",
-    //       body: `Anda baru saja ditambahkan ke Workplan ID ${id}.`,
-    //     },
-    //     tokens: fcmTokens, // Hanya mengirim ke user yang baru ditambahkan
-    //   };
-
-    //   admin
-    //     .messaging()
-    //     .sendMulticast(message)
-    //     .then((response) => {
-    //       console.log("Notifikasi terkirim:", response);
-    //     })
-    //     .catch((error) => {
-    //       console.error("Gagal mengirim notifikasi:", error);
-    //     });
-    // }
+    if (fcmTokens.length > 0) {
+      sendMulticastMessage(
+        fcmTokens,
+        {
+          title: `Anda ditambahkan ke Workplan!`,
+          body: `Anda baru saja ditambahkan ke cc workplan oleh ${userData.nm_user}.`,
+        },
+        {
+          name: "WorkplanStack",
+          screen: "WorkplanDetail",
+          params: JSON.stringify({
+            id: workplan.id.toString(),
+            cc: "1",
+          }),
+        }
+      );
+    }
 
     Responder(res, "OK", null, { success: true }, 200);
     return;
@@ -467,7 +466,7 @@ exports.update_workplan = async (req, res) => {
 };
 
 exports.update_status = async (req, res) => {
-  const { status } = req.body;
+  const { status, fromAdmin } = req.body;
   const { id } = req.params;
   const { authorization } = req.headers;
   try {
@@ -494,6 +493,50 @@ exports.update_status = async (req, res) => {
         },
       }
     );
+
+    if (fromAdmin) {
+      const getWorkplan = await WORKPLAN_DB.findOne({
+        where: { id: id },
+        include: [
+          {
+            model: USER_SESSION_DB,
+            as: "user_detail",
+            required: !!search, // left join
+            attributes: ["nm_user", "fcmToken"],
+          },
+        ],
+      });
+      const getWorkplanData = await getWorkplan["dataValues"];
+
+      const userToken = getWorkplanData["user_detail"]["fcmToken"];
+
+      if (userToken) {
+        let status_text = "";
+
+        if (status == WORKPLAN_STATUS.FINISH) {
+          status_text = "disetujui";
+        } else if (status == WORKPLAN_STATUS.REJECTED) {
+          status_text = "ditolak";
+        } else if (status == WORKPLAN_STATUS.REVISON) {
+          status_text = "perlu direvisi";
+        }
+
+        sendSingleMessage(
+          userToken,
+          {
+            title: "Update status workplan anda!",
+            body: `Status workplan anda saat ini adalah ${status_text}`,
+          },
+          {
+            name: "WorkplanStack",
+            screen: "WorkplanDetail",
+            params: JSON.stringify({
+              id: workplan.id.toString(),
+            }),
+          }
+        );
+      }
+    }
 
     Responder(res, "OK", null, { success: true }, 200);
     return;
