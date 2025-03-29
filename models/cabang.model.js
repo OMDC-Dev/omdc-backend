@@ -96,6 +96,12 @@ module.exports = (sequelize, Sequelize) => {
   );
 
   M_IndukCabang.removeAttribute("id");
+  M_IndukCabang.associate = (models) => {
+    M_IndukCabang.hasMany(models.workplan, {
+      foreignKey: "kd_induk",
+      as: "workplants",
+    });
+  };
 
   return M_IndukCabang;
 };

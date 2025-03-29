@@ -1,4 +1,5 @@
 const moment = require("moment");
+const { decodeToken, getToken } = require("./jwt");
 require("moment/locale/id");
 moment.locale("id");
 
@@ -59,6 +60,27 @@ function isValidUrl(string) {
   }
 }
 
+function getUserDatabyToken(auth) {
+  if (!auth) return null;
+  return decodeToken(getToken(auth));
+}
+
+function checkUserAuth(token) {
+  if (!token) {
+    return { error: true, message: "User tidak memiliki akses." };
+  }
+
+  if (!token.iduser) {
+    return { error: true, message: "User token tidak valid." };
+  }
+
+  return { error: false, message: "" };
+}
+
+function getCurrentDate() {
+  return moment().format();
+}
+
 module.exports = {
   generateRandomNumber,
   getFormattedDate,
@@ -66,4 +88,7 @@ module.exports = {
   getDateValidFormat,
   addAdminApprovalDate,
   isValidUrl,
+  getUserDatabyToken,
+  checkUserAuth,
+  getCurrentDate,
 };

@@ -75,6 +75,34 @@ db_user.invoice = require("../models/v4/invoice.model.js")(
   Sequelize
 );
 
+// workplan model
+db_user.workplan = require("../models/workplan/workplan.model")(
+  sequelize,
+  Sequelize
+);
+
+db_user.workplan_date_history = require("../models/workplan/datehistory.model")(
+  sequelize,
+  Sequelize
+);
+
+db_user.workplan_comment = require("../models/workplan/comment.model")(
+  sequelize,
+  Sequelize
+);
+
+db_user.workplan_progress = require("../models/workplan/progress.model")(
+  sequelize,
+  Sequelize
+);
+
+db_user.workplan_cc_users = require("../models/workplan/usercc.model.js")(
+  sequelize,
+  Sequelize
+);
+
+db_user.banner = require("../models/banner.model")(sequelize, Sequelize);
+
 // Setup associations
 Object.keys(db_user).forEach((modelName) => {
   //console.log(modelName);

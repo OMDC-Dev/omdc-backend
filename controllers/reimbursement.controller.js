@@ -284,7 +284,7 @@ exports.reimbursement = async (req, res) => {
       needExtraAcceptance: false,
       extraAcceptance: {},
       extraAcceptanceStatus: "IDLE",
-      kdsp: kdsp || "",
+      kdsp: kdsp ?? null,
       bukti_attachment: uploadedBuktiAttachment || "",
       bukti_file_info: bukti_file_info,
       remarked: false,
