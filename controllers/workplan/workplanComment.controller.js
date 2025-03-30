@@ -65,6 +65,7 @@ exports.get_workplan_comment = async (req, res) => {
         {
           model: WORKPLAN_COMMENT_DB,
           as: "replies",
+          order: [["createdAt", "DESC"]],
         },
       ],
     });
