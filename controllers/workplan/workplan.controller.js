@@ -501,7 +501,7 @@ exports.update_status = async (req, res) => {
           {
             model: USER_SESSION_DB,
             as: "user_detail",
-            required: !!search, // left join
+            required: false, // left join
             attributes: ["nm_user", "fcmToken"],
           },
         ],
@@ -531,7 +531,7 @@ exports.update_status = async (req, res) => {
             name: "WorkplanStack",
             screen: "WorkplanDetail",
             params: JSON.stringify({
-              id: workplan.id.toString(),
+              id: id.toString(),
             }),
           }
         );
@@ -541,6 +541,7 @@ exports.update_status = async (req, res) => {
     Responder(res, "OK", null, { success: true }, 200);
     return;
   } catch (error) {
+    console.log(error);
     Responder(res, "ERROR", null, null, 400);
     return;
   }
