@@ -131,6 +131,7 @@ exports.get_workplan = async (req, res) => {
     status,
     admin,
     search,
+    sort,
     cc,
     id,
     fKategori,
@@ -288,16 +289,28 @@ exports.get_workplan = async (req, res) => {
       });
     }
 
+    let ORDER_DEFAULT = [
+      ["kategori", "DESC"],
+      ["updatedAt", "DESC"],
+      ["createdAt", "DESC"],
+      ["status", "ASC"],
+    ];
+
+    if (sort) {
+      if (sort == "CREATEDDESC") {
+        ORDER_DEFAULT = [
+          ["createdAt", "DESC"],
+          ["updatedAt", "DESC"],
+          ["kategori", "DESC"],
+        ];
+      }
+    }
+
     const requested = await WORKPLAN_DB.findAndCountAll({
       where: whereCluse,
       limit: parseInt(limit), // Mengubah batasan menjadi tipe numerik
       offset: offset, // Menetapkan offset untuk penampilan halaman
-      order: [
-        ["kategori", "DESC"],
-        ["updatedAt", "DESC"],
-        ["createdAt", "DESC"],
-        ["status", "ASC"],
-      ],
+      order: ORDER_DEFAULT,
       include: LEFT_JOIN_TABLE,
     });
 
