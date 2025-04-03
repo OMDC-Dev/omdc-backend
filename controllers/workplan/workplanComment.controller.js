@@ -42,7 +42,7 @@ exports.create_comment = async (req, res) => {
 
 // -- Get Workplan
 exports.get_workplan_comment = async (req, res) => {
-  const { page = 1, limit = 10 } = req.query;
+  const { page = 1, limit = 500 } = req.query;
   const { authorization } = req.headers;
   const { id } = req.params;
   try {
