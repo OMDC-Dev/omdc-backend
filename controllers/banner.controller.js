@@ -13,7 +13,7 @@ exports.add_banner = async (req, res) => {
 
     if (IMG_UPLOAD.secure_url) {
       await BANNER_DB.create({
-        image: IMG_UPLOAD.secure_url,
+        banner: IMG_UPLOAD.secure_url,
       });
     }
 
