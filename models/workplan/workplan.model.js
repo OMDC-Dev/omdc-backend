@@ -16,7 +16,7 @@ module.exports = (sequelize, Sequelize) => {
       },
       kd_induk: {
         type: Sequelize.STRING(20),
-        allowNull: false,
+        allowNull: true,
       },
       perihal: {
         type: Sequelize.STRING,
@@ -46,6 +46,9 @@ module.exports = (sequelize, Sequelize) => {
       revise_message: {
         type: Sequelize.TEXT,
       },
+      custom_location: {
+        type: Sequelize.TEXT,
+      },
     },
     {
       tableName: "omdc_workplan",
@@ -62,6 +65,7 @@ module.exports = (sequelize, Sequelize) => {
     Workplan.belongsTo(models.cabang, {
       foreignKey: "kd_induk",
       as: "cabang_detail",
+      onDelete: "SET NULL",
     });
 
     Workplan.hasMany(models.workplan_date_history, {

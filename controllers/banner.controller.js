@@ -17,6 +17,8 @@ exports.add_banner = async (req, res) => {
       });
     }
 
+    console.log("BANNER", IMG_UPLOAD);
+
     Responder(res, "OK", null, { success: true }, 200);
   } catch (error) {
     console.log(error);
