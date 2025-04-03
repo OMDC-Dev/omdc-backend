@@ -22,7 +22,7 @@ exports.create_comment = async (req, res) => {
       UPLOAD_IMAGE = await uploadImagesCloudinary(attachment);
     }
 
-    await WORKPLAN_COMMENT_DB.create({
+    const comment = await WORKPLAN_COMMENT_DB.create({
       replies_to: comment_id,
       message: message,
       create_by: userData.nm_user,
@@ -31,7 +31,7 @@ exports.create_comment = async (req, res) => {
       wp_id: id,
     });
 
-    Responder(res, "OK", null, { success: true }, 200);
+    Responder(res, "OK", null, { success: true, data: comment }, 200);
     return;
   } catch (error) {
     console.log(error);
