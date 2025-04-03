@@ -33,6 +33,7 @@ exports.create_workplan = async (req, res) => {
     kategori,
     user_cc,
     attachment_before,
+    custom_location,
   } = req.body;
   const { authorization } = req.headers;
   try {
@@ -60,12 +61,13 @@ exports.create_workplan = async (req, res) => {
       jenis_workplan,
       tanggal_mulai,
       tanggal_selesai,
-      kd_induk,
+      kd_induk: kd_induk ?? null,
       perihal: perihal.toUpperCase(),
       kategori: kategori.toUpperCase(),
       iduser: userData.iduser,
       attachment_before: UPLOAD_IMAGE_BEFORE?.secure_url ?? "",
       status: WORKPLAN_STATUS.ON_PROGRESS,
+      custom_location: custom_location ?? null,
     });
 
     // 2. Simpan riwayat tanggal selesai workplan
@@ -214,16 +216,32 @@ exports.get_workplan = async (req, res) => {
 
     // -- search
     if (search) {
+      // whereCluse[Op.or] = [
+      //   { workplan_id: { [Op.like]: `%${search}%` } },
+      //   { custom_location: { [Op.like]: `%${search}%` } },
+      //   { perihal: { [Op.like]: `%${search}%` } },
+      //   { kd_induk: { [Op.like]: `%${search}%` } },
+      //   { tanggal_selesai: { [Op.like]: `%${search}%` } },
+      //   { tanggal_mulai: { [Op.like]: `%${search}%` } },
+      //   { "$cabang_detail.nm_induk$": { [Op.like]: `%${search}%` } },
+      //   { "$user_detail.nm_user$": { [Op.like]: `%${search}%` } },
+      //   //Sequelize.literal(`cabang_detail.nm_induk LIKE '%${search}%'`),
+      //   //Sequelize.literal(`user_detail.nm_user LIKE '%${search}%'`),
+      // ];
       whereCluse[Op.or] = [
         { workplan_id: { [Op.like]: `%${search}%` } },
+        { custom_location: { [Op.like]: `%${search}%` } },
         { perihal: { [Op.like]: `%${search}%` } },
         { kd_induk: { [Op.like]: `%${search}%` } },
         { tanggal_selesai: { [Op.like]: `%${search}%` } },
         { tanggal_mulai: { [Op.like]: `%${search}%` } },
-        { "$cabang_detail.nm_induk$": { [Op.like]: `%${search}%` } },
         { "$user_detail.nm_user$": { [Op.like]: `%${search}%` } },
-        //Sequelize.literal(`cabang_detail.nm_induk LIKE '%${search}%'`),
-        //Sequelize.literal(`user_detail.nm_user LIKE '%${search}%'`),
+        {
+          [Op.and]: [
+            { kd_induk: { [Op.ne]: null } },
+            { "$cabang_detail.nm_induk$": { [Op.like]: `%${search}%` } },
+          ],
+        },
       ];
     }
 
@@ -231,7 +249,7 @@ exports.get_workplan = async (req, res) => {
       {
         model: CABANG_DB,
         as: "cabang_detail",
-        required: !!search, // left join
+        required: false, // left join
         attributes: ["kd_induk", "nm_induk"],
       },
       {
