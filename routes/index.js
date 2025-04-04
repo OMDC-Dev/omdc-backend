@@ -199,6 +199,7 @@ router.put("/workplan/progress/:id", workplanprogress.update_wp_progress);
 // Workplan Comment
 router.post("/workplan/comment/:id", workplancomment.create_comment);
 router.get("/workplan/comment/:id", workplancomment.get_workplan_comment);
+router.get("/workplan/comment/:id/count", workplancomment.count_comment);
 
 // Banner
 router.post("/banner", banner.add_banner);
