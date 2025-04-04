@@ -1,8 +1,11 @@
 const db = require("../../db/user.db");
 const { uploadImagesCloudinary } = require("../../utils/cloudinary");
+const { sendSingleMessage } = require("../../utils/firebase");
 const { Responder } = require("../../utils/responder");
 const { getUserDatabyToken, checkUserAuth } = require("../../utils/utils");
 const WORKPLAN_COMMENT_DB = db.workplan_comment;
+const WORKPLAN_DB = db.workplan;
+const USER_SESSION_DB = db.ruser;
 
 exports.create_comment = async (req, res) => {
   const { id } = req.params;
@@ -30,6 +33,43 @@ exports.create_comment = async (req, res) => {
       attachment: UPLOAD_IMAGE?.secure_url ?? "",
       wp_id: id,
     });
+
+    // send notif
+    const getWP = await WORKPLAN_DB.findOne({ where: { id: id } });
+    const getWPData = await getWP["dataValues"];
+    const workplanCreatorId = getWPData.iduser;
+
+    // get user fcm
+    let fcmTokens;
+
+    const usersWithToken = await USER_SESSION_DB.findAll({
+      attributes: ["fcmToken"],
+      where: { iduser: workplanCreatorId }, // Ambil semua user yang ada dalam CC
+      raw: true,
+    });
+
+    // 5. Ambil hanya token yang valid
+    fcmTokens = usersWithToken.map((user) => user.fcmToken).filter(Boolean);
+
+    console.log("FCM", fcmTokens);
+
+    // 6. Kirim Notifikasi jika ada FCM Token
+    if (fcmTokens.length > 0) {
+      sendSingleMessage(
+        fcmTokens[0],
+        {
+          title: `Ada komentar baru pada workplan anda!`,
+          body: `${userData.nm_user} baru saja menambahkan komentar pada workplan anda.`,
+        },
+        {
+          name: "WorkplanStack",
+          screen: "WorkplanDetail",
+          params: JSON.stringify({
+            id: id.toString(),
+          }),
+        }
+      );
+    }
 
     Responder(res, "OK", null, { success: true, data: comment }, 200);
     return;
@@ -92,6 +132,24 @@ exports.get_workplan_comment = async (req, res) => {
       },
       200
     );
+  } catch (error) {
+    console.log(error);
+    Responder(res, "ERROR", null, null, 400);
+    return;
+  }
+};
+
+exports.count_comment = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const commentCount = await WORKPLAN_COMMENT_DB.count({
+      where: {
+        wp_id: id,
+      },
+    });
+
+    Responder(res, "OK", null, { success: true, count: commentCount }, 200);
+    return;
   } catch (error) {
     console.log(error);
     Responder(res, "ERROR", null, null, 400);
