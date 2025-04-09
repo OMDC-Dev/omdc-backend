@@ -116,6 +116,35 @@ exports.create_workplan = async (req, res) => {
       );
     }
 
+    // Send Notif to admin
+    const adminSessions = await USER_SESSION_DB.findAll({
+      attributes: [
+        [Sequelize.fn("DISTINCT", Sequelize.col("fcmToken")), "fcmToken"],
+      ],
+      where: Sequelize.literal(`JSON_CONTAINS(kodeAkses, '"1200"')`),
+    });
+
+    // ubah hasil ke array fcmToken
+    const adminFcmTokens = adminSessions.map((session) => session.fcmToken);
+
+    if (adminFcmTokens.length > 0) {
+      sendMulticastMessage(
+        adminFcmTokens,
+        {
+          title: `Ada work plan yang baru dibuat`,
+          body: `${userData.nm_user} telah membuat work plan baru.`,
+        },
+        {
+          name: "WorkplanStack",
+          screen: "WorkplanDetail",
+          params: JSON.stringify({
+            id: workplan.id.toString(),
+            admin: "1",
+          }),
+        }
+      );
+    }
+
     Responder(res, "OK", null, { success: true }, 200);
     return;
   } catch (error) {
