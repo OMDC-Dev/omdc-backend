@@ -1,6 +1,10 @@
 const db = require("../../db/user.db");
+const { Op, Sequelize } = require("sequelize");
 const { uploadImagesCloudinary } = require("../../utils/cloudinary");
-const { sendSingleMessage } = require("../../utils/firebase");
+const {
+  sendSingleMessage,
+  sendMulticastMessage,
+} = require("../../utils/firebase");
 const { Responder } = require("../../utils/responder");
 const { getUserDatabyToken, checkUserAuth } = require("../../utils/utils");
 const WORKPLAN_COMMENT_DB = db.workplan_comment;
@@ -66,6 +70,35 @@ exports.create_comment = async (req, res) => {
           screen: "WorkplanDetail",
           params: JSON.stringify({
             id: id.toString(),
+          }),
+        }
+      );
+    }
+
+    // Send Notif to admin
+    const adminSessions = await USER_SESSION_DB.findAll({
+      attributes: [
+        [Sequelize.fn("DISTINCT", Sequelize.col("fcmToken")), "fcmToken"],
+      ],
+      where: Sequelize.literal(`JSON_CONTAINS(kodeAkses, '"1200"')`),
+    });
+
+    // ubah hasil ke array fcmToken
+    const adminFcmTokens = adminSessions.map((session) => session.fcmToken);
+
+    if (adminFcmTokens.length > 0) {
+      sendMulticastMessage(
+        adminFcmTokens,
+        {
+          title: `Ada komentar baru di work plan ${getWPData?.workplan_id}`,
+          body: `${userData.nm_user} telah menambahkan komentar baru di work plan ${getWPData?.workplan_id}`,
+        },
+        {
+          name: "WorkplanStack",
+          screen: "WorkplanDetail",
+          params: JSON.stringify({
+            id: id.toString(),
+            admin: "1",
           }),
         }
       );

@@ -208,5 +208,6 @@ router.get("/banner", banner.get_banner);
 
 // Dev
 router.post("/notif", dev.sendNotif);
+router.get("/adminfcm", dev.get_admin_token);
 
 module.exports = { router };
