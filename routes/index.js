@@ -206,4 +206,7 @@ router.post("/banner", banner.add_banner);
 router.delete("/banner/:id", banner.delete_banner);
 router.get("/banner", banner.get_banner);
 
+// Dev
+router.post("/notif", dev.sendNotif);
+
 module.exports = { router };

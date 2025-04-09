@@ -77,7 +77,7 @@ app.use((err, req, res, next) => {
 app.get("/", (req, res) => {
   res.json({
     message:
-      "Reimbursement Apps Service v.0.9.7 - 8 Apr 2025 ( Update to version 970 )",
+      "Reimbursement Apps Service v.0.9.7 - 9 Apr 2025 ( Update fcm service )",
   });
 });
 
