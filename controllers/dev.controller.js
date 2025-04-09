@@ -37,10 +37,10 @@ exports.sendNotif = async (req, res) => {
       body: `Dev Notif`,
     });
 
-    // sendMulticastMessage([fcm], {
-    //   title: "Test Multi Notif",
-    //   body: `Dev Multi Notif`,
-    // });
+    sendMulticastMessage([fcm], {
+      title: "Test Multi Notif",
+      body: `Dev Multi Notif`,
+    });
 
     Responder(res, "OK", null, { success: true }, 200);
   } catch (error) {
