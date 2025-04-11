@@ -104,8 +104,8 @@ exports.create_workplan = async (req, res) => {
       sendMulticastMessage(
         fcmTokens,
         {
-          title: `Anda ditambahkan ke Workplan!`,
-          body: `Anda baru saja ditambahkan ke cc workplan oleh ${userData.nm_user}.`,
+          title: `Anda ditambahkan ke Work in progress!`,
+          body: `Anda baru saja ditambahkan ke cc work in progress oleh ${userData.nm_user} dengan nomor work in progress ${workplan?.workplan_id}.`,
         },
         {
           name: "WorkplanStack",
@@ -133,8 +133,8 @@ exports.create_workplan = async (req, res) => {
       sendMulticastMessage(
         adminFcmTokens,
         {
-          title: `Ada work plan yang baru dibuat`,
-          body: `${userData.nm_user} telah membuat work plan baru.`,
+          title: `Ada work in progress yang baru dibuat`,
+          body: `${userData.nm_user} telah membuat work in progress baru dengan nomor ${workplan.workplan_id}.`,
         },
         {
           name: "WorkplanStack",
@@ -506,8 +506,8 @@ exports.update_workplan = async (req, res) => {
       sendMulticastMessage(
         fcmTokens,
         {
-          title: `Anda ditambahkan ke Workplan!`,
-          body: `Anda baru saja ditambahkan ke cc workplan oleh ${userData.nm_user}.`,
+          title: `Anda ditambahkan ke Work in progress!`,
+          body: `Anda baru saja ditambahkan ke cc work in progress oleh ${userData.nm_user}.`,
         },
         {
           name: "WorkplanStack",
@@ -588,8 +588,8 @@ exports.update_status = async (req, res) => {
         sendSingleMessage(
           userToken,
           {
-            title: "Update status workplan anda!",
-            body: `Status workplan anda saat ini adalah ${status_text}`,
+            title: "Update status work in progress anda!",
+            body: `Status work in progress anda dengan nomor ${getWorkplanData.workplan_id} saat ini adalah ${status_text}`,
           },
           {
             name: "WorkplanStack",
