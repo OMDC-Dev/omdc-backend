@@ -5,6 +5,9 @@ module.exports = (sequelize, Sequelize) => {
       progress: {
         type: Sequelize.STRING,
       },
+      created_by: {
+        type: Sequelize.STRING,
+      },
       wp_id: {
         type: Sequelize.INTEGER,
       },

@@ -49,6 +49,12 @@ module.exports = (sequelize, Sequelize) => {
       custom_location: {
         type: Sequelize.TEXT,
       },
+      last_update: {
+        type: Sequelize.STRING,
+      },
+      last_update_by: {
+        type: Sequelize.STRING,
+      },
     },
     {
       tableName: "omdc_workplan",

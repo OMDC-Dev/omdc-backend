@@ -68,6 +68,8 @@ exports.create_workplan = async (req, res) => {
       attachment_before: UPLOAD_IMAGE_BEFORE?.secure_url ?? "",
       status: WORKPLAN_STATUS.ON_PROGRESS,
       custom_location: custom_location ?? null,
+      last_update: getCurrentDate(),
+      last_update_by: userData.nm_user,
     });
 
     // 2. Simpan riwayat tanggal selesai workplan
@@ -453,6 +455,8 @@ exports.update_workplan = async (req, res) => {
           getExtData.status == WORKPLAN_STATUS.REVISON
             ? WORKPLAN_STATUS.ON_PROGRESS
             : getExtData.status,
+        last_update: getCurrentDate(),
+        last_update_by: userData.nm_user,
       },
       { where: { id: id } }
     );
@@ -611,6 +615,7 @@ exports.update_status = async (req, res) => {
 exports.get_cc_user = async (req, res) => {
   const { authorization } = req.headers;
   const { selectedList } = req.body;
+  const { ownerId } = req.query;
   try {
     const userData = getUserDatabyToken(authorization);
     const userAuth = checkUserAuth(userData);
@@ -619,10 +624,12 @@ exports.get_cc_user = async (req, res) => {
       return Responder(res, "ERROR", userAuth.message, null, 401);
     }
 
+    console.log("EX", [userData.iduser, ownerId]);
+
     const whereCondition = {
       [Op.and]: [
         Sequelize.literal("JSON_SEARCH(kodeAkses, 'one', '1200') IS NULL"),
-        { iduser: { [Op.ne]: userData.iduser } },
+        { iduser: { [Op.notIn]: [userData.iduser, ownerId] } },
       ],
     };
 

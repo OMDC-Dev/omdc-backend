@@ -1,7 +1,11 @@
 const db = require("../../db/user.db");
 const { WORKPLAN_STATUS } = require("../../utils/constants");
 const { Responder } = require("../../utils/responder");
-const { getUserDatabyToken, checkUserAuth } = require("../../utils/utils");
+const {
+  getUserDatabyToken,
+  checkUserAuth,
+  getCurrentDate,
+} = require("../../utils/utils");
 const WORKPLAN_PROGRESS_DB = db.workplan_progress;
 const WORKPLAN_DB = db.workplan;
 
@@ -20,6 +24,7 @@ exports.create_wp_progress = async (req, res) => {
     await WORKPLAN_PROGRESS_DB.create({
       progress,
       wp_id,
+      created_by: userData.nm_user,
     });
 
     const getExt = await WORKPLAN_DB.findOne({
@@ -27,6 +32,18 @@ exports.create_wp_progress = async (req, res) => {
         id: wp_id,
       },
     });
+
+    await WORKPLAN_DB.update(
+      {
+        last_update: getCurrentDate(),
+        last_update_by: userData.nm_user,
+      },
+      {
+        where: {
+          id: wp_id,
+        },
+      }
+    );
 
     const getExtData = await getExt["dataValues"];
 
@@ -75,6 +92,18 @@ exports.update_wp_progress = async (req, res) => {
       },
     });
 
+    await WORKPLAN_DB.update(
+      {
+        last_update: getCurrentDate(),
+        last_update_by: userData.nm_user,
+      },
+      {
+        where: {
+          id: wp_id,
+        },
+      }
+    );
+
     const getExtData = await getExt["dataValues"];
 
     if (getExtData.status == WORKPLAN_STATUS.REVISON) {
@@ -116,6 +145,18 @@ exports.delete_wp_progress = async (req, res) => {
         id: wp_id,
       },
     });
+
+    await WORKPLAN_DB.update(
+      {
+        last_update: getCurrentDate(),
+        last_update_by: userData.nm_user,
+      },
+      {
+        where: {
+          id: wp_id,
+        },
+      }
+    );
 
     const getExtData = await getExt["dataValues"];
 
