@@ -78,7 +78,7 @@ exports.create_comment = async (req, res) => {
       sendSingleMessage(
         fcmTokens[0],
         {
-          title: `Ada komentar baru pada workplan anda!`,
+          title: `Ada komentar baru pada work in progress anda!`,
           body: `${userData.nm_user} baru saja menambahkan komentar.`,
         },
         {
@@ -106,8 +106,8 @@ exports.create_comment = async (req, res) => {
       sendMulticastMessage(
         adminFcmTokens,
         {
-          title: `Ada komentar baru di work plan ${getWPData?.workplan_id}`,
-          body: `${userData.nm_user} telah menambahkan komentar baru di work plan ${getWPData?.workplan_id}`,
+          title: `Ada komentar baru di work in progress ${getWPData?.workplan_id}`,
+          body: `${userData.nm_user} telah menambahkan komentar baru di work in progress ${getWPData?.workplan_id}`,
         },
         {
           name: "WorkplanStack",
