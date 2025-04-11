@@ -624,6 +624,8 @@ exports.get_cc_user = async (req, res) => {
       return Responder(res, "ERROR", userAuth.message, null, 401);
     }
 
+    console.log("EX", [userData.iduser, ownerId]);
+
     const whereCondition = {
       [Op.and]: [
         Sequelize.literal("JSON_SEARCH(kodeAkses, 'one', '1200') IS NULL"),

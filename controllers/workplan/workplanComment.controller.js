@@ -74,6 +74,7 @@ exports.create_comment = async (req, res) => {
 
     // 6. Kirim Notifikasi jika ada FCM Token
     if (fcmTokens.length > 0) {
+      console.log("SEND TO USER");
       sendSingleMessage(
         fcmTokens[0],
         {
