@@ -39,23 +39,38 @@ exports.create_comment = async (req, res) => {
     });
 
     // send notif
-    const getWP = await WORKPLAN_DB.findOne({ where: { id: id } });
+    const getWP = await WORKPLAN_DB.findOne({
+      where: { id: id },
+      include: [
+        {
+          model: USER_SESSION_DB,
+          as: "cc_users",
+          required: false,
+          attributes: ["iduser"],
+        },
+      ],
+    });
     const getWPData = await getWP["dataValues"];
+    const mappedCCUser = getWPData.cc_users.map(
+      (item) => item?.dataValues?.iduser
+    );
     const workplanCreatorId = getWPData.iduser;
+
+    const getUserCorelated = [...mappedCCUser, workplanCreatorId];
 
     // get user fcm
     let fcmTokens;
 
     const usersWithToken = await USER_SESSION_DB.findAll({
       attributes: ["fcmToken"],
-      where: { iduser: workplanCreatorId }, // Ambil semua user yang ada dalam CC
+      where: { iduser: getUserCorelated }, // Ambil semua user yang ada dalam CC
       raw: true,
     });
 
     // 5. Ambil hanya token yang valid
     fcmTokens = usersWithToken.map((user) => user.fcmToken).filter(Boolean);
 
-    console.log("FCM", fcmTokens);
+    console.log("FCM C User", fcmTokens);
 
     // 6. Kirim Notifikasi jika ada FCM Token
     if (fcmTokens.length > 0) {
@@ -63,7 +78,7 @@ exports.create_comment = async (req, res) => {
         fcmTokens[0],
         {
           title: `Ada komentar baru pada workplan anda!`,
-          body: `${userData.nm_user} baru saja menambahkan komentar pada workplan anda.`,
+          body: `${userData.nm_user} baru saja menambahkan komentar.`,
         },
         {
           name: "WorkplanStack",
