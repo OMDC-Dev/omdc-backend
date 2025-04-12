@@ -14,6 +14,13 @@ const {
   sendMulticastMessage,
   sendSingleMessage,
 } = require("../../utils/firebase");
+
+//
+const moment = require("moment");
+require("moment/locale/id");
+moment.locale("id");
+//
+
 const WORKPLAN_DB = db.workplan;
 const CABANG_DB = db.cabang;
 const USER_SESSION_DB = db.ruser;
@@ -171,6 +178,8 @@ exports.get_workplan = async (req, res) => {
     fType,
     fCabang,
     fStatus,
+    startDate,
+    endDate,
   } = req.query;
   const { authorization } = req.headers;
   try {
@@ -353,6 +362,20 @@ exports.get_workplan = async (req, res) => {
           ["kategori", "DESC"],
         ];
       }
+    }
+
+    if (startDate && endDate) {
+      const startDateObj = moment(startDate, "DD-MM-YYYY", true)
+        .startOf("day")
+        .toDate();
+
+      const endDateObj = moment(endDate, "DD-MM-YYYY", true)
+        .endOf("day")
+        .toDate();
+
+      whereCluse.createdAt = {
+        [Op.between]: [startDateObj, endDateObj],
+      };
     }
 
     const requested = await WORKPLAN_DB.findAndCountAll({
