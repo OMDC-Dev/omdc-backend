@@ -536,7 +536,7 @@ exports.update_workplan = async (req, res) => {
           name: "WorkplanStack",
           screen: "WorkplanDetail",
           params: JSON.stringify({
-            id: workplan.id.toString(),
+            id: id.toString(),
             cc: "1",
           }),
         }
