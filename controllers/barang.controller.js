@@ -643,3 +643,77 @@ exports.cance_pengajuan = async (req, res) => {
     return;
   }
 };
+
+exports.get_requested_barang = async (req, res) => {
+  const { page = 1, limit = 10, search, iduser, type } = req.query;
+  try {
+    // Menghitung offset berdasarkan halaman dan batasan
+    const offset = (page - 1) * limit;
+
+    let whereCluse = {};
+
+    if (iduser) {
+      whereCluse.iduser = iduser;
+    }
+
+    if (type) {
+      if (type === "DONE") {
+        whereCluse.status_pb = {
+          [Op.or]: ["Ditolak", "Dibatalkan", "Selesai", "Diterima"],
+        };
+      } else {
+        whereCluse.status_pb = {
+          [Op.notIn]: ["Ditolak", "Dibatalkan", "Selesai", "Diterima"],
+        };
+      }
+    }
+
+    if (search) {
+      whereCluse[Op.or] = [
+        { id_trans: { [Op.like]: `%${search}%` } },
+        { id_pb: { [Op.like]: `%${search}%` } },
+        { kd_induk: { [Op.like]: `%${search}%` } },
+        { nm_induk: { [Op.like]: `%${search}%` } },
+        { kd_cabang: { [Op.like]: `%${search}%` } },
+        { nm_cabang: { [Op.like]: `%${search}%` } },
+        { nmsp: { [Op.like]: `%${search}%` } },
+        { kd_brg: { [Op.like]: `%${search}%` } },
+        { nm_barang: { [Op.like]: `%${search}%` } },
+        { nm_user: { [Op.like]: `%${search}%` } },
+      ];
+    }
+
+    const requested = await TrxPermintaanBarang.findAndCountAll({
+      where: whereCluse,
+      limit: parseInt(limit), // Mengubah batasan menjadi tipe numerik
+      offset: offset, // Menetapkan offset untuk penampilan halaman
+    });
+
+    // result count
+    const resultCount = requested?.count;
+
+    const totalPage = resultCount / limit;
+    const totalPageFormatted =
+      Math.round(totalPage) == 0 ? 1 : Math.ceil(totalPage);
+
+    Responder(
+      res,
+      "OK",
+      null,
+      {
+        rows: requested.rows,
+        pageInfo: {
+          pageNumber: parseInt(page),
+          pageLimit: parseInt(limit),
+          pageCount: totalPageFormatted,
+          pageSize: resultCount,
+        },
+      },
+      200
+    );
+  } catch (error) {
+    console.log(error);
+    Responder(res, "ERROR", null, null, 400);
+    return;
+  }
+};
