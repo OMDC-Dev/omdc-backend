@@ -691,6 +691,7 @@ exports.get_requested_barang = async (req, res) => {
       where: whereCluse,
       limit: parseInt(limit), // Mengubah batasan menjadi tipe numerik
       offset: offset, // Menetapkan offset untuk penampilan halaman
+      order: [["tgl_trans", "DESC"]],
     });
 
     // result count
