@@ -645,7 +645,7 @@ exports.cance_pengajuan = async (req, res) => {
 };
 
 exports.get_requested_barang = async (req, res) => {
-  const { page = 1, limit = 10, search, iduser, type } = req.query;
+  const { page = 1, limit = 10, search, iduser, idapprove, type } = req.query;
   try {
     // Menghitung offset berdasarkan halaman dan batasan
     const offset = (page - 1) * limit;
@@ -654,6 +654,10 @@ exports.get_requested_barang = async (req, res) => {
 
     if (iduser) {
       whereCluse.iduser = iduser;
+    }
+
+    if (idapprove) {
+      whereCluse.id_approve = idapprove;
     }
 
     if (type) {
