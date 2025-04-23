@@ -131,6 +131,7 @@ router.post("/barang/admin-approval/:idpb/:mode", barang.admin_approval);
 router.delete("/barang/:idpb", barang.cance_pengajuan);
 router.post("/barang/update-request", barang.update_trx_brg);
 router.post("/barang/reject-request", barang.reject_trx_brg);
+router.get("/barang/barang-requested", barang.get_requested_barang);
 
 // Pengumuman
 router.post("/pengumuman", pengumuman.createPengumuman);
