@@ -32,7 +32,7 @@ const WORKPLAN_PROGRESS_DB = db.workplan_progress;
 // --  Create work plan
 exports.create_workplan = async (req, res) => {
   const {
-    jenis_workplan,
+    //jenis_workplan,
     tanggal_mulai,
     tanggal_selesai,
     kd_induk,
@@ -65,7 +65,7 @@ exports.create_workplan = async (req, res) => {
     // 1. Buat Workplan
     const workplan = await WORKPLAN_DB.create({
       workplan_id: WORKPLAN_ID,
-      jenis_workplan,
+      jenis_workplan: "NON_APPROVAL", // set to auto non approval
       tanggal_mulai,
       tanggal_selesai,
       kd_induk: kd_induk ?? null,
@@ -202,12 +202,10 @@ exports.get_workplan = async (req, res) => {
 
     if (status) {
       if (admin && status == WORKPLAN_STATUS.FINISH) {
-        console.log("ADMIN  FINISH");
         whereCluse.status = {
           [Op.or]: [WORKPLAN_STATUS.FINISH, WORKPLAN_STATUS.REJECTED],
         };
       } else {
-        console.log("TO", status.split(",").length);
         if (status.split(",").length > 1) {
           whereCluse.status = {
             [Op.or]: status.split(","),
@@ -423,6 +421,7 @@ exports.get_workplan = async (req, res) => {
 exports.update_workplan = async (req, res) => {
   const {
     user_cc,
+    perihal,
     attachment_after,
     attachment_before,
     tanggal_selesai,
@@ -469,6 +468,7 @@ exports.update_workplan = async (req, res) => {
     // 2. Update Workplan
     await WORKPLAN_DB.update(
       {
+        perihal: perihal,
         attachment_after:
           UPLOAD_IMAGE_AFTER?.secure_url ?? getExtData.attachment_after ?? "",
         attachment_before:
