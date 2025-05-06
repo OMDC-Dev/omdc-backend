@@ -665,9 +665,17 @@ exports.get_requested_barang = async (req, res) => {
         whereCluse.status_pb = {
           [Op.or]: ["Ditolak", "Dibatalkan", "Selesai", "Diterima"],
         };
+      } else if (type == "PENDING") {
+        whereCluse.status_pb = "Pending";
       } else {
         whereCluse.status_pb = {
-          [Op.notIn]: ["Ditolak", "Dibatalkan", "Selesai", "Diterima"],
+          [Op.notIn]: [
+            "Ditolak",
+            "Dibatalkan",
+            "Selesai",
+            "Diterima",
+            "Pending",
+          ],
         };
       }
     }

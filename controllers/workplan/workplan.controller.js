@@ -426,6 +426,8 @@ exports.update_workplan = async (req, res) => {
     attachment_before,
     tanggal_selesai,
     isUpdateAfter,
+    kd_induk,
+    location,
   } = req.body;
   const { id } = req.params;
   const { authorization } = req.headers;
@@ -480,6 +482,8 @@ exports.update_workplan = async (req, res) => {
             : getExtData.status,
         last_update: getCurrentDate(),
         last_update_by: userData.nm_user,
+        kd_induk: kd_induk ?? null,
+        custom_location: location ?? null,
       },
       { where: { id: id } }
     );
