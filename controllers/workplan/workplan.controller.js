@@ -41,6 +41,7 @@ exports.create_workplan = async (req, res) => {
     user_cc,
     attachment_before,
     custom_location,
+    group,
   } = req.body;
   const { authorization } = req.headers;
   try {
@@ -77,6 +78,7 @@ exports.create_workplan = async (req, res) => {
       custom_location: custom_location ?? null,
       last_update: getCurrentDate(),
       last_update_by: userData.nm_user,
+      group_type: group,
     });
 
     // 2. Simpan riwayat tanggal selesai workplan
@@ -180,6 +182,7 @@ exports.get_workplan = async (req, res) => {
     fStatus,
     startDate,
     endDate,
+    group,
   } = req.query;
   const { authorization } = req.headers;
   try {
@@ -213,6 +216,20 @@ exports.get_workplan = async (req, res) => {
         } else {
           whereCluse.status = status;
         }
+      }
+    }
+
+    if (group) {
+      if (group == "MEDIC") {
+        whereCluse.group_type = group;
+      } else {
+        whereCluse.group_type = {
+          [Op.or]: [
+            { [Op.eq]: "NON_MEDIC" },
+            { [Op.is]: null },
+            { [Op.eq]: "" },
+          ],
+        };
       }
     }
 
@@ -428,6 +445,7 @@ exports.update_workplan = async (req, res) => {
     isUpdateAfter,
     kd_induk,
     location,
+    group,
   } = req.body;
   const { id } = req.params;
   const { authorization } = req.headers;
@@ -484,6 +502,7 @@ exports.update_workplan = async (req, res) => {
         last_update_by: userData.nm_user,
         kd_induk: kd_induk ?? null,
         custom_location: location ?? null,
+        group_type: group,
       },
       { where: { id: id } }
     );
