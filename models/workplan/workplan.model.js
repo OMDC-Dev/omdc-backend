@@ -55,6 +55,9 @@ module.exports = (sequelize, Sequelize) => {
       last_update_by: {
         type: Sequelize.STRING,
       },
+      group_type: {
+        type: Sequelize.STRING,
+      },
     },
     {
       tableName: "omdc_workplan",
