@@ -18,6 +18,7 @@ const {
 } = require("../utils/firebase");
 const { uploadImagesCloudinary } = require("../utils/cloudinary");
 const { uploadToDrive } = require("../utils/uploadToDrive");
+const { uploadToCPanel } = require("../utils/uploadToCPanel");
 
 const M_Cabang = db_user.cabang;
 const Reimbursement = db_user.reimbursement;
@@ -223,7 +224,8 @@ exports.reimbursement = async (req, res) => {
         uploadAttachment = upload.secure_url;
       } else {
         console.log("PDF File");
-        const upload = await uploadToDrive(attachment, file.name);
+        //const upload = await uploadToDrive(attachment, file.name);
+        const upload = await uploadToCPanel(attachment, file.name);
         uploadAttachment = upload;
       }
     } else {
@@ -240,7 +242,8 @@ exports.reimbursement = async (req, res) => {
         uploadedBuktiAttachment = upload.secure_url;
       } else {
         console.log("PDF File");
-        const upload = await uploadToDrive(bukti_attachment, file.name);
+        //const upload = await uploadToDrive(bukti_attachment, file.name);
+        const upload = await uploadToCPanel(bukti_attachment, file.name);
         uploadedBuktiAttachment = upload;
       }
     }
@@ -2581,7 +2584,8 @@ exports.reupload_attachment = async (req, res) => {
       uploadAttachment = upload.secure_url;
     } else {
       console.log("PDF File");
-      const upload = await uploadToDrive(attachment, file.name);
+      //const upload = await uploadToDrive(attachment, file.name);
+      const upload = await uploadToCPanel(attachment, file.name);
       uploadAttachment = upload;
     }
 
@@ -2631,7 +2635,8 @@ exports.reupload_by_doc_attachment = async (req, res) => {
       uploadAttachment = upload.secure_url;
     } else {
       console.log("PDF File");
-      const upload = await uploadToDrive(attachment, file.name);
+      //const upload = await uploadToDrive(attachment, file.name);
+      const upload = await uploadToCPanel(attachment, file.name);
       uploadAttachment = upload;
     }
 

@@ -209,6 +209,7 @@ router.get("/banner", banner.get_banner);
 
 // Dev
 router.post("/notif", dev.sendNotif);
+router.post("/upload", dev.uploadFileToCpanel);
 router.get("/adminfcm", dev.get_admin_token);
 
 module.exports = { router };
