@@ -2,6 +2,7 @@ const { default: axios } = require("axios");
 const fs = require("fs");
 const FormData = require("form-data");
 const path = require("path");
+const { generateRandomNumber } = require("./utils");
 
 const CPANEL_API_URL = "https://omdc.online:2083/execute/Fileman/upload_files";
 const CPANEL_AUTH = "cpanel omdcadmin:O9LAMRR08IFYQICQKGJRTWCKQAO2ICPR";
@@ -16,8 +17,16 @@ async function uploadToCPanel(base64, fileName) {
 
   try {
     // Simpan file sementara ke __dirname/tmp
-    const buffer = Buffer.from(base64, "base64");
-    const tempFilePath = path.join(TMP_DIR, fileName);
+    const cleanedBase64 = base64.replace(/^data:.*;base64,/, "");
+    const buffer = Buffer.from(cleanedBase64, "base64");
+    const safeFileName = fileName.trim().replace(/\s+/g, "_");
+
+    // Tambahkan random prefix supaya unik
+    const finalFileName = `FILE_${generateRandomNumber(
+      100000,
+      999999
+    )}-${safeFileName}`;
+    const tempFilePath = path.join(TMP_DIR, finalFileName);
     fs.writeFileSync(tempFilePath, buffer);
 
     // Siapkan form data untuk upload ke cPanel
@@ -35,12 +44,20 @@ async function uploadToCPanel(base64, fileName) {
     // Hapus file sementara
     fs.unlinkSync(tempFilePath);
 
+    console.log(response);
+
     if (response.data.status === 1) {
       const fileUrl = `${PUBLIC_URL_BASE}/${fileName}`;
       console.log("File Uploaded : ", fileUrl);
       return fileUrl;
+    } else {
+      console.log("FAILED TO UPLOAD");
     }
   } catch (error) {
+    console.error(
+      "ERROR UPLOAD",
+      error?.response?.data || error.message || error
+    );
     throw error;
   }
 }
