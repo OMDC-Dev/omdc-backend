@@ -6,6 +6,7 @@ const {
 const { Responder } = require("../utils/responder");
 const User = db_user.ruser;
 const { Op, Sequelize, literal } = require("sequelize");
+const { uploadToCPanel } = require("../utils/uploadToCPanel");
 
 // Create and Save
 exports.create = (req, res) => {};
@@ -65,6 +66,24 @@ exports.get_admin_token = async (req, res) => {
     return;
   } catch (error) {
     console.log(error);
+    return;
+  }
+};
+
+exports.uploadFileToCpanel = async (req, res) => {
+  const { base64file, fileName } = req.body;
+  try {
+    const fileUrl = await uploadToCPanel(base64file, fileName);
+
+    if (fileUrl) {
+      Responder(res, "OK", null, { url: fileUrl }, 200);
+    } else {
+      Responder(res, "ERROR", null, "Gagal mengunggah file", 400);
+      return;
+    }
+  } catch (error) {
+    console.log(error);
+    Responder(res, "ERROR", null, "Gagal mengunggah file", 400);
     return;
   }
 };
