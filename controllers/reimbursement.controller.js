@@ -828,8 +828,10 @@ exports.get_status = async (req, res) => {
     // handle note
     let adminNote = [];
 
-    if (data.note && data.note.length > 0) {
-      const split = data.note.split("||");
+    const note = data?.note ?? "";
+
+    if (note && note.length > 0) {
+      const split = note.split("||");
       for (let i = 0; i < split.length; i++) {
         const spl = split[i].split(":");
         const base = {

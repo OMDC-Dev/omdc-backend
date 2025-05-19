@@ -37,6 +37,7 @@ async function uploadToCPanel(base64, fileName) {
 
     if (response.data.status === 1) {
       const fileUrl = `${PUBLIC_URL_BASE}/${fileName}`;
+      console.log("File Uploaded : ", fileUrl);
       return fileUrl;
     }
   } catch (error) {
