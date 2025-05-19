@@ -19,7 +19,10 @@ async function uploadToCPanel(base64, fileName) {
     // Simpan file sementara ke __dirname/tmp
     const cleanedBase64 = base64.replace(/^data:.*;base64,/, "");
     const buffer = Buffer.from(cleanedBase64, "base64");
-    const safeFileName = fileName.trim().replace(/\s+/g, "_");
+    const safeFileName = fileName
+      .trim()
+      .replace(/\s+/g, "_") // ubah spasi jadi underscore
+      .replace(/[^a-zA-Z0-9._-]/g, "_"); // hanya izinkan karakter aman
 
     // Tambahkan random prefix supaya unik
     const finalFileName = `FILE_${generateRandomNumber(
