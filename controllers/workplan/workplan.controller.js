@@ -183,6 +183,7 @@ exports.get_workplan = async (req, res) => {
     startDate,
     endDate,
     group,
+    onDueDate,
   } = req.query;
   const { authorization } = req.headers;
   try {
@@ -204,17 +205,42 @@ exports.get_workplan = async (req, res) => {
     }
 
     if (status) {
-      if (admin && status == WORKPLAN_STATUS.FINISH) {
-        whereCluse.status = {
-          [Op.or]: [WORKPLAN_STATUS.FINISH, WORKPLAN_STATUS.REJECTED],
-        };
+      const today = moment().startOf("day");
+      console.log("ON DUE DATE", onDueDate);
+
+      if (onDueDate) {
+        whereCluse[Op.and] = [
+          {
+            status: {
+              [Op.notIn]: [WORKPLAN_STATUS.FINISH, WORKPLAN_STATUS.REJECTED],
+            },
+          },
+        ];
       } else {
-        if (status.split(",").length > 1) {
+        if (status == WORKPLAN_STATUS.FINISH) {
           whereCluse.status = {
-            [Op.or]: status.split(","),
+            [Op.or]: [WORKPLAN_STATUS.FINISH, WORKPLAN_STATUS.REJECTED],
           };
         } else {
-          whereCluse.status = status;
+          const statusArray = status.split(",");
+          const statusCondition =
+            statusArray.length > 1 ? { [Op.or]: statusArray } : status;
+
+          whereCluse[Op.and] = [
+            {
+              status: statusCondition,
+            },
+            {
+              [Op.or]: [
+                Sequelize.literal(`
+              STR_TO_DATE(tanggal_selesai, '%d-%m-%Y') > '${today.format(
+                "YYYY-MM-DD"
+              )}'
+              OR tanggal_selesai IS NULL
+            `),
+              ],
+            },
+          ];
         }
       }
     }
