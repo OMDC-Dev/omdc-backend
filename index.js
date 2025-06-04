@@ -10,6 +10,7 @@ const admin = require("firebase-admin");
 // import service account file (helps to know the firebase project details)
 const serviceAccount = require("./config/serviceAccountKey.json");
 const { Responder } = require("./utils/responder");
+const { runWorkplanDueDate } = require("./utils/workplanDueDateCheck");
 
 const app = express();
 
@@ -116,3 +117,5 @@ const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
   console.log(`Server is running on port localhost:${PORT}.`);
 });
+
+runWorkplanDueDate();
