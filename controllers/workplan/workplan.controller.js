@@ -183,6 +183,7 @@ exports.get_workplan = async (req, res) => {
     startDate,
     endDate,
     group,
+    onDueDate,
   } = req.query;
   const { authorization } = req.headers;
   try {
@@ -204,17 +205,50 @@ exports.get_workplan = async (req, res) => {
     }
 
     if (status) {
-      if (admin && status == WORKPLAN_STATUS.FINISH) {
-        whereCluse.status = {
-          [Op.or]: [WORKPLAN_STATUS.FINISH, WORKPLAN_STATUS.REJECTED],
-        };
+      const today = moment().startOf("day");
+
+      if (onDueDate) {
+        whereCluse[Op.and] = [
+          {
+            status: {
+              [Op.notIn]: [WORKPLAN_STATUS.FINISH, WORKPLAN_STATUS.REJECTED],
+            },
+          },
+          {
+            [Op.or]: [
+              Sequelize.literal(
+                `STR_TO_DATE(tanggal_selesai, '%d-%m-%Y') <= '${today.format(
+                  "YYYY-MM-DD"
+                )}'`
+              ),
+            ],
+          },
+        ];
       } else {
-        if (status.split(",").length > 1) {
+        if (status == WORKPLAN_STATUS.FINISH) {
           whereCluse.status = {
-            [Op.or]: status.split(","),
+            [Op.or]: [WORKPLAN_STATUS.FINISH, WORKPLAN_STATUS.REJECTED],
           };
         } else {
-          whereCluse.status = status;
+          const statusArray = status.split(",");
+          const statusCondition =
+            statusArray.length > 1 ? { [Op.or]: statusArray } : status;
+
+          whereCluse[Op.and] = [
+            {
+              status: statusCondition,
+            },
+            {
+              [Op.or]: [
+                Sequelize.literal(`
+              STR_TO_DATE(tanggal_selesai, '%d-%m-%Y') > '${today.format(
+                "YYYY-MM-DD"
+              )}'
+              OR tanggal_selesai IS NULL
+            `),
+              ],
+            },
+          ];
         }
       }
     }
@@ -377,6 +411,11 @@ exports.get_workplan = async (req, res) => {
           ["kategori", "DESC"],
         ];
       }
+    }
+
+    if (admin) {
+      console.log("ORDER");
+      ORDER_DEFAULT = [["perihal", "ASC"]];
     }
 
     if (startDate && endDate) {
@@ -722,5 +761,62 @@ exports.delete_workplan = async (req, res) => {
   } catch (error) {
     Responder(res, "ERROR", null, null, 400);
     return;
+  }
+};
+
+exports.get_workplan_schedule = async (req, res) => {
+  try {
+    const today = moment().startOf("day");
+
+    let LEFT_JOIN_TABLE = [
+      {
+        model: USER_SESSION_DB,
+        as: "user_detail",
+        attributes: ["nm_user", "fcmToken"],
+        required: false,
+      },
+    ];
+
+    const workplanList = await WORKPLAN_DB.findAll({
+      attributes: [
+        [Sequelize.col("workplan.iduser"), "iduser"],
+        [Sequelize.fn("COUNT", Sequelize.col("workplan.iduser")), "count"],
+      ],
+      where: {
+        [Op.and]: [
+          {
+            status: {
+              [Op.notIn]: [WORKPLAN_STATUS.FINISH, WORKPLAN_STATUS.REJECTED],
+            },
+          },
+          {
+            [Op.or]: [
+              Sequelize.literal(
+                `STR_TO_DATE(tanggal_selesai, '%d-%m-%Y') <= '${today.format(
+                  "YYYY-MM-DD"
+                )}'`
+              ),
+            ],
+          },
+        ],
+      },
+      group: ["workplan.iduser"],
+      include: LEFT_JOIN_TABLE,
+    });
+
+    const results = workplanList.map((row) => ({
+      iduser: row.iduser,
+      count: parseInt(row.dataValues.count, 10),
+      fcmToken: row.user_detail?.fcmToken || null,
+    }));
+
+    for (let i = 0; i < results.length; i++) {
+      sendSingleMessage(results[i].fcmToken, {
+        title: `Work in progress anda memasuki tanggal due date`,
+        body: `Anda memiliki ${results[i].count} work in progress yang memasuki tanggal due date, silahkan lakukan update!`,
+      });
+    }
+  } catch (error) {
+    console.log("FAILED TO GET LIST", error);
   }
 };

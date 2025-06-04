@@ -1,4 +1,5 @@
 const db = require("../../db/user.db");
+const { Op, Sequelize } = require("sequelize");
 const { WORKPLAN_STATUS } = require("../../utils/constants");
 const { Responder } = require("../../utils/responder");
 const {
@@ -6,8 +7,10 @@ const {
   checkUserAuth,
   getCurrentDate,
 } = require("../../utils/utils");
+const { sendMulticastMessage } = require("../../utils/firebase");
 const WORKPLAN_PROGRESS_DB = db.workplan_progress;
 const WORKPLAN_DB = db.workplan;
+const USER_SESSION_DB = db.ruser;
 
 exports.create_wp_progress = async (req, res) => {
   const { progress } = req.body;
@@ -51,6 +54,35 @@ exports.create_wp_progress = async (req, res) => {
       await WORKPLAN_DB.update(
         { status: WORKPLAN_STATUS.ON_PROGRESS },
         { where: { id: wp_id } }
+      );
+    }
+
+    // Send Notif to admin
+    const adminSessions = await USER_SESSION_DB.findAll({
+      attributes: [
+        [Sequelize.fn("DISTINCT", Sequelize.col("fcmToken")), "fcmToken"],
+      ],
+      where: Sequelize.literal(`JSON_CONTAINS(kodeAkses, '"1200"')`),
+    });
+
+    // ubah hasil ke array fcmToken
+    const adminFcmTokens = adminSessions.map((session) => session.fcmToken);
+
+    if (adminFcmTokens.length > 0) {
+      sendMulticastMessage(
+        adminFcmTokens,
+        {
+          title: `Ada update progress work in progress`,
+          body: `${userData.nm_user} telah menambahkan progress baru ke work in progress ${wp_id}`,
+        },
+        {
+          name: "WorkplanStack",
+          screen: "WorkplanDetail",
+          params: JSON.stringify({
+            id: wp_id.toString(),
+            admin: "1",
+          }),
+        }
       );
     }
 
