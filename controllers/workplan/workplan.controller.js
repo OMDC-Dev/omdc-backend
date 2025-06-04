@@ -816,6 +816,46 @@ exports.get_workplan_schedule = async (req, res) => {
         body: `Anda memiliki ${results[i].count} work in progress yang memasuki tanggal due date, silahkan lakukan update!`,
       });
     }
+
+    // ADMIN SECTION
+    const totalDueData = await WORKPLAN_DB.count({
+      where: {
+        [Op.and]: [
+          {
+            status: {
+              [Op.notIn]: [WORKPLAN_STATUS.FINISH, WORKPLAN_STATUS.REJECTED],
+            },
+          },
+          {
+            [Op.or]: [
+              Sequelize.literal(
+                `STR_TO_DATE(tanggal_selesai, '%d-%m-%Y') <= '${today.format(
+                  "YYYY-MM-DD"
+                )}'`
+              ),
+            ],
+          },
+        ],
+      },
+    });
+
+    // Send Notif to admin
+    const adminSessions = await USER_SESSION_DB.findAll({
+      attributes: [
+        [Sequelize.fn("DISTINCT", Sequelize.col("fcmToken")), "fcmToken"],
+      ],
+      where: Sequelize.literal(`JSON_CONTAINS(kodeAkses, '"1200"')`),
+    });
+
+    // ubah hasil ke array fcmToken
+    const adminFcmTokens = adminSessions.map((session) => session.fcmToken);
+
+    if (adminFcmTokens.length > 0) {
+      sendMulticastMessage(adminFcmTokens, {
+        title: `Work in progress yang memasuki tanggal due date`,
+        body: `Ada ${totalDueData} work in progress yang dibuat telah memasuki tanggal due date!`,
+      });
+    }
   } catch (error) {
     console.log("FAILED TO GET LIST", error);
   }
