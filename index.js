@@ -14,7 +14,7 @@ const { runWorkplanDueDate } = require("./utils/workplanDueDateCheck");
 
 const app = express();
 
-const CODE_VERSION = "9.7.5"; // newset 9.7.0
+const CODE_VERSION = "9.7.5"; // newset 9.7.6
 
 // var corsOptions = {
 //   origin: "http://localhost:5173",
