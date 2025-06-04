@@ -811,10 +811,18 @@ exports.get_workplan_schedule = async (req, res) => {
     }));
 
     for (let i = 0; i < results.length; i++) {
-      sendSingleMessage(results[i].fcmToken, {
-        title: `Work in progress anda memasuki tanggal due date`,
-        body: `Anda memiliki ${results[i].count} work in progress yang memasuki tanggal due date, silahkan lakukan update!`,
-      });
+      sendSingleMessage(
+        results[i].fcmToken,
+        {
+          title: `Work in progress anda memasuki tanggal due date`,
+          body: `Anda memiliki ${results[i].count} work in progress yang memasuki tanggal due date, silahkan lakukan update!`,
+        },
+        {
+          name: "WorkplanStack",
+          screen: "WorkplanList",
+          params: JSON.stringify({}),
+        }
+      );
     }
 
     // ADMIN SECTION
@@ -851,10 +859,20 @@ exports.get_workplan_schedule = async (req, res) => {
     const adminFcmTokens = adminSessions.map((session) => session.fcmToken);
 
     if (adminFcmTokens.length > 0) {
-      sendMulticastMessage(adminFcmTokens, {
-        title: `Work in progress yang memasuki tanggal due date`,
-        body: `Ada ${totalDueData} work in progress yang dibuat telah memasuki tanggal due date!`,
-      });
+      sendMulticastMessage(
+        adminFcmTokens,
+        {
+          title: `Work in progress yang memasuki tanggal due date`,
+          body: `Ada ${totalDueData} work in progress yang dibuat telah memasuki tanggal due date!`,
+        },
+        {
+          name: "WorkplanStack",
+          screen: "WorkplanListApproval",
+          params: JSON.stringify({
+            admin: "1",
+          }),
+        }
+      );
     }
   } catch (error) {
     console.log("FAILED TO GET LIST", error);
