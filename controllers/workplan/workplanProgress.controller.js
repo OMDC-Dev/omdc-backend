@@ -73,7 +73,7 @@ exports.create_wp_progress = async (req, res) => {
         adminFcmTokens,
         {
           title: `Ada update progress work in progress`,
-          body: `${userData.nm_user} telah menambahkan progress baru ke work in progress ${wp_id}`,
+          body: `${userData.nm_user} telah menambahkan progress baru ke work in progress ${wp_id}\n\nProgress: ${progress}`,
         },
         {
           name: "WorkplanStack",
