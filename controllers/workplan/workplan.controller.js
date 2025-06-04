@@ -826,9 +826,36 @@ exports.get_workplan_schedule = async (req, res) => {
     }
 
     // ADMIN SECTION
-    const totalDueData = await WORKPLAN_DB.count({
+    const totalDueDataMedic = await WORKPLAN_DB.count({
       where: {
         [Op.and]: [
+          {
+            group_type: "MEDIC",
+          },
+          {
+            status: {
+              [Op.notIn]: [WORKPLAN_STATUS.FINISH, WORKPLAN_STATUS.REJECTED],
+            },
+          },
+          {
+            [Op.or]: [
+              Sequelize.literal(
+                `STR_TO_DATE(tanggal_selesai, '%d-%m-%Y') <= '${today.format(
+                  "YYYY-MM-DD"
+                )}'`
+              ),
+            ],
+          },
+        ],
+      },
+    });
+
+    const totalDueDataNonMedic = await WORKPLAN_DB.count({
+      where: {
+        [Op.and]: [
+          {
+            group_type: "NON_MEDIC",
+          },
           {
             status: {
               [Op.notIn]: [WORKPLAN_STATUS.FINISH, WORKPLAN_STATUS.REJECTED],
@@ -863,7 +890,7 @@ exports.get_workplan_schedule = async (req, res) => {
         adminFcmTokens,
         {
           title: `Work in progress yang memasuki tanggal due date`,
-          body: `Ada ${totalDueData} work in progress yang dibuat telah memasuki tanggal due date!`,
+          body: `Ada ${totalDueDataMedic} work in progress medis dan ${totalDueDataNonMedic} non medis yang dibuat telah memasuki tanggal due date!`,
         },
         {
           name: "WorkplanStack",
