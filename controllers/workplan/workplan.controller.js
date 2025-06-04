@@ -211,7 +211,11 @@ exports.get_workplan = async (req, res) => {
         whereCluse[Op.and] = [
           {
             status: {
-              [Op.notIn]: [WORKPLAN_STATUS.FINISH, WORKPLAN_STATUS.REJECTED],
+              [Op.notIn]: [
+                WORKPLAN_STATUS.FINISH,
+                WORKPLAN_STATUS.REJECTED,
+                WORKPLAN_STATUS.PENDING,
+              ],
             },
           },
           {
@@ -229,6 +233,8 @@ exports.get_workplan = async (req, res) => {
           whereCluse.status = {
             [Op.or]: [WORKPLAN_STATUS.FINISH, WORKPLAN_STATUS.REJECTED],
           };
+        } else if (status == WORKPLAN_STATUS.PENDING) {
+          whereCluse.status = WORKPLAN_STATUS.PENDING;
         } else {
           const statusArray = status.split(",");
           const statusCondition =
