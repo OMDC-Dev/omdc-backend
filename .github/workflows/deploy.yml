@@ -23,7 +23,7 @@ jobs:
       - name: 🚀 Deploy to Server via SSH
         run: |
           ssh -i ~/.ssh/id_rsa root@203.175.10.17 << 'EOF'
-            cd /path/to/your/app
+            cd /root/newapi/omdc-backend
             git pull origin master
             npm install
             pm2 restart all
