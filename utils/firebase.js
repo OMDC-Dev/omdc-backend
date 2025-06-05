@@ -42,12 +42,12 @@ const sendSingleMessage = (token, notification, data = {}) => {
 const sendMulticastMessage = (tokens, notification, data = {}) => {
   if (!tokens) return;
 
-  console.log("Send Notif to", tokens);
+  const cleanTokens = tokens.filter((token) => !!token);
 
   return admin
     .messaging()
     .sendEachForMulticast({
-      tokens: tokens,
+      tokens: cleanTokens,
       notification: notification,
       data: data,
       apns: {

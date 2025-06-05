@@ -904,7 +904,7 @@ exports.get_workplan_schedule = async (req, res) => {
       sendMulticastMessage(
         adminFcmTokens,
         {
-          title: `Work in progress yang memasuki tanggal due date`,
+          title: `Ada work in progress yang memasuki tanggal due date`,
           body: `Ada ${totalDueDataMedic} work in progress medis dan ${totalDueDataNonMedic} non medis yang dibuat telah memasuki tanggal due date!`,
         },
         {
