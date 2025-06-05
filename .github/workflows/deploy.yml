@@ -22,9 +22,11 @@ jobs:
 
       - name: 🚀 Deploy to Server via SSH
         run: |
-          ssh -i ~/.ssh/id_rsa root@203.175.10.17 << 'EOF'
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -T root@203.175.10.17 << 'EOF'
             cd /root/newapi/omdc-backend
+            git reset --hard origin/master
             git pull origin master
-            npm install
+            rm -rf node_modules
+            npm ci --no-audit --no-fund
             pm2 restart all
           EOF
