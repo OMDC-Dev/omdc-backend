@@ -1,0 +1,30 @@
+name: 🚀 Auto Deploy to Ubuntu Server
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🧾 Checkout Repo
+        uses: actions/checkout@v3
+
+      - name: 📦 Install SSH Key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H 203.175.10.17 >> ~/.ssh/known_hosts
+
+      - name: 🚀 Deploy to Server via SSH
+        run: |
+          ssh -i ~/.ssh/id_rsa root@203.175.10.17 << 'EOF'
+            cd /root/newapi/omdc-backend
+            git pull origin master
+            npm install
+            pm2 restart all
+          EOF
