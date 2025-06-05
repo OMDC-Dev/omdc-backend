@@ -817,18 +817,21 @@ exports.get_workplan_schedule = async (req, res) => {
     }));
 
     for (let i = 0; i < results.length; i++) {
-      sendSingleMessage(
-        results[i].fcmToken,
-        {
-          title: `Work in progress anda memasuki tanggal due date`,
-          body: `Anda memiliki ${results[i].count} work in progress yang memasuki tanggal due date, silahkan lakukan update!`,
-        },
-        {
-          name: "WorkplanStack",
-          screen: "WorkplanList",
-          params: JSON.stringify({}),
-        }
-      );
+      if (results[i].fcmToken.length > 0) {
+        console.log("Sending Notification Schedule to User", results[i].iduser);
+        sendSingleMessage(
+          results[i].fcmToken,
+          {
+            title: `Work in progress anda memasuki tanggal due date`,
+            body: `Anda memiliki ${results[i].count} work in progress yang memasuki tanggal due date, silahkan lakukan update!`,
+          },
+          {
+            name: "WorkplanStack",
+            screen: "WorkplanList",
+            params: JSON.stringify({}),
+          }
+        );
+      }
     }
 
     // ADMIN SECTION
@@ -892,6 +895,7 @@ exports.get_workplan_schedule = async (req, res) => {
     const adminFcmTokens = adminSessions.map((session) => session.fcmToken);
 
     if (adminFcmTokens.length > 0) {
+      console.log("Sending Notification Schedule to Admin");
       sendMulticastMessage(
         adminFcmTokens,
         {
