@@ -817,7 +817,7 @@ exports.get_workplan_schedule = async (req, res) => {
     }));
 
     for (let i = 0; i < results.length; i++) {
-      if (results[i].fcmToken.length > 0) {
+      if (results[i]?.fcmToken?.length > 0) {
         console.log("Sending Notification Schedule to User", results[i].iduser);
         sendSingleMessage(
           results[i].fcmToken,
@@ -831,6 +831,8 @@ exports.get_workplan_schedule = async (req, res) => {
             params: JSON.stringify({}),
           }
         );
+      } else {
+        console.log(`User ${results[i].iduser} not logged in`);
       }
     }
 
