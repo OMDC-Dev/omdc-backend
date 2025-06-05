@@ -894,10 +894,13 @@ exports.get_workplan_schedule = async (req, res) => {
     });
 
     // ubah hasil ke array fcmToken
-    const adminFcmTokens = adminSessions.map((session) => session.fcmToken);
+    const adminFcmTokens = adminSessions
+      .filter((session) => !!session.fcmToken) // hanya yang memiliki fcmToken
+      .map((session) => session.fcmToken);
 
     if (adminFcmTokens.length > 0) {
       console.log("Sending Notification Schedule to Admin");
+      console.log("Admin token", adminFcmTokens);
       sendMulticastMessage(
         adminFcmTokens,
         {
