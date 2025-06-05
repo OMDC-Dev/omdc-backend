@@ -42,7 +42,7 @@ const sendSingleMessage = (token, notification, data = {}) => {
 const sendMulticastMessage = (tokens, notification, data = {}) => {
   if (!tokens) return;
 
-  console.log("Send Notif");
+  console.log("Send Notif to", tokens);
 
   return admin
     .messaging()
