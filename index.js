@@ -1,7 +1,6 @@
 const express = require("express");
 const cors = require("cors");
 const { router } = require("./routes");
-const db = require("./db");
 const db_user = require("./db/user.db");
 
 // import firebase-admin package
