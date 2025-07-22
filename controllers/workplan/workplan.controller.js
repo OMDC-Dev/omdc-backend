@@ -28,6 +28,7 @@ const WORKPLAN_DATE_HISTORY_DB = db.workplan_date_history;
 const WORKPLAN_COMMENT_DB = db.workplan_comment;
 const WORKPLAN_CC_DB = db.workplan_cc_users;
 const WORKPLAN_PROGRESS_DB = db.workplan_progress;
+const PENGUMUMAN_DB = db.pengumuman;
 
 // --  Create work plan
 exports.create_workplan = async (req, res) => {
@@ -114,7 +115,7 @@ exports.create_workplan = async (req, res) => {
         fcmTokens,
         {
           title: `Anda ditambahkan ke Work in progress!`,
-          body: `Anda baru saja ditambahkan ke cc work in progress oleh ${userData.nm_user} dengan nomor work in progress ${workplan?.workplan_id}.`,
+          body: `Anda baru saja ditambahkan ke cc work in progress oleh ${userData.nm_user} dengan nomor work in progress ${workplan?.workplan_id}.\nPerihal:\n${workplan?.perihal}`,
         },
         {
           name: "WorkplanStack",
@@ -143,7 +144,7 @@ exports.create_workplan = async (req, res) => {
         adminFcmTokens,
         {
           title: `Ada work in progress yang baru dibuat`,
-          body: `${userData.nm_user} telah membuat work in progress baru dengan nomor ${workplan.workplan_id}.`,
+          body: `${userData.nm_user} telah membuat work in progress baru dengan nomor ${workplan.workplan_id}.\nPerihal:\n${workplan?.perihal}`,
         },
         {
           name: "WorkplanStack",
@@ -664,6 +665,7 @@ exports.update_status = async (req, res) => {
       const getWorkplanData = await getWorkplan["dataValues"];
 
       const userToken = getWorkplanData["user_detail"]["fcmToken"];
+      const workplanPerihal = getWorkplanData["perihal"];
 
       if (userToken) {
         let status_text = "";
@@ -680,7 +682,7 @@ exports.update_status = async (req, res) => {
           userToken,
           {
             title: "Update status work in progress anda!",
-            body: `Status work in progress anda dengan nomor ${getWorkplanData.workplan_id} saat ini adalah ${status_text}`,
+            body: `Status work in progress anda dengan nomor ${getWorkplanData.workplan_id} saat ini adalah ${status_text}\n Perihal:\n${workplanPerihal}`,
           },
           {
             name: "WorkplanStack",
@@ -892,6 +894,27 @@ exports.get_workplan_schedule = async (req, res) => {
       ],
       where: Sequelize.literal(`JSON_CONTAINS(kodeAkses, '"1200"')`),
     });
+
+    const adminUserId = await USER_SESSION_DB.findAll({
+      attributes: ["iduser"],
+      where: Sequelize.literal(`JSON_CONTAINS(kodeAkses, '"1200"')`),
+      raw: true,
+    });
+
+    const currentDate = moment().format("lll");
+
+    if (adminUserId && adminUserId.length > 0) {
+      const announcements = adminUserId.map((user) => ({
+        pid: PID,
+        title: "Ada work in progress yang memasuki tanggal due date",
+        message: `Tanggal: ${currentDate}\n\nAda ${totalDueDataMedic} work in progress medis dan ${totalDueDataNonMedic} non medis yang dibuat telah memasuki tanggal due date!`,
+        receiver: user?.iduser,
+        isRead: false,
+        createdBy: "system",
+      }));
+
+      await PENGUMUMAN_DB.bulkCreate(announcements);
+    }
 
     // ubah hasil ke array fcmToken
     const adminFcmTokens = adminSessions
