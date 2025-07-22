@@ -510,3 +510,31 @@ exports.get_user_session_by_id = async (req, res) => {
     return;
   }
 };
+
+exports.update_user_fcm = async (req, res) => {
+  const { authorization } = req.headers;
+  const { newToken } = req.body;
+  try {
+    const tokenData = decodeToken(getToken(authorization));
+
+    return await R_User.update(
+      { fcmToken: newToken },
+      {
+        where: {
+          iduser: tokenData.iduser,
+        },
+      }
+    )
+      .then(() => {
+        Responder(res, "OK", null, { message: "Sukses update token!" }, 200);
+        return;
+      })
+      .catch((err) => {
+        Responder(res, "ERROR", null, null, 400);
+        return;
+      });
+  } catch (error) {
+    Responder(res, "ERROR", null, null, 400);
+    return;
+  }
+};

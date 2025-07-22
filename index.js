@@ -77,7 +77,7 @@ app.use((err, req, res, next) => {
 app.get("/", (req, res) => {
   res.json({
     message:
-      "Reimbursement Apps Service v.0.9.7.6 - 4 Juni 2025 ( update workplan cronjob )",
+      "Reimbursement Apps Service v.0.9.7.7 - 22 Juli 2025 ( update workplan notif )",
   });
 });
 
