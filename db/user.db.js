@@ -102,6 +102,10 @@ db_user.workplan_cc_users = require("../models/workplan/usercc.model.js")(
 );
 
 db_user.banner = require("../models/banner.model")(sequelize, Sequelize);
+db_user.scheduler_report = require("../models/schedulerReport")(
+  sequelize,
+  Sequelize
+);
 
 // Setup associations
 Object.keys(db_user).forEach((modelName) => {
