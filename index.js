@@ -13,7 +13,7 @@ const { runWorkplanDueDate } = require("./utils/workplanDueDateCheck");
 
 const app = express();
 
-const CODE_VERSION = "9.7.6"; // newset 9.7.6
+const CODE_VERSION = "9.7.8";
 
 // var corsOptions = {
 //   origin: "http://localhost:5173",
@@ -77,7 +77,7 @@ app.use((err, req, res, next) => {
 app.get("/", (req, res) => {
   res.json({
     message:
-      "Reimbursement Apps Service v.0.9.7.7 - 22 Juli 2025 ( update workplan notif )",
+      "Reimbursement Apps Service v.0.9.7.8 - 22 Juli 2025 ( update workplan notif )",
   });
 });
 
