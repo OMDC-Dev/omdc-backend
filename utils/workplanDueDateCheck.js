@@ -12,7 +12,7 @@ const runWorkplanDueDate = async () => {
   //   workplan.get_workplan_schedule();
   // });
 
-  REPORT_DB.create({
+  await REPORT_DB.create({
     is_sent: true,
   });
 };
