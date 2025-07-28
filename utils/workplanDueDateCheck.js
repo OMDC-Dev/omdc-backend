@@ -4,17 +4,22 @@ const workplan = require("../controllers/workplan/workplan.controller");
 const db = require("../db/user.db");
 const REPORT_DB = db.scheduler_report;
 
-const runWorkplanDueDate = async () => {
-  cron.schedule("0 8 * * *", () => {
-    workplan.get_workplan_schedule();
+const runWorkplanDueDate = () => {
+  cron.schedule("*/2 * * * *", async () => {
+    //"0 8 * * *"
+    try {
+      await workplan.get_workplan_schedule();
+      await REPORT_DB.create({
+        is_sent: true,
+      });
+      console.log("Workplan and report inserted successfully at 08:00");
+    } catch (e) {
+      console.error("Cron job failed:", e);
+    }
   });
-  // cron.schedule("*/3 * * * *", () => {
-  //   workplan.get_workplan_schedule();
-  // });
 
-  await REPORT_DB.create({
-    is_sent: true,
-  });
+  // Hanya dijalankan sekali saat init
+  console.log("Cron job scheduled for 08:00 daily");
 };
 
 module.exports = {
