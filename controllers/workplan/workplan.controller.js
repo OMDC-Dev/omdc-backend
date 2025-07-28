@@ -902,6 +902,7 @@ exports.get_workplan_schedule = async (req, res) => {
     });
 
     const currentDate = moment().format("lll");
+    const PID = `PID-${generateRandomNumber(1000, 9999)}`;
 
     if (adminUserId && adminUserId.length > 0) {
       const announcements = adminUserId.map((user) => ({
