@@ -5,7 +5,7 @@ const db = require("../db/user.db");
 const REPORT_DB = db.scheduler_report;
 
 const runWorkplanDueDate = () => {
-  cron.schedule("*/2 * * * *", async () => {
+  cron.schedule("0 8 * * *", async () => {
     //"0 8 * * *"
     try {
       await workplan.get_workplan_schedule();
