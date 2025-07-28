@@ -117,4 +117,9 @@ app.listen(PORT, () => {
   console.log(`Server is running on port localhost:${PORT}.`);
 });
 
-runWorkplanDueDate();
+try {
+  runWorkplanDueDate();
+  console.log("✅ runWorkplanDueDate() dipanggil sukses");
+} catch (err) {
+  console.error("❌ runWorkplanDueDate() gagal", err);
+}
