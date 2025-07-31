@@ -77,7 +77,7 @@ app.use((err, req, res, next) => {
 app.get("/", (req, res) => {
   res.json({
     message:
-      "Reimbursement Apps Service v.0.9.7.8 - 25 Juli 2025 ( update scheduler log )",
+      "Reimbursement Apps Service v.0.9.7.8 - 31 Juli 2025 ( testing ios notif )",
   });
 });
 
