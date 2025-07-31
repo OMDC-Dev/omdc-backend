@@ -28,6 +28,11 @@ const sendSingleMessage = (token, notification, data = {}) => {
             // Required for background/quit data-only messages on Android
             priority: "high",
           },
+          headers: {
+            "apns-push-type": "background",
+            "apns-priority": "10",
+            "apns-topic": "com.ardclient.omdc",
+          },
         },
       },
     })
@@ -60,6 +65,11 @@ const sendMulticastMessage = (tokens, notification, data = {}) => {
             "content-available": true,
             // Required for background/quit data-only messages on Android
             priority: "high",
+          },
+          headers: {
+            "apns-push-type": "background",
+            "apns-priority": "10",
+            "apns-topic": "com.ardclient.omdc",
           },
         },
       },
