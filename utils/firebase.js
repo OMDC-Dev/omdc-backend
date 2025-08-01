@@ -27,11 +27,15 @@ const sendSingleMessage = (token, notification, data = {}) => {
             "content-available": true,
             // Required for background/quit data-only messages on Android
             priority: "high",
+            alert: notification,
+            sound: "default",
+            badge: 1,
           },
           headers: {
             "apns-push-type": "background",
             "apns-priority": "10",
             "apns-topic": "com.ardclient.omdc",
+            "apns-push-type": "alert",
           },
         },
       },
@@ -65,11 +69,15 @@ const sendMulticastMessage = (tokens, notification, data = {}) => {
             "content-available": true,
             // Required for background/quit data-only messages on Android
             priority: "high",
+            alert: notification,
+            sound: "default",
+            badge: 1,
           },
           headers: {
             "apns-push-type": "background",
             "apns-priority": "10",
             "apns-topic": "com.ardclient.omdc",
+            "apns-push-type": "alert",
           },
         },
       },
