@@ -72,8 +72,8 @@ exports.create_wp_progress = async (req, res) => {
       sendMulticastMessage(
         adminFcmTokens,
         {
-          title: `Ada update progress work in progress`,
-          body: `${userData.nm_user} telah menambahkan progress baru ke work in progress ${getExtData["workplan_id"]}\nPerihal: ${getExtData["perihal"]}\n\nProgress: ${progress}`,
+          title: `Update progress Work In Progress oleh ${userData.nm_user}`,
+          body: `Perihal: ${getExtData["perihal"]}\n\nProgress: ${progress}`,
         },
         {
           name: "WorkplanStack",

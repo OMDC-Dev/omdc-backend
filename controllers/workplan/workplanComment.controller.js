@@ -78,8 +78,8 @@ exports.create_comment = async (req, res) => {
       sendMulticastMessage(
         fcmTokens,
         {
-          title: `Ada komentar baru pada work in progress anda!`,
-          body: `${userData.nm_user} baru saja menambahkan komentar.`,
+          title: `${userData.nm_user} berkomentar di ${getWPData["perihal"]}`,
+          body: `Perihal: ${getWPData["perihal"]}`,
         },
         {
           name: "WorkplanStack",

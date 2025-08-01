@@ -114,8 +114,8 @@ exports.create_workplan = async (req, res) => {
       sendMulticastMessage(
         fcmTokens,
         {
-          title: `Anda ditambahkan ke Work in progress!`,
-          body: `Anda baru saja ditambahkan ke cc work in progress oleh ${userData.nm_user} dengan nomor work in progress ${workplan?.workplan_id}.\nPerihal:\n${workplan?.perihal}`,
+          title: `Anda ditambahkan ke Work In Progress baru oleh ${userData.nm_user}`,
+          body: `Perihal:\n${workplan?.perihal}`,
         },
         {
           name: "WorkplanStack",
@@ -143,8 +143,8 @@ exports.create_workplan = async (req, res) => {
       sendMulticastMessage(
         adminFcmTokens,
         {
-          title: `Ada work in progress yang baru dibuat`,
-          body: `${userData.nm_user} telah membuat work in progress baru dengan nomor ${workplan.workplan_id}.\nPerihal:\n${workplan?.perihal}`,
+          title: `Pengajuan Work In Progress Baru dari ${userData["nm_user"]}`,
+          body: `Perihal:\n${workplan?.perihal}`,
         },
         {
           name: "WorkplanStack",
@@ -671,17 +671,17 @@ exports.update_status = async (req, res) => {
         let status_text = "";
 
         if (status == WORKPLAN_STATUS.FINISH) {
-          status_text = "disetujui";
+          status_text = `Disetujui: ${workplanPerihal}\n\noleh ${userData["nm_user"]}`;
         } else if (status == WORKPLAN_STATUS.REJECTED) {
-          status_text = "ditolak";
+          status_text = `Ditolak: ${workplanPerihal}\n\noleh ${userData["nm_user"]}`;
         } else if (status == WORKPLAN_STATUS.REVISON) {
-          status_text = "perlu direvisi";
+          status_text = `Revisi: ${workplanPerihal}\nMohon segera revisi\n\noleh ${userData["nm_user"]}`;
         }
 
         sendSingleMessage(
           userToken,
           {
-            title: "Update status work in progress anda!",
+            title: "Update status Work In Progress",
             body: `Status work in progress anda dengan nomor ${getWorkplanData.workplan_id} saat ini adalah ${status_text}\n Perihal:\n${workplanPerihal}`,
           },
           {
