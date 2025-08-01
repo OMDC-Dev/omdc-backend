@@ -907,7 +907,7 @@ exports.get_workplan_schedule = async (req, res) => {
     if (adminUserId && adminUserId.length > 0) {
       const announcements = adminUserId.map((user) => ({
         pid: PID,
-        title: "Ada work in progress yang memasuki tanggal due date",
+        title: "Work in Progress Due Date",
         message: `Tanggal: ${currentDate}\n\nAda ${totalDueDataMedic} work in progress medis dan ${totalDueDataNonMedic} non medis yang dibuat telah memasuki tanggal due date!`,
         receiver: user?.iduser,
         isRead: false,
@@ -928,7 +928,7 @@ exports.get_workplan_schedule = async (req, res) => {
       sendMulticastMessage(
         adminFcmTokens,
         {
-          title: `Ada work in progress yang memasuki tanggal due date`,
+          title: `Work in Progress Due Date`,
           body: `Ada ${totalDueDataMedic} work in progress medis dan ${totalDueDataNonMedic} non medis yang dibuat telah memasuki tanggal due date!`,
         },
         {
