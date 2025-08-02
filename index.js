@@ -77,7 +77,7 @@ app.use((err, req, res, next) => {
 app.get("/", (req, res) => {
   res.json({
     message:
-      "Reimbursement Apps Service v.0.9.7.8 - 1 Agustus 2025 ( update notif wording )",
+      "Reimbursement Apps Service v.0.9.7.8 - 2 Agustus 2025 ( update notif wording )",
   });
 });
 
