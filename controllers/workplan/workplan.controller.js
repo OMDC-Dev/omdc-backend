@@ -17,6 +17,7 @@ const {
 
 //
 const moment = require("moment");
+const { uploadToCPanel } = require("../../utils/uploadToCPanel");
 require("moment/locale/id");
 moment.locale("id");
 //
@@ -29,11 +30,12 @@ const WORKPLAN_COMMENT_DB = db.workplan_comment;
 const WORKPLAN_CC_DB = db.workplan_cc_users;
 const WORKPLAN_PROGRESS_DB = db.workplan_progress;
 const PENGUMUMAN_DB = db.pengumuman;
+const WORKPLAN_ATTACHMENT = db.workplan_attachment;
 
 // --  Create work plan
 exports.create_workplan = async (req, res) => {
   const {
-    //jenis_workplan,
+    jenis_workplan,
     tanggal_mulai,
     tanggal_selesai,
     kd_induk,
@@ -43,6 +45,8 @@ exports.create_workplan = async (req, res) => {
     attachment_before,
     custom_location,
     group,
+    is_multi,
+    files,
   } = req.body;
   const { authorization } = req.headers;
   try {
@@ -60,14 +64,13 @@ exports.create_workplan = async (req, res) => {
 
     let UPLOAD_IMAGE_BEFORE;
 
-    if (attachment_before) {
+    if (attachment_before && !is_multi) {
       UPLOAD_IMAGE_BEFORE = await uploadImagesCloudinary(attachment_before);
     }
-
     // 1. Buat Workplan
     const workplan = await WORKPLAN_DB.create({
       workplan_id: WORKPLAN_ID,
-      jenis_workplan: "NON_APPROVAL", // set to auto non approval
+      jenis_workplan: jenis_workplan, // set to auto non approval
       tanggal_mulai,
       tanggal_selesai,
       kd_induk: kd_induk ?? null,
@@ -81,6 +84,35 @@ exports.create_workplan = async (req, res) => {
       last_update_by: userData.nm_user,
       group_type: group,
     });
+
+    // handle new attachment
+    if (is_multi && files) {
+      const temp = await Promise.all(
+        files.map(async (item) => {
+          const imageUrl = await uploadToCPanel(
+            item["base64"],
+            `${WORKPLAN_ID}.jpg`
+          );
+          if (imageUrl) {
+            return {
+              imageUrl: imageUrl,
+              caption: item["caption"],
+            };
+          }
+          return null;
+        })
+      );
+
+      const filtered = temp.filter((item) => item !== null);
+
+      for (const item of filtered) {
+        await WORKPLAN_ATTACHMENT.create({
+          workplan_id: workplan.id,
+          image_url: item["imageUrl"],
+          caption: item["caption"],
+        });
+      }
+    }
 
     // 2. Simpan riwayat tanggal selesai workplan
     await WORKPLAN_DATE_HISTORY_DB.create({
@@ -492,6 +524,7 @@ exports.update_workplan = async (req, res) => {
     kd_induk,
     location,
     group,
+    files,
   } = req.body;
   const { id } = req.params;
   const { authorization } = req.headers;
@@ -612,6 +645,59 @@ exports.update_workplan = async (req, res) => {
       );
     }
 
+    if (files) {
+      const newFile = files.filter((item) => !item.id);
+      const keptFileIds = files
+        .filter((item) => item.id)
+        .map((item) => item.id);
+
+      // 1. Ambil semua attachment lama dari DB
+      const existingAttachments = await WORKPLAN_ATTACHMENT.findAll({
+        where: { workplan_id: id },
+      });
+
+      // 2. Cari file yang dihapus (id lama yang tidak ada di keptFileIds)
+      const deletedAttachments = existingAttachments.filter(
+        (item) => !keptFileIds.includes(item.id)
+      );
+
+      // 3. Hapus dari DB
+      for (const attachment of deletedAttachments) {
+        await WORKPLAN_ATTACHMENT.destroy({
+          where: { id: attachment.id },
+        });
+      }
+
+      // 4. Upload file baru
+      if (newFile.length > 0) {
+        const uploaded = await Promise.all(
+          newFile.map(async (item) => {
+            const image = await uploadToCPanel(
+              item["base64"],
+              `${getExtData["workplan_id"]}.jpg`
+            );
+            if (image) {
+              return {
+                imageUrl: image,
+                caption: item["caption"],
+              };
+            }
+            return null;
+          })
+        );
+
+        const validUploads = uploaded.filter((item) => item !== null);
+
+        for (const item of validUploads) {
+          await WORKPLAN_ATTACHMENT.create({
+            workplan_id: id,
+            image_url: item["imageUrl"],
+            caption: item["caption"],
+          });
+        }
+      }
+    }
+
     Responder(res, "OK", null, { success: true }, 200);
     return;
   } catch (error) {
@@ -638,7 +724,9 @@ exports.update_status = async (req, res) => {
         approved_date:
           status != WORKPLAN_STATUS.PENDING &&
           status != WORKPLAN_STATUS.REVISON &&
-          status != WORKPLAN_STATUS.ON_PROGRESS
+          status != WORKPLAN_STATUS.ON_PROGRESS &&
+          status != WORKPLAN_STATUS.NEED_APPROVAL &&
+          status != WORKPLAN_STATUS.APPROVED
             ? getCurrentDate()
             : null,
         status: status,
@@ -942,5 +1030,24 @@ exports.get_workplan_schedule = async (req, res) => {
     }
   } catch (error) {
     console.log("FAILED TO GET LIST", error);
+  }
+};
+
+// -- Get WP Attachment
+exports.get_workplan_attachment = async (req, res) => {
+  const { authorization } = req.headers;
+  const { wp_id } = req.params;
+  try {
+    const data = await WORKPLAN_ATTACHMENT.findAll({
+      where: {
+        workplan_id: wp_id,
+      },
+    });
+
+    Responder(res, "OK", null, data, 200);
+    return;
+  } catch (error) {
+    Responder(res, "ERROR", null, null, 400);
+    return;
   }
 };
