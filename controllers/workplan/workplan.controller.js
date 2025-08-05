@@ -781,6 +781,35 @@ exports.update_status = async (req, res) => {
           }
         );
       }
+    } else {
+      // Send Notif to admin
+      const adminSessions = await USER_SESSION_DB.findAll({
+        attributes: [
+          [Sequelize.fn("DISTINCT", Sequelize.col("fcmToken")), "fcmToken"],
+        ],
+        where: Sequelize.literal(`JSON_CONTAINS(kodeAkses, '"1200"')`),
+      });
+
+      // ubah hasil ke array fcmToken
+      const adminFcmTokens = adminSessions.map((session) => session.fcmToken);
+
+      if (adminFcmTokens.length > 0) {
+        sendMulticastMessage(
+          adminFcmTokens,
+          {
+            title: `Update Status Work In Progress dari ${userData["nm_user"]}`,
+            body: `Perihal:\n${workplan?.perihal}`,
+          },
+          {
+            name: "WorkplanStack",
+            screen: "WorkplanDetail",
+            params: JSON.stringify({
+              id: id.toString(),
+              admin: "1",
+            }),
+          }
+        );
+      }
     }
 
     Responder(res, "OK", null, { success: true }, 200);
