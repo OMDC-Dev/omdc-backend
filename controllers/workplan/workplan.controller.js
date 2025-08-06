@@ -217,6 +217,7 @@ exports.get_workplan = async (req, res) => {
     endDate,
     group,
     onDueDate,
+    isWeb,
   } = req.query;
   const { authorization } = req.headers;
   try {
@@ -237,9 +238,9 @@ exports.get_workplan = async (req, res) => {
       whereCluse.iduser = userData.iduser;
     }
 
-    if (status) {
-      const today = moment().startOf("day");
+    const today = moment().startOf("day");
 
+    if (isWeb) {
       if (onDueDate) {
         whereCluse[Op.and] = [
           {
@@ -261,33 +262,93 @@ exports.get_workplan = async (req, res) => {
             ],
           },
         ];
-      } else {
-        if (status == WORKPLAN_STATUS.FINISH) {
-          whereCluse.status = {
-            [Op.or]: [WORKPLAN_STATUS.FINISH, WORKPLAN_STATUS.REJECTED],
-          };
-        } else if (status == WORKPLAN_STATUS.PENDING) {
-          whereCluse.status = WORKPLAN_STATUS.PENDING;
-        } else {
-          const statusArray = status.split(",");
-          const statusCondition =
-            statusArray.length > 1 ? { [Op.or]: statusArray } : status;
+      } else if (status) {
+        if (status == WORKPLAN_STATUS.ON_PROGRESS) {
+          const dueDateItems = await WORKPLAN_DB.findAll({
+            attributes: ["id"],
+            where: {
+              [Op.and]: [
+                {
+                  status: {
+                    [Op.notIn]: [
+                      WORKPLAN_STATUS.FINISH,
+                      WORKPLAN_STATUS.REJECTED,
+                      WORKPLAN_STATUS.PENDING,
+                    ],
+                  },
+                },
+                Sequelize.literal(
+                  `STR_TO_DATE(tanggal_selesai, '%d-%m-%Y') <= '${today.format(
+                    "YYYY-MM-DD"
+                  )}'`
+                ),
+              ],
+            },
+          });
 
+          const dueDateIds = dueDateItems.map((item) => item.id);
+          whereCluse = {
+            ...whereCluse,
+            id: {
+              [Op.notIn]: dueDateIds,
+            },
+            status: status,
+          };
+        } else {
+          whereCluse.status = status;
+        }
+      }
+    } else {
+      if (status) {
+        if (onDueDate) {
           whereCluse[Op.and] = [
             {
-              status: statusCondition,
+              status: {
+                [Op.notIn]: [
+                  WORKPLAN_STATUS.FINISH,
+                  WORKPLAN_STATUS.REJECTED,
+                  WORKPLAN_STATUS.PENDING,
+                ],
+              },
             },
             {
               [Op.or]: [
-                Sequelize.literal(`
+                Sequelize.literal(
+                  `STR_TO_DATE(tanggal_selesai, '%d-%m-%Y') <= '${today.format(
+                    "YYYY-MM-DD"
+                  )}'`
+                ),
+              ],
+            },
+          ];
+        } else {
+          if (status == WORKPLAN_STATUS.FINISH) {
+            whereCluse.status = {
+              [Op.or]: [WORKPLAN_STATUS.FINISH, WORKPLAN_STATUS.REJECTED],
+            };
+          } else if (status == WORKPLAN_STATUS.PENDING) {
+            whereCluse.status = WORKPLAN_STATUS.PENDING;
+          } else {
+            const statusArray = status.split(",");
+            const statusCondition =
+              statusArray.length > 1 ? { [Op.or]: statusArray } : status;
+
+            whereCluse[Op.and] = [
+              {
+                status: statusCondition,
+              },
+              {
+                [Op.or]: [
+                  Sequelize.literal(`
               STR_TO_DATE(tanggal_selesai, '%d-%m-%Y') > '${today.format(
                 "YYYY-MM-DD"
               )}'
               OR tanggal_selesai IS NULL
             `),
-              ],
-            },
-          ];
+                ],
+              },
+            ];
+          }
         }
       }
     }
@@ -1087,6 +1148,252 @@ exports.get_workplan_attachment = async (req, res) => {
     Responder(res, "OK", null, data, 200);
     return;
   } catch (error) {
+    Responder(res, "ERROR", null, null, 400);
+    return;
+  }
+};
+
+exports.get_workplan_summary = async (req, res) => {
+  const { authorization } = req.headers;
+
+  const WORKPLAN_STATUS = {
+    ON_PROGRESS: 1,
+    PENDING: 2,
+    FINISH: 3,
+    REVISON: 4,
+    REJECTED: 5,
+    NEED_APPROVAL: 6,
+    APPROVED: 7,
+  };
+
+  const STATUS_LABELS = {
+    [WORKPLAN_STATUS.ON_PROGRESS]: "Dalam Proses",
+    [WORKPLAN_STATUS.PENDING]: "Pending",
+    [WORKPLAN_STATUS.FINISH]: "Selesai",
+    [WORKPLAN_STATUS.REVISON]: "Revisi",
+    [WORKPLAN_STATUS.REJECTED]: "Ditolak",
+    [WORKPLAN_STATUS.NEED_APPROVAL]: "Menunggu Persetujuan",
+    [WORKPLAN_STATUS.APPROVED]: "Disetujui",
+  };
+
+  try {
+    const userData = getUserDatabyToken(authorization);
+
+    const today = moment().startOf("day");
+
+    const dueDateItems = await WORKPLAN_DB.findAll({
+      attributes: ["id"],
+      where: {
+        [Op.and]: [
+          {
+            status: {
+              [Op.notIn]: [
+                WORKPLAN_STATUS.FINISH,
+                WORKPLAN_STATUS.REJECTED,
+                WORKPLAN_STATUS.PENDING,
+              ],
+            },
+          },
+          Sequelize.literal(
+            `STR_TO_DATE(tanggal_selesai, '%d-%m-%Y') <= '${today.format(
+              "YYYY-MM-DD"
+            )}'`
+          ),
+          {
+            iduser: userData["iduser"],
+          },
+        ],
+      },
+    });
+
+    const dueDateIds = dueDateItems.map((item) => item.id);
+    const dueDateCount = dueDateIds.length;
+
+    const statusResults = await WORKPLAN_DB.findAll({
+      attributes: [
+        "status",
+        [Sequelize.fn("COUNT", Sequelize.col("status")), "count"],
+      ],
+      where: {
+        iduser: userData["iduser"],
+        id: {
+          [Op.notIn]: dueDateIds,
+        },
+      },
+      group: ["status"],
+    });
+
+    const statusSummary = statusResults.map((item) => ({
+      status: item.status,
+      label: STATUS_LABELS[item.status] || "Tidak Diketahui",
+      count: parseInt(item.dataValues.count),
+    }));
+
+    // Tambahkan Due Date jika ada
+    if (dueDateCount > 0) {
+      statusSummary.push({
+        status: "DUE",
+        label: "Due Date",
+        count: dueDateCount,
+      });
+    }
+
+    // Hitung total untuk status ALL
+    const totalAll = statusSummary.reduce(
+      (acc, curr) => acc + (parseInt(curr.count) || 0),
+      0
+    );
+
+    // Tambahkan status ALL di awal array
+    statusSummary.unshift({
+      status: "ALL",
+      label: "Semua",
+      count: totalAll,
+    });
+
+    Responder(res, "OK", null, statusSummary, 200);
+    return;
+  } catch (err) {
+    console.error(err);
+    Responder(res, "ERROR", null, null, 400);
+    return;
+  }
+};
+
+exports.get_workplan_summary_cc = async (req, res) => {
+  const { authorization } = req.headers;
+
+  const WORKPLAN_STATUS = {
+    ON_PROGRESS: 1,
+    PENDING: 2,
+    FINISH: 3,
+    REVISON: 4,
+    REJECTED: 5,
+    NEED_APPROVAL: 6,
+    APPROVED: 7,
+  };
+
+  const STATUS_LABELS = {
+    [WORKPLAN_STATUS.ON_PROGRESS]: "Dalam Proses",
+    [WORKPLAN_STATUS.PENDING]: "Pending",
+    [WORKPLAN_STATUS.FINISH]: "Selesai",
+    [WORKPLAN_STATUS.REVISON]: "Revisi",
+    [WORKPLAN_STATUS.REJECTED]: "Ditolak",
+    [WORKPLAN_STATUS.NEED_APPROVAL]: "Menunggu Persetujuan",
+    [WORKPLAN_STATUS.APPROVED]: "Disetujui",
+  };
+
+  try {
+    const userData = getUserDatabyToken(authorization);
+    const userAuth = checkUserAuth(userData);
+
+    if (userAuth.error) {
+      return Responder(res, "ERROR", userAuth.message, null, 401);
+    }
+
+    const today = moment().startOf("day");
+
+    const LEFT_JOIN_TABLE = [];
+
+    LEFT_JOIN_TABLE.push({
+      model: USER_SESSION_DB,
+      as: "cc_users",
+      required: true,
+      where: {
+        iduser: userData.iduser,
+      },
+      attributes: [],
+    });
+
+    // 1. Get dueDateItems
+    const dueDateItems = await WORKPLAN_DB.findAll({
+      attributes: ["id"],
+      include: LEFT_JOIN_TABLE,
+      where: {
+        [Op.and]: [
+          {
+            status: {
+              [Op.notIn]: [
+                WORKPLAN_STATUS.FINISH,
+                WORKPLAN_STATUS.REJECTED,
+                WORKPLAN_STATUS.PENDING,
+              ],
+            },
+          },
+          Sequelize.literal(
+            `STR_TO_DATE(tanggal_selesai, '%d-%m-%Y') <= '${today.format(
+              "YYYY-MM-DD"
+            )}'`
+          ),
+        ],
+      },
+    });
+
+    const dueDateIds = dueDateItems.map((item) => item.id);
+    const dueDateCount = dueDateIds.length;
+
+    // 2. Get grouped status results
+    const result = await WORKPLAN_DB.findAll({
+      attributes: [
+        "status",
+        [Sequelize.fn("COUNT", Sequelize.col("workplan.id")), "count"],
+      ],
+      include: [
+        {
+          model: USER_SESSION_DB,
+          as: "cc_users",
+          attributes: [], // kosong supaya tidak muncul di SELECT
+          required: true,
+          through: {
+            attributes: [],
+            where: {
+              user_id: userData.iduser, // Filter cc user id
+            },
+          },
+        },
+      ],
+      where: {
+        id: {
+          [Op.notIn]: dueDateIds.length > 0 ? dueDateIds : [0],
+        },
+      },
+      group: ["workplan.status"],
+      raw: true,
+    });
+
+    // // 3. Format result
+    const statusSummary = result.map((item) => ({
+      status: item.status,
+      label: STATUS_LABELS[item.status] || "Tidak Diketahui",
+      count: parseInt(item.count),
+    }));
+
+    // // Tambahkan Due Date jika ada
+    if (dueDateCount > 0) {
+      statusSummary.push({
+        status: "DUE",
+        label: "Due Date",
+        count: dueDateCount,
+      });
+    }
+
+    // // Hitung total untuk status ALL
+    const totalAll = statusSummary.reduce(
+      (acc, curr) => acc + (parseInt(curr.count) || 0),
+      0
+    );
+
+    // // Tambahkan status ALL di awal array
+    statusSummary.unshift({
+      status: "ALL",
+      label: "Semua",
+      count: totalAll,
+    });
+
+    Responder(res, "OK", null, statusSummary, 200);
+    return;
+  } catch (err) {
+    console.error(err);
     Responder(res, "ERROR", null, null, 400);
     return;
   }
