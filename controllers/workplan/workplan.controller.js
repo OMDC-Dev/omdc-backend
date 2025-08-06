@@ -329,7 +329,12 @@ exports.get_workplan = async (req, res) => {
         });
       }
 
-      whereCluse[Op.and] = filter;
+      //whereCluse[Op.and] = filter;
+      if (!whereCluse[Op.and]) {
+        whereCluse[Op.and] = filter;
+      } else {
+        whereCluse[Op.and] = [...whereCluse[Op.and], ...filter];
+      }
     }
 
     // if (cc && !admin && !id) {
@@ -738,23 +743,24 @@ exports.update_status = async (req, res) => {
       }
     );
 
+    const getWorkplan = await WORKPLAN_DB.findOne({
+      where: { id: id },
+      include: [
+        {
+          model: USER_SESSION_DB,
+          as: "user_detail",
+          required: false, // left join
+          attributes: ["nm_user", "fcmToken"],
+        },
+      ],
+    });
+
+    const getWorkplanData = await getWorkplan["dataValues"];
+
+    const userToken = getWorkplanData["user_detail"]["fcmToken"];
+    const workplanPerihal = getWorkplanData["perihal"];
+
     if (fromAdmin) {
-      const getWorkplan = await WORKPLAN_DB.findOne({
-        where: { id: id },
-        include: [
-          {
-            model: USER_SESSION_DB,
-            as: "user_detail",
-            required: false, // left join
-            attributes: ["nm_user", "fcmToken"],
-          },
-        ],
-      });
-      const getWorkplanData = await getWorkplan["dataValues"];
-
-      const userToken = getWorkplanData["user_detail"]["fcmToken"];
-      const workplanPerihal = getWorkplanData["perihal"];
-
       if (userToken) {
         let status_text = "";
 
@@ -794,11 +800,16 @@ exports.update_status = async (req, res) => {
       const adminFcmTokens = adminSessions.map((session) => session.fcmToken);
 
       if (adminFcmTokens.length > 0) {
+        const msg =
+          status == WORKPLAN_STATUS.NEED_APPROVAL
+            ? "Work in Progress memerlukan persetujuan"
+            : `Update Status Work In Progress dari ${userData["nm_user"]}`;
+
         sendMulticastMessage(
           adminFcmTokens,
           {
-            title: `Update Status Work In Progress dari ${userData["nm_user"]}`,
-            body: `Perihal:\n${workplan?.perihal}`,
+            title: msg,
+            body: `Perihal:\n${workplanPerihal}`,
           },
           {
             name: "WorkplanStack",
