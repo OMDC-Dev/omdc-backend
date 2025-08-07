@@ -354,7 +354,7 @@ exports.get_workplan = async (req, res) => {
     }
 
     if (group) {
-      if (group == "MEDIC") {
+      if (group.toUpperCase() == "MEDIC") {
         whereCluse.group_type = group;
       } else {
         whereCluse.group_type = {
@@ -1155,6 +1155,7 @@ exports.get_workplan_attachment = async (req, res) => {
 
 exports.get_workplan_summary = async (req, res) => {
   const { authorization } = req.headers;
+  const { admin, group } = req.query;
 
   const WORKPLAN_STATUS = {
     ON_PROGRESS: 1,
@@ -1181,45 +1182,87 @@ exports.get_workplan_summary = async (req, res) => {
 
     const today = moment().startOf("day");
 
+    let dueDateWhereClauseAND = [
+      {
+        status: {
+          [Op.notIn]: [
+            WORKPLAN_STATUS.FINISH,
+            WORKPLAN_STATUS.REJECTED,
+            WORKPLAN_STATUS.PENDING,
+          ],
+        },
+      },
+      Sequelize.literal(
+        `STR_TO_DATE(tanggal_selesai, '%d-%m-%Y') <= '${today.format(
+          "YYYY-MM-DD"
+        )}'`
+      ),
+    ];
+
+    if (!admin) {
+      dueDateWhereClauseAND.push({
+        iduser: userData["iduser"],
+      });
+    }
+
+    if (group) {
+      if (group.toUpperCase() == "MEDIC") {
+        dueDateWhereClauseAND.push({
+          group_type: group,
+        });
+      } else {
+        dueDateWhereClauseAND.push({
+          group_type: {
+            [Op.or]: [
+              { [Op.eq]: "NON_MEDIC" },
+              { [Op.is]: null },
+              { [Op.eq]: "" },
+            ],
+          },
+        });
+      }
+    }
+
     const dueDateItems = await WORKPLAN_DB.findAll({
       attributes: ["id"],
       where: {
-        [Op.and]: [
-          {
-            status: {
-              [Op.notIn]: [
-                WORKPLAN_STATUS.FINISH,
-                WORKPLAN_STATUS.REJECTED,
-                WORKPLAN_STATUS.PENDING,
-              ],
-            },
-          },
-          Sequelize.literal(
-            `STR_TO_DATE(tanggal_selesai, '%d-%m-%Y') <= '${today.format(
-              "YYYY-MM-DD"
-            )}'`
-          ),
-          {
-            iduser: userData["iduser"],
-          },
-        ],
+        [Op.and]: dueDateWhereClauseAND,
       },
     });
 
     const dueDateIds = dueDateItems.map((item) => item.id);
     const dueDateCount = dueDateIds.length;
 
+    let statusWhereClause = {
+      id: {
+        [Op.notIn]: dueDateIds,
+      },
+    };
+
+    if (!admin) {
+      statusWhereClause.iduser = userData["iduser"];
+    }
+
+    if (group) {
+      if (group.toUpperCase() == "MEDIC") {
+        statusWhereClause.group_type = group;
+      } else {
+        statusWhereClause.group_type = {
+          [Op.or]: [
+            { [Op.eq]: "NON_MEDIC" },
+            { [Op.is]: null },
+            { [Op.eq]: "" },
+          ],
+        };
+      }
+    }
+
     const statusResults = await WORKPLAN_DB.findAll({
       attributes: [
         "status",
         [Sequelize.fn("COUNT", Sequelize.col("status")), "count"],
       ],
-      where: {
-        iduser: userData["iduser"],
-        id: {
-          [Op.notIn]: dueDateIds,
-        },
-      },
+      where: statusWhereClause,
       group: ["status"],
     });
 
