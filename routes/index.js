@@ -191,6 +191,9 @@ router.post("/workplan/update/:id", workplan.update_workplan);
 //router.post("/workplan/after/:id", workplan.update_attachment_after);
 router.post("/workplan/status/:id", workplan.update_status);
 router.post("/workplan/cc", workplan.get_cc_user);
+router.get("/workplan/attachment/:wp_id", workplan.get_workplan_attachment);
+router.get("/workplan-stat", workplan.get_workplan_summary);
+router.get("/workplan-stat-cc", workplan.get_workplan_summary_cc);
 
 // Workplan Progress
 router.post("/workplan/progress/:wp_id", workplanprogress.create_wp_progress);

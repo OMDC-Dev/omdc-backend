@@ -106,6 +106,10 @@ db_user.scheduler_report = require("../models/schedulerReport")(
   sequelize,
   Sequelize
 );
+db_user.workplan_attachment = require("../models/workplan/attachment.model")(
+  sequelize,
+  Sequelize
+);
 
 // Setup associations
 Object.keys(db_user).forEach((modelName) => {

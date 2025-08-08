@@ -17,6 +17,7 @@ const {
 
 //
 const moment = require("moment");
+const { uploadToCPanel } = require("../../utils/uploadToCPanel");
 require("moment/locale/id");
 moment.locale("id");
 //
@@ -29,11 +30,12 @@ const WORKPLAN_COMMENT_DB = db.workplan_comment;
 const WORKPLAN_CC_DB = db.workplan_cc_users;
 const WORKPLAN_PROGRESS_DB = db.workplan_progress;
 const PENGUMUMAN_DB = db.pengumuman;
+const WORKPLAN_ATTACHMENT = db.workplan_attachment;
 
 // --  Create work plan
 exports.create_workplan = async (req, res) => {
   const {
-    //jenis_workplan,
+    jenis_workplan,
     tanggal_mulai,
     tanggal_selesai,
     kd_induk,
@@ -43,6 +45,8 @@ exports.create_workplan = async (req, res) => {
     attachment_before,
     custom_location,
     group,
+    is_multi,
+    files,
   } = req.body;
   const { authorization } = req.headers;
   try {
@@ -60,14 +64,13 @@ exports.create_workplan = async (req, res) => {
 
     let UPLOAD_IMAGE_BEFORE;
 
-    if (attachment_before) {
+    if (attachment_before && !is_multi) {
       UPLOAD_IMAGE_BEFORE = await uploadImagesCloudinary(attachment_before);
     }
-
     // 1. Buat Workplan
     const workplan = await WORKPLAN_DB.create({
       workplan_id: WORKPLAN_ID,
-      jenis_workplan: "NON_APPROVAL", // set to auto non approval
+      jenis_workplan: jenis_workplan, // set to auto non approval
       tanggal_mulai,
       tanggal_selesai,
       kd_induk: kd_induk ?? null,
@@ -81,6 +84,35 @@ exports.create_workplan = async (req, res) => {
       last_update_by: userData.nm_user,
       group_type: group,
     });
+
+    // handle new attachment
+    if (is_multi && files) {
+      const temp = await Promise.all(
+        files.map(async (item) => {
+          const imageUrl = await uploadToCPanel(
+            item["base64"],
+            `${WORKPLAN_ID}.jpg`
+          );
+          if (imageUrl) {
+            return {
+              imageUrl: imageUrl,
+              caption: item["caption"],
+            };
+          }
+          return null;
+        })
+      );
+
+      const filtered = temp.filter((item) => item !== null);
+
+      for (const item of filtered) {
+        await WORKPLAN_ATTACHMENT.create({
+          workplan_id: workplan.id,
+          image_url: item["imageUrl"],
+          caption: item["caption"],
+        });
+      }
+    }
 
     // 2. Simpan riwayat tanggal selesai workplan
     await WORKPLAN_DATE_HISTORY_DB.create({
@@ -185,6 +217,7 @@ exports.get_workplan = async (req, res) => {
     endDate,
     group,
     onDueDate,
+    isWeb,
   } = req.query;
   const { authorization } = req.headers;
   try {
@@ -205,9 +238,9 @@ exports.get_workplan = async (req, res) => {
       whereCluse.iduser = userData.iduser;
     }
 
-    if (status) {
-      const today = moment().startOf("day");
+    const today = moment().startOf("day");
 
+    if (isWeb) {
       if (onDueDate) {
         whereCluse[Op.and] = [
           {
@@ -229,39 +262,99 @@ exports.get_workplan = async (req, res) => {
             ],
           },
         ];
-      } else {
-        if (status == WORKPLAN_STATUS.FINISH) {
-          whereCluse.status = {
-            [Op.or]: [WORKPLAN_STATUS.FINISH, WORKPLAN_STATUS.REJECTED],
-          };
-        } else if (status == WORKPLAN_STATUS.PENDING) {
-          whereCluse.status = WORKPLAN_STATUS.PENDING;
-        } else {
-          const statusArray = status.split(",");
-          const statusCondition =
-            statusArray.length > 1 ? { [Op.or]: statusArray } : status;
+      } else if (status) {
+        if (status == WORKPLAN_STATUS.ON_PROGRESS) {
+          const dueDateItems = await WORKPLAN_DB.findAll({
+            attributes: ["id"],
+            where: {
+              [Op.and]: [
+                {
+                  status: {
+                    [Op.notIn]: [
+                      WORKPLAN_STATUS.FINISH,
+                      WORKPLAN_STATUS.REJECTED,
+                      WORKPLAN_STATUS.PENDING,
+                    ],
+                  },
+                },
+                Sequelize.literal(
+                  `STR_TO_DATE(tanggal_selesai, '%d-%m-%Y') <= '${today.format(
+                    "YYYY-MM-DD"
+                  )}'`
+                ),
+              ],
+            },
+          });
 
+          const dueDateIds = dueDateItems.map((item) => item.id);
+          whereCluse = {
+            ...whereCluse,
+            id: {
+              [Op.notIn]: dueDateIds,
+            },
+            status: status,
+          };
+        } else {
+          whereCluse.status = status;
+        }
+      }
+    } else {
+      if (status) {
+        if (onDueDate) {
           whereCluse[Op.and] = [
             {
-              status: statusCondition,
+              status: {
+                [Op.notIn]: [
+                  WORKPLAN_STATUS.FINISH,
+                  WORKPLAN_STATUS.REJECTED,
+                  WORKPLAN_STATUS.PENDING,
+                ],
+              },
             },
             {
               [Op.or]: [
-                Sequelize.literal(`
+                Sequelize.literal(
+                  `STR_TO_DATE(tanggal_selesai, '%d-%m-%Y') <= '${today.format(
+                    "YYYY-MM-DD"
+                  )}'`
+                ),
+              ],
+            },
+          ];
+        } else {
+          if (status == WORKPLAN_STATUS.FINISH) {
+            whereCluse.status = {
+              [Op.or]: [WORKPLAN_STATUS.FINISH, WORKPLAN_STATUS.REJECTED],
+            };
+          } else if (status == WORKPLAN_STATUS.PENDING) {
+            whereCluse.status = WORKPLAN_STATUS.PENDING;
+          } else {
+            const statusArray = status.split(",");
+            const statusCondition =
+              statusArray.length > 1 ? { [Op.or]: statusArray } : status;
+
+            whereCluse[Op.and] = [
+              {
+                status: statusCondition,
+              },
+              {
+                [Op.or]: [
+                  Sequelize.literal(`
               STR_TO_DATE(tanggal_selesai, '%d-%m-%Y') > '${today.format(
                 "YYYY-MM-DD"
               )}'
               OR tanggal_selesai IS NULL
             `),
-              ],
-            },
-          ];
+                ],
+              },
+            ];
+          }
         }
       }
     }
 
     if (group) {
-      if (group == "MEDIC") {
+      if (group.toUpperCase() == "MEDIC") {
         whereCluse.group_type = group;
       } else {
         whereCluse.group_type = {
@@ -297,7 +390,12 @@ exports.get_workplan = async (req, res) => {
         });
       }
 
-      whereCluse[Op.and] = filter;
+      //whereCluse[Op.and] = filter;
+      if (!whereCluse[Op.and]) {
+        whereCluse[Op.and] = filter;
+      } else {
+        whereCluse[Op.and] = [...whereCluse[Op.and], ...filter];
+      }
     }
 
     // if (cc && !admin && !id) {
@@ -492,6 +590,7 @@ exports.update_workplan = async (req, res) => {
     kd_induk,
     location,
     group,
+    files,
   } = req.body;
   const { id } = req.params;
   const { authorization } = req.headers;
@@ -612,6 +711,59 @@ exports.update_workplan = async (req, res) => {
       );
     }
 
+    if (files) {
+      const newFile = files.filter((item) => !item.id);
+      const keptFileIds = files
+        .filter((item) => item.id)
+        .map((item) => item.id);
+
+      // 1. Ambil semua attachment lama dari DB
+      const existingAttachments = await WORKPLAN_ATTACHMENT.findAll({
+        where: { workplan_id: id },
+      });
+
+      // 2. Cari file yang dihapus (id lama yang tidak ada di keptFileIds)
+      const deletedAttachments = existingAttachments.filter(
+        (item) => !keptFileIds.includes(item.id)
+      );
+
+      // 3. Hapus dari DB
+      for (const attachment of deletedAttachments) {
+        await WORKPLAN_ATTACHMENT.destroy({
+          where: { id: attachment.id },
+        });
+      }
+
+      // 4. Upload file baru
+      if (newFile.length > 0) {
+        const uploaded = await Promise.all(
+          newFile.map(async (item) => {
+            const image = await uploadToCPanel(
+              item["base64"],
+              `${getExtData["workplan_id"]}.jpg`
+            );
+            if (image) {
+              return {
+                imageUrl: image,
+                caption: item["caption"],
+              };
+            }
+            return null;
+          })
+        );
+
+        const validUploads = uploaded.filter((item) => item !== null);
+
+        for (const item of validUploads) {
+          await WORKPLAN_ATTACHMENT.create({
+            workplan_id: id,
+            image_url: item["imageUrl"],
+            caption: item["caption"],
+          });
+        }
+      }
+    }
+
     Responder(res, "OK", null, { success: true }, 200);
     return;
   } catch (error) {
@@ -638,7 +790,9 @@ exports.update_status = async (req, res) => {
         approved_date:
           status != WORKPLAN_STATUS.PENDING &&
           status != WORKPLAN_STATUS.REVISON &&
-          status != WORKPLAN_STATUS.ON_PROGRESS
+          status != WORKPLAN_STATUS.ON_PROGRESS &&
+          status != WORKPLAN_STATUS.NEED_APPROVAL &&
+          status != WORKPLAN_STATUS.APPROVED
             ? getCurrentDate()
             : null,
         status: status,
@@ -650,23 +804,24 @@ exports.update_status = async (req, res) => {
       }
     );
 
+    const getWorkplan = await WORKPLAN_DB.findOne({
+      where: { id: id },
+      include: [
+        {
+          model: USER_SESSION_DB,
+          as: "user_detail",
+          required: false, // left join
+          attributes: ["nm_user", "fcmToken"],
+        },
+      ],
+    });
+
+    const getWorkplanData = await getWorkplan["dataValues"];
+
+    const userToken = getWorkplanData["user_detail"]["fcmToken"];
+    const workplanPerihal = getWorkplanData["perihal"];
+
     if (fromAdmin) {
-      const getWorkplan = await WORKPLAN_DB.findOne({
-        where: { id: id },
-        include: [
-          {
-            model: USER_SESSION_DB,
-            as: "user_detail",
-            required: false, // left join
-            attributes: ["nm_user", "fcmToken"],
-          },
-        ],
-      });
-      const getWorkplanData = await getWorkplan["dataValues"];
-
-      const userToken = getWorkplanData["user_detail"]["fcmToken"];
-      const workplanPerihal = getWorkplanData["perihal"];
-
       if (userToken) {
         let status_text = "";
 
@@ -689,6 +844,40 @@ exports.update_status = async (req, res) => {
             screen: "WorkplanDetail",
             params: JSON.stringify({
               id: id.toString(),
+            }),
+          }
+        );
+      }
+    } else {
+      // Send Notif to admin
+      const adminSessions = await USER_SESSION_DB.findAll({
+        attributes: [
+          [Sequelize.fn("DISTINCT", Sequelize.col("fcmToken")), "fcmToken"],
+        ],
+        where: Sequelize.literal(`JSON_CONTAINS(kodeAkses, '"1200"')`),
+      });
+
+      // ubah hasil ke array fcmToken
+      const adminFcmTokens = adminSessions.map((session) => session.fcmToken);
+
+      if (adminFcmTokens.length > 0) {
+        const msg =
+          status == WORKPLAN_STATUS.NEED_APPROVAL
+            ? "Work in Progress memerlukan persetujuan"
+            : `Update Status Work In Progress dari ${userData["nm_user"]}`;
+
+        sendMulticastMessage(
+          adminFcmTokens,
+          {
+            title: msg,
+            body: `Perihal:\n${workplanPerihal}`,
+          },
+          {
+            name: "WorkplanStack",
+            screen: "WorkplanDetail",
+            params: JSON.stringify({
+              id: id.toString(),
+              admin: "1",
             }),
           }
         );
@@ -942,5 +1131,313 @@ exports.get_workplan_schedule = async (req, res) => {
     }
   } catch (error) {
     console.log("FAILED TO GET LIST", error);
+  }
+};
+
+// -- Get WP Attachment
+exports.get_workplan_attachment = async (req, res) => {
+  const { authorization } = req.headers;
+  const { wp_id } = req.params;
+  try {
+    const data = await WORKPLAN_ATTACHMENT.findAll({
+      where: {
+        workplan_id: wp_id,
+      },
+    });
+
+    Responder(res, "OK", null, data, 200);
+    return;
+  } catch (error) {
+    Responder(res, "ERROR", null, null, 400);
+    return;
+  }
+};
+
+exports.get_workplan_summary = async (req, res) => {
+  const { authorization } = req.headers;
+  const { admin, group } = req.query;
+
+  const WORKPLAN_STATUS = {
+    ON_PROGRESS: 1,
+    PENDING: 2,
+    FINISH: 3,
+    REVISON: 4,
+    REJECTED: 5,
+    NEED_APPROVAL: 6,
+    APPROVED: 7,
+  };
+
+  const STATUS_LABELS = {
+    [WORKPLAN_STATUS.ON_PROGRESS]: "Dalam Proses",
+    [WORKPLAN_STATUS.PENDING]: "Pending",
+    [WORKPLAN_STATUS.FINISH]: "Selesai",
+    [WORKPLAN_STATUS.REVISON]: "Revisi",
+    [WORKPLAN_STATUS.REJECTED]: "Ditolak",
+    [WORKPLAN_STATUS.NEED_APPROVAL]: "Menunggu Persetujuan",
+    [WORKPLAN_STATUS.APPROVED]: "Disetujui",
+  };
+
+  try {
+    const userData = getUserDatabyToken(authorization);
+
+    const today = moment().startOf("day");
+
+    let dueDateWhereClauseAND = [
+      {
+        status: {
+          [Op.notIn]: [
+            WORKPLAN_STATUS.FINISH,
+            WORKPLAN_STATUS.REJECTED,
+            WORKPLAN_STATUS.PENDING,
+          ],
+        },
+      },
+      Sequelize.literal(
+        `STR_TO_DATE(tanggal_selesai, '%d-%m-%Y') <= '${today.format(
+          "YYYY-MM-DD"
+        )}'`
+      ),
+    ];
+
+    if (!admin) {
+      dueDateWhereClauseAND.push({
+        iduser: userData["iduser"],
+      });
+    }
+
+    if (group) {
+      if (group.toUpperCase() == "MEDIC") {
+        dueDateWhereClauseAND.push({
+          group_type: group,
+        });
+      } else {
+        dueDateWhereClauseAND.push({
+          group_type: {
+            [Op.or]: [
+              { [Op.eq]: "NON_MEDIC" },
+              { [Op.is]: null },
+              { [Op.eq]: "" },
+            ],
+          },
+        });
+      }
+    }
+
+    const dueDateItems = await WORKPLAN_DB.findAll({
+      attributes: ["id"],
+      where: {
+        [Op.and]: dueDateWhereClauseAND,
+      },
+    });
+
+    const dueDateIds = dueDateItems.map((item) => item.id);
+    const dueDateCount = dueDateIds.length;
+
+    let statusWhereClause = {
+      id: {
+        [Op.notIn]: dueDateIds,
+      },
+    };
+
+    if (!admin) {
+      statusWhereClause.iduser = userData["iduser"];
+    }
+
+    if (group) {
+      if (group.toUpperCase() == "MEDIC") {
+        statusWhereClause.group_type = group;
+      } else {
+        statusWhereClause.group_type = {
+          [Op.or]: [
+            { [Op.eq]: "NON_MEDIC" },
+            { [Op.is]: null },
+            { [Op.eq]: "" },
+          ],
+        };
+      }
+    }
+
+    const statusResults = await WORKPLAN_DB.findAll({
+      attributes: [
+        "status",
+        [Sequelize.fn("COUNT", Sequelize.col("status")), "count"],
+      ],
+      where: statusWhereClause,
+      group: ["status"],
+    });
+
+    const statusSummary = statusResults.map((item) => ({
+      status: item.status,
+      label: STATUS_LABELS[item.status] || "Tidak Diketahui",
+      count: parseInt(item.dataValues.count),
+    }));
+
+    // Tambahkan Due Date jika ada
+    if (dueDateCount > 0) {
+      statusSummary.push({
+        status: "DUE",
+        label: "Due Date",
+        count: dueDateCount,
+      });
+    }
+
+    // Hitung total untuk status ALL
+    const totalAll = statusSummary.reduce(
+      (acc, curr) => acc + (parseInt(curr.count) || 0),
+      0
+    );
+
+    // Tambahkan status ALL di awal array
+    statusSummary.unshift({
+      status: "ALL",
+      label: "Semua",
+      count: totalAll,
+    });
+
+    Responder(res, "OK", null, statusSummary, 200);
+    return;
+  } catch (err) {
+    console.error(err);
+    Responder(res, "ERROR", null, null, 400);
+    return;
+  }
+};
+
+exports.get_workplan_summary_cc = async (req, res) => {
+  const { authorization } = req.headers;
+
+  const WORKPLAN_STATUS = {
+    ON_PROGRESS: 1,
+    PENDING: 2,
+    FINISH: 3,
+    REVISON: 4,
+    REJECTED: 5,
+    NEED_APPROVAL: 6,
+    APPROVED: 7,
+  };
+
+  const STATUS_LABELS = {
+    [WORKPLAN_STATUS.ON_PROGRESS]: "Dalam Proses",
+    [WORKPLAN_STATUS.PENDING]: "Pending",
+    [WORKPLAN_STATUS.FINISH]: "Selesai",
+    [WORKPLAN_STATUS.REVISON]: "Revisi",
+    [WORKPLAN_STATUS.REJECTED]: "Ditolak",
+    [WORKPLAN_STATUS.NEED_APPROVAL]: "Menunggu Persetujuan",
+    [WORKPLAN_STATUS.APPROVED]: "Disetujui",
+  };
+
+  try {
+    const userData = getUserDatabyToken(authorization);
+    const userAuth = checkUserAuth(userData);
+
+    if (userAuth.error) {
+      return Responder(res, "ERROR", userAuth.message, null, 401);
+    }
+
+    const today = moment().startOf("day");
+
+    const LEFT_JOIN_TABLE = [];
+
+    LEFT_JOIN_TABLE.push({
+      model: USER_SESSION_DB,
+      as: "cc_users",
+      required: true,
+      where: {
+        iduser: userData.iduser,
+      },
+      attributes: [],
+    });
+
+    // 1. Get dueDateItems
+    const dueDateItems = await WORKPLAN_DB.findAll({
+      attributes: ["id"],
+      include: LEFT_JOIN_TABLE,
+      where: {
+        [Op.and]: [
+          {
+            status: {
+              [Op.notIn]: [
+                WORKPLAN_STATUS.FINISH,
+                WORKPLAN_STATUS.REJECTED,
+                WORKPLAN_STATUS.PENDING,
+              ],
+            },
+          },
+          Sequelize.literal(
+            `STR_TO_DATE(tanggal_selesai, '%d-%m-%Y') <= '${today.format(
+              "YYYY-MM-DD"
+            )}'`
+          ),
+        ],
+      },
+    });
+
+    const dueDateIds = dueDateItems.map((item) => item.id);
+    const dueDateCount = dueDateIds.length;
+
+    // 2. Get grouped status results
+    const result = await WORKPLAN_DB.findAll({
+      attributes: [
+        "status",
+        [Sequelize.fn("COUNT", Sequelize.col("workplan.id")), "count"],
+      ],
+      include: [
+        {
+          model: USER_SESSION_DB,
+          as: "cc_users",
+          attributes: [], // kosong supaya tidak muncul di SELECT
+          required: true,
+          through: {
+            attributes: [],
+            where: {
+              user_id: userData.iduser, // Filter cc user id
+            },
+          },
+        },
+      ],
+      where: {
+        id: {
+          [Op.notIn]: dueDateIds.length > 0 ? dueDateIds : [0],
+        },
+      },
+      group: ["workplan.status"],
+      raw: true,
+    });
+
+    // // 3. Format result
+    const statusSummary = result.map((item) => ({
+      status: item.status,
+      label: STATUS_LABELS[item.status] || "Tidak Diketahui",
+      count: parseInt(item.count),
+    }));
+
+    // // Tambahkan Due Date jika ada
+    if (dueDateCount > 0) {
+      statusSummary.push({
+        status: "DUE",
+        label: "Due Date",
+        count: dueDateCount,
+      });
+    }
+
+    // // Hitung total untuk status ALL
+    const totalAll = statusSummary.reduce(
+      (acc, curr) => acc + (parseInt(curr.count) || 0),
+      0
+    );
+
+    // // Tambahkan status ALL di awal array
+    statusSummary.unshift({
+      status: "ALL",
+      label: "Semua",
+      count: totalAll,
+    });
+
+    Responder(res, "OK", null, statusSummary, 200);
+    return;
+  } catch (err) {
+    console.error(err);
+    Responder(res, "ERROR", null, null, 400);
+    return;
   }
 };

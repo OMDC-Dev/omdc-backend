@@ -47,11 +47,8 @@ async function uploadToCPanel(base64, fileName) {
     // Hapus file sementara
     fs.unlinkSync(tempFilePath);
 
-    console.log(response);
-
     if (response.data.status === 1) {
       const fileUrl = `${PUBLIC_URL_BASE}/${finalFileName}`;
-      console.log("File Uploaded : ", fileUrl);
       return fileUrl;
     } else {
       console.log("FAILED TO UPLOAD");

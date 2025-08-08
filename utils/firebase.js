@@ -53,6 +53,8 @@ const sendMulticastMessage = (tokens, notification, data = {}) => {
 
   const cleanTokens = tokens.filter((token) => !!token);
 
+  if (!cleanTokens.length > 0) return;
+
   return admin
     .messaging()
     .sendEachForMulticast({
