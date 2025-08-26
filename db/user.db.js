@@ -13,6 +13,14 @@ const sequelize = new Sequelize(dbConfig.DB, dbConfig.USER, dbConfig.PASSWORD, {
     idle: dbConfig.pool.idle,
   },
   timezone: "+07:00",
+  logging: (msg, timing) => {
+    if (timing) {
+      console.log(`⏱️ ${timing} ms | ${msg}`);
+    } else {
+      console.log(msg);
+    }
+  },
+  benchmark: true,
 });
 
 const db_user = {};
