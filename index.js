@@ -77,7 +77,7 @@ app.use((err, req, res, next) => {
 app.get("/", (req, res) => {
   res.json({
     message:
-      "Reimbursement Apps Service v.0.9.8.0 - 14 Agustus 2025 ( update work in progress card )",
+      "Reimbursement Apps Service v.0.9.8.0 - 27 Agustus 2025 ( ADD HOOK TEST )",
   });
 });
 
@@ -110,6 +110,11 @@ app.get("/version/:code", (req, res) => {
   }
 });
 
+app.get("/test", async (req, res) => {
+  const [rows] = await pool.query("SELECT * FROM omdc_reimbursements LIMIT 10");
+  res.json(rows);
+});
+
 // set port, listen for requests
 const PORT = process.env.PORT || 8080;
 
@@ -122,4 +127,49 @@ try {
   console.log("✅ runWorkplanDueDate() dipanggil sukses");
 } catch (err) {
   console.error("❌ runWorkplanDueDate() gagal", err);
+}
+
+// HOOK
+// DATABASE
+db_user.sequelize
+  .authenticate()
+  .then(() => {
+    console.log("✅ Database connected successfully.");
+  })
+  .catch((err) => {
+    console.error("❌ Database connection error:", err);
+  });
+
+// HOOKS untuk monitoring query
+db_user.sequelize.addHook("beforeExecute", (options) => {
+  console.log(
+    `[Sequelize] Executing query: ${options.sql} | Bind: ${JSON.stringify(
+      options.bind
+    )}`
+  );
+});
+
+db_user.sequelize.addHook("afterExecute", (options, result) => {
+  console.log(
+    `[Sequelize] Finished query: ${options.sql} | Rows: ${
+      Array.isArray(result) ? result.length : "?"
+    }`
+  );
+});
+
+// EVENT LISTENER pool
+const pool = db_user.sequelize.connectionManager.pool;
+
+if (pool) {
+  pool.on("acquire", (connection) => {
+    console.log(`[POOL] Connection ${connection.threadId} acquired`);
+  });
+
+  pool.on("release", (connection) => {
+    console.log(`[POOL] Connection ${connection.threadId} released`);
+  });
+
+  pool.on("enqueue", () => {
+    console.warn("[POOL] Waiting for available connection...");
+  });
 }
