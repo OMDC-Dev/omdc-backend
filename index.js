@@ -36,6 +36,13 @@ app.set("trust proxy", true);
 app.disable("etag");
 
 app.use((req, res, next) => {
+  console.log(
+    `[${new Date().toISOString()}] Incoming request: ${req.method} ${req.url}`
+  );
+  next();
+});
+
+app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", "*");
   res.header("Access-Control-Allow-Headers", "X-Requested-With");
   res.header(
@@ -128,3 +135,13 @@ try {
 } catch (err) {
   console.error("❌ runWorkplanDueDate() gagal", err);
 }
+
+setInterval(() => {
+  const start = Date.now();
+  setImmediate(() => {
+    const delay = Date.now() - start;
+    if (delay > 200) {
+      console.warn(`⚠️ Event loop blocked for ${delay}ms`);
+    }
+  });
+}, 1000);
