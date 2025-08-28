@@ -84,7 +84,7 @@ app.use((err, req, res, next) => {
 app.get("/", (req, res) => {
   res.json({
     message:
-      "Reimbursement Apps Service v.0.9.8.0 - 27 Agustus 2025 ( ADD HOOK TEST 2 )",
+      "Reimbursement Apps Service v.0.9.8.0 rev 1 - 28 Agustus 2025 ( ADDED INDEXING TO DB )",
   });
 });
 
