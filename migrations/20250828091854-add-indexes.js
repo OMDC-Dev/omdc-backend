@@ -6,29 +6,36 @@ module.exports = {
     /**
      * INDEXING REIMBURSEMENT
      */
-    await queryInterface.addIndex("omdc_reimbursements", ["no_doc"], {
+    await queryInterface.addIndex("omdc_reimbursements", {
+      fields: [{ name: "no_doc", length: 100 }],
       name: "idx_reimbursement_no_doc",
     });
-    await queryInterface.addIndex("omdc_reimbursements", ["kode_cabang"], {
+
+    await queryInterface.addIndex("omdc_reimbursements", {
+      fields: [{ name: "kode_cabang", length: 50 }],
       name: "idx_reimbursement_kode_cabang",
     });
-    await queryInterface.addIndex("omdc_reimbursements", ["requester_id"], {
+
+    await queryInterface.addIndex("omdc_reimbursements", {
+      fields: [{ name: "requester_id", length: 50 }],
       name: "idx_reimbursement_requester_id",
     });
+
     await queryInterface.addIndex("omdc_reimbursements", ["status"], {
       name: "idx_reimbursement_status",
     });
+
     await queryInterface.addIndex("omdc_reimbursements", ["status_finance"], {
       name: "idx_reimbursement_status_finance",
     });
-    await queryInterface.addIndex(
-      "omdc_reimbursements",
-      ["tanggal_reimbursement"],
-      {
-        name: "idx_reimbursement_tanggal",
-      }
-    );
-    await queryInterface.addIndex("omdc_reimbursements", ["kdsp"], {
+
+    await queryInterface.addIndex("omdc_reimbursements", {
+      fields: [{ name: "tanggal_reimbursement", length: 20 }],
+      name: "idx_reimbursement_tanggal",
+    });
+
+    await queryInterface.addIndex("omdc_reimbursements", {
+      fields: [{ name: "kdsp", length: 20 }],
       name: "idx_reimbursement_kdsp",
     });
 
