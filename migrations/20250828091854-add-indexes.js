@@ -1,160 +1,183 @@
 "use strict";
 
+async function addIndexSafe(queryInterface, table, indexName, sql) {
+  const [results] = await queryInterface.sequelize.query(
+    `SHOW INDEX FROM \`${table}\` WHERE Key_name = '${indexName}'`
+  );
+  if (results.length === 0) {
+    await queryInterface.sequelize.query(sql);
+  }
+}
+
 module.exports = {
   async up(queryInterface, Sequelize) {
     /**
-     * INDEXING REIMBURSEMENT
+     * REIMBURSEMENT
      */
-    await queryInterface.addIndex("omdc_reimbursements", {
-      fields: [{ name: "no_doc", length: 100 }],
-      name: "idx_reimbursement_no_doc",
-    });
-    await queryInterface.addIndex("omdc_reimbursements", {
-      fields: [{ name: "kode_cabang", length: 50 }],
-      name: "idx_reimbursement_kode_cabang",
-    });
-    await queryInterface.addIndex("omdc_reimbursements", {
-      fields: [{ name: "requester_id", length: 50 }],
-      name: "idx_reimbursement_requester_id",
-    });
-    await queryInterface.addIndex("omdc_reimbursements", ["status"], {
-      name: "idx_reimbursement_status",
-    });
-    await queryInterface.addIndex("omdc_reimbursements", ["status_finance"], {
-      name: "idx_reimbursement_status_finance",
-    });
-    await queryInterface.addIndex("omdc_reimbursements", {
-      fields: [{ name: "tanggal_reimbursement", length: 20 }],
-      name: "idx_reimbursement_tanggal",
-    });
-    await queryInterface.addIndex("omdc_reimbursements", {
-      fields: [{ name: "kdsp", length: 20 }],
-      name: "idx_reimbursement_kdsp",
-    });
+    await addIndexSafe(
+      queryInterface,
+      "omdc_reimbursements",
+      "idx_reimbursement_no_doc",
+      "CREATE INDEX idx_reimbursement_no_doc ON omdc_reimbursements (no_doc(100))"
+    );
+    await addIndexSafe(
+      queryInterface,
+      "omdc_reimbursements",
+      "idx_reimbursement_kode_cabang",
+      "CREATE INDEX idx_reimbursement_kode_cabang ON omdc_reimbursements (kode_cabang(50))"
+    );
+    await addIndexSafe(
+      queryInterface,
+      "omdc_reimbursements",
+      "idx_reimbursement_requester_id",
+      "CREATE INDEX idx_reimbursement_requester_id ON omdc_reimbursements (requester_id(50))"
+    );
+    await addIndexSafe(
+      queryInterface,
+      "omdc_reimbursements",
+      "idx_reimbursement_status",
+      "CREATE INDEX idx_reimbursement_status ON omdc_reimbursements (status)"
+    );
+    await addIndexSafe(
+      queryInterface,
+      "omdc_reimbursements",
+      "idx_reimbursement_status_finance",
+      "CREATE INDEX idx_reimbursement_status_finance ON omdc_reimbursements (status_finance)"
+    );
+    await addIndexSafe(
+      queryInterface,
+      "omdc_reimbursements",
+      "idx_reimbursement_tanggal",
+      "CREATE INDEX idx_reimbursement_tanggal ON omdc_reimbursements (tanggal_reimbursement(20))"
+    );
+    await addIndexSafe(
+      queryInterface,
+      "omdc_reimbursements",
+      "idx_reimbursement_kdsp",
+      "CREATE INDEX idx_reimbursement_kdsp ON omdc_reimbursements (kdsp(20))"
+    );
 
     /**
-     * INDEXING R_USER (omdc_user_session)
+     * R_USER (omdc_user_session)
      */
-    await queryInterface.addIndex("omdc_user_session", ["status"], {
-      name: "idx_user_session_status",
-    });
-    await queryInterface.addIndex("omdc_user_session", ["isAdmin"], {
-      name: "idx_user_session_isAdmin",
-    });
-    await queryInterface.addIndex("omdc_user_session", {
-      fields: [{ name: "type", length: 50 }],
-      name: "idx_user_session_type",
-    });
+    await addIndexSafe(
+      queryInterface,
+      "omdc_user_session",
+      "idx_user_session_status",
+      "CREATE INDEX idx_user_session_status ON omdc_user_session (status)"
+    );
+    await addIndexSafe(
+      queryInterface,
+      "omdc_user_session",
+      "idx_user_session_isAdmin",
+      "CREATE INDEX idx_user_session_isAdmin ON omdc_user_session (isAdmin)"
+    );
+    await addIndexSafe(
+      queryInterface,
+      "omdc_user_session",
+      "idx_user_session_type",
+      "CREATE INDEX idx_user_session_type ON omdc_user_session (type(50))"
+    );
 
     /**
-     * INDEXING SUPER_USER (omdc_super_users)
+     * SUPER_USER (omdc_super_users)
      */
-    await queryInterface.addIndex("omdc_super_users", {
-      fields: [{ name: "type", length: 50 }],
-      name: "idx_superuser_type",
-    });
-    await queryInterface.addIndex("omdc_super_users", {
-      fields: [{ name: "nm_user", length: 100 }],
-      name: "idx_superuser_nm_user",
-    });
-    await queryInterface.addIndex("omdc_super_users", {
-      fields: [{ name: "departemen", length: 50 }],
-      name: "idx_superuser_departemen",
-    });
-    await queryInterface.addIndex("omdc_super_users", {
-      fields: [{ name: "level_user", length: 50 }],
-      name: "idx_superuser_level_user",
-    });
+    await addIndexSafe(
+      queryInterface,
+      "omdc_super_users",
+      "idx_superuser_type",
+      "CREATE INDEX idx_superuser_type ON omdc_super_users (type(50))"
+    );
+    await addIndexSafe(
+      queryInterface,
+      "omdc_super_users",
+      "idx_superuser_nm_user",
+      "CREATE INDEX idx_superuser_nm_user ON omdc_super_users (nm_user(100))"
+    );
+    await addIndexSafe(
+      queryInterface,
+      "omdc_super_users",
+      "idx_superuser_departemen",
+      "CREATE INDEX idx_superuser_departemen ON omdc_super_users (departemen(50))"
+    );
+    await addIndexSafe(
+      queryInterface,
+      "omdc_super_users",
+      "idx_superuser_level_user",
+      "CREATE INDEX idx_superuser_level_user ON omdc_super_users (level_user(50))"
+    );
 
     /**
-     * INDEXING BARANG (m_barang)
+     * BARANG (m_barang)
      */
-    await queryInterface.addIndex("m_barang", ["sts_brg"], {
-      name: "idx_barang_status",
-    });
-    await queryInterface.addIndex("m_barang", {
-      fields: [{ name: "nm_barang", length: 100 }],
-      name: "idx_barang_nm_barang",
-    });
-    await queryInterface.addIndex("m_barang", {
-      fields: [{ name: "barcode_brg", length: 100 }],
-      name: "idx_barang_barcode",
-    });
-    await queryInterface.addIndex("m_barang", {
-      fields: [{ name: "kdsp", length: 50 }],
-      name: "idx_barang_kdsp",
-    });
-    await queryInterface.addIndex("m_barang", {
-      fields: [{ name: "kd_comp", length: 50 }],
-      name: "idx_barang_kd_comp",
-    });
+    await addIndexSafe(
+      queryInterface,
+      "m_barang",
+      "idx_barang_status",
+      "CREATE INDEX idx_barang_status ON m_barang (sts_brg)"
+    );
+    await addIndexSafe(
+      queryInterface,
+      "m_barang",
+      "idx_barang_nm_barang",
+      "CREATE INDEX idx_barang_nm_barang ON m_barang (nm_barang(100))"
+    );
+    await addIndexSafe(
+      queryInterface,
+      "m_barang",
+      "idx_barang_barcode",
+      "CREATE INDEX idx_barang_barcode ON m_barang (barcode_brg(100))"
+    );
+    await addIndexSafe(
+      queryInterface,
+      "m_barang",
+      "idx_barang_kdsp",
+      "CREATE INDEX idx_barang_kdsp ON m_barang (kdsp(50))"
+    );
+    await addIndexSafe(
+      queryInterface,
+      "m_barang",
+      "idx_barang_kd_comp",
+      "CREATE INDEX idx_barang_kd_comp ON m_barang (kd_comp(50))"
+    );
   },
 
   async down(queryInterface, Sequelize) {
-    // reimbursement
-    await queryInterface.removeIndex(
+    // remove indexes safely
+    const tables = [
       "omdc_reimbursements",
-      "idx_reimbursement_no_doc"
-    );
-    await queryInterface.removeIndex(
-      "omdc_reimbursements",
-      "idx_reimbursement_kode_cabang"
-    );
-    await queryInterface.removeIndex(
-      "omdc_reimbursements",
-      "idx_reimbursement_requester_id"
-    );
-    await queryInterface.removeIndex(
-      "omdc_reimbursements",
-      "idx_reimbursement_status"
-    );
-    await queryInterface.removeIndex(
-      "omdc_reimbursements",
-      "idx_reimbursement_status_finance"
-    );
-    await queryInterface.removeIndex(
-      "omdc_reimbursements",
-      "idx_reimbursement_tanggal"
-    );
-    await queryInterface.removeIndex(
-      "omdc_reimbursements",
-      "idx_reimbursement_kdsp"
-    );
-
-    // ruser
-    await queryInterface.removeIndex(
       "omdc_user_session",
-      "idx_user_session_status"
-    );
-    await queryInterface.removeIndex(
-      "omdc_user_session",
-      "idx_user_session_isAdmin"
-    );
-    await queryInterface.removeIndex(
-      "omdc_user_session",
-      "idx_user_session_type"
-    );
+      "omdc_super_users",
+      "m_barang",
+    ];
+    const indexes = [
+      "idx_reimbursement_no_doc",
+      "idx_reimbursement_kode_cabang",
+      "idx_reimbursement_requester_id",
+      "idx_reimbursement_status",
+      "idx_reimbursement_status_finance",
+      "idx_reimbursement_tanggal",
+      "idx_reimbursement_kdsp",
+      "idx_user_session_status",
+      "idx_user_session_isAdmin",
+      "idx_user_session_type",
+      "idx_superuser_type",
+      "idx_superuser_nm_user",
+      "idx_superuser_departemen",
+      "idx_superuser_level_user",
+      "idx_barang_status",
+      "idx_barang_nm_barang",
+      "idx_barang_barcode",
+      "idx_barang_kdsp",
+      "idx_barang_kd_comp",
+    ];
 
-    // superuser
-    await queryInterface.removeIndex("omdc_super_users", "idx_superuser_type");
-    await queryInterface.removeIndex(
-      "omdc_super_users",
-      "idx_superuser_nm_user"
-    );
-    await queryInterface.removeIndex(
-      "omdc_super_users",
-      "idx_superuser_departemen"
-    );
-    await queryInterface.removeIndex(
-      "omdc_super_users",
-      "idx_superuser_level_user"
-    );
-
-    // barang
-    await queryInterface.removeIndex("m_barang", "idx_barang_status");
-    await queryInterface.removeIndex("m_barang", "idx_barang_nm_barang");
-    await queryInterface.removeIndex("m_barang", "idx_barang_barcode");
-    await queryInterface.removeIndex("m_barang", "idx_barang_kdsp");
-    await queryInterface.removeIndex("m_barang", "idx_barang_kd_comp");
+    for (const table of tables) {
+      for (const idx of indexes) {
+        await queryInterface.sequelize
+          .query(`DROP INDEX IF EXISTS ${idx} ON \`${table}\``)
+          .catch(() => {});
+      }
+    }
   },
 };
