@@ -13,7 +13,7 @@ const { runWorkplanDueDate } = require("./utils/workplanDueDateCheck");
 
 const app = express();
 
-const CODE_VERSION = "9.8.0";
+const CODE_VERSION = "9.8.2";
 
 // var corsOptions = {
 //   origin: "http://localhost:5173",
@@ -84,7 +84,7 @@ app.use((err, req, res, next) => {
 app.get("/", (req, res) => {
   res.json({
     message:
-      "Reimbursement Apps Service v.0.9.8.0 rev 1 - 28 Agustus 2025 ( ADDED INDEXING TO DB )",
+      "Reimbursement Apps Service v.0.9.8.2 - 17 September 2025 ( Update Version to 9.8.2 )",
   });
 });
 
